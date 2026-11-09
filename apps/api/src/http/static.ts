@@ -67,7 +67,7 @@ export function serveWebApp(publicDir: string, c: Context): Response {
   }
 
   return new Response(
-    'Frontend no construido. Ejecuta `bun run build:web` o levanta el dev server de Vite.',
+    'Frontend no construido. Ejecuta `bun run build:web`, o en desarrollo abre http://localhost:5173 (Vite).',
     { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
   );
 }

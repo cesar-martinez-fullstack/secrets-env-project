@@ -3,7 +3,7 @@
  * (precedencia entorno real > .env, walk-up de directorios y SV_ENV_FILE).
  */
 import { afterEach, describe, expect, it } from 'bun:test';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig, loadDotEnv } from '../src/config';
@@ -36,6 +36,40 @@ function withEnv(overrides: Record<string, string | undefined>, fn: () => void):
     }
   }
 }
+
+describe('default public dir', () => {
+  it('should find the SPA built into apps/api/public when run from the repo root', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sv-root-'));
+    mkdirSync(join(root, 'apps', 'api', 'public'), { recursive: true });
+    writeFileSync(join(root, 'apps', 'api', 'public', 'index.html'), '<title>x</title>');
+    const previous = process.cwd();
+    try {
+      process.chdir(root);
+      expect(loadConfig({}).publicDir).toBe(join(realpathSync(root), 'apps', 'api', 'public'));
+    } finally {
+      process.chdir(previous);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('should prefer ./public (binary and Docker layout) when it exists', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sv-root-'));
+    mkdirSync(join(root, 'public'), { recursive: true });
+    writeFileSync(join(root, 'public', 'index.html'), '<title>x</title>');
+    const previous = process.cwd();
+    try {
+      process.chdir(root);
+      expect(loadConfig({}).publicDir).toBe(join(realpathSync(root), 'public'));
+    } finally {
+      process.chdir(previous);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('should honour an explicit SV_PUBLIC_DIR over any default', () => {
+    expect(loadConfig({ SV_PUBLIC_DIR: '/custom/spa' }).publicDir).toContain('spa');
+  });
+});
 
 const tempDirs: string[] = [];
 afterEach(() => {
