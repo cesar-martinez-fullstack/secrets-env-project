@@ -1,0 +1,24 @@
+node_modules
+dist
+apps/web/dist
+apps/web/node_modules
+apps/api/data
+apps/api/public
+data
+docker-data
+*.db
+*.db-wal
+*.db-shm
+.git
+.gitignore
+README.md
+.env
+
+# Solo desarrollo (no necesarios para construir la imagen)
+.claude
+.husky
+docs
+tests
+CLAUDE.md
+CLAUDE.local.md
+coverage

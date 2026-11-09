@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+bun.lockb
+apps/api/public
+apps/web/dist
+package-lock.json

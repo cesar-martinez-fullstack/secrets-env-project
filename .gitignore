@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+
+# Artefactos de build
+dist/
+apps/web/dist/
+apps/api/public/
+coverage/
+*.log
+
+# Base de datos local y datos
+data/
+*.db
+*.db-wal
+*.db-shm
+docker-data/
+
+# Configuración local con secretos
+.env
+.env.local
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Configuración local de Claude / agentes
+CLAUDE.local.md
+.claude/settings.local.json

@@ -1,0 +1,16 @@
+# Normaliza finales de línea: todo en LF (hooks de shell y Dockerfile fallan con CRLF).
+* text=auto eol=lf
+
+*.sh text eol=lf
+.husky/* text eol=lf
+Dockerfile text eol=lf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.db binary
+bun.lock text eol=lf linguist-generated
