@@ -1,0 +1,71 @@
+{
+  "name": "secretvault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first secrets and environment-variable manager, encrypted at rest (AES-256-GCM). Bun + Hono + Vue 3 + SQLite.",
+  "license": "MIT",
+  "author": "Cesar Martinez",
+  "homepage": "https://github.com/cesar-martinez-fullstack/secrets-env-project#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cesar-martinez-fullstack/secrets-env-project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cesar-martinez-fullstack/secrets-env-project/issues"
+  },
+  "keywords": [
+    "secrets",
+    "env",
+    "vault",
+    "password-manager",
+    "aes-256-gcm",
+    "local-first",
+    "bun",
+    "hono",
+    "vue"
+  ],
+  "packageManager": "bun@1.4.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"bun run dev:api\" \"bun run dev:web\"",
+    "dev:api": "bun --watch run apps/api/src/index.ts",
+    "dev:web": "bun run --cwd apps/web dev",
+    "build": "bun run build:web && bun run build:api",
+    "build:web": "bun run --cwd apps/web build",
+    "build:api": "bun build --compile --minify --sourcemap=none --target bun ./apps/api/src/index.ts --outfile ./dist/secretvault",
+    "typecheck": "bun run --filter '@secretvault/*' typecheck",
+    "start": "bun run --cwd apps/api start",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:cov": "bun test --coverage",
+    "test:architecture": "bun test tests/architecture.spec.ts",
+    "test:security": "bun test apps/api/tests/security",
+    "lint": "eslint . --fix",
+    "lint:check": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "verify": "bun run typecheck && bun run lint:check && bun test",
+    "audit": "bun audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.7",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.72.2"
+  }
+}

@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+# Git Flow: no se commitea directo en las ramas permanentes (usa feature/*, fix/*, release/*, hotfix/*).
+# Bypass puntual y consciente (p. ej. el commit inicial): ALLOW_PROTECTED_BRANCH=1 git commit ...
+branch="$(git symbolic-ref --short -q HEAD || true)"
+case "$branch" in
+  main|develop)
+    if [ "${ALLOW_PROTECTED_BRANCH:-0}" != "1" ]; then
+      echo "Commit directo en '$branch' bloqueado (Git Flow). Crea una rama feature/*, fix/*, release/* o hotfix/*." >&2
+      echo "Ver docs/GIT_WORKFLOW.md" >&2
+      exit 1
+    fi
+    ;;
+esac
+
+bunx lint-staged
