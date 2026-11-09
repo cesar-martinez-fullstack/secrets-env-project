@@ -148,3 +148,69 @@ describe('SqliteUnitOfWork (atomicity)', () => {
     await expect(uow.run(async () => uow.run(async () => 1))).rejects.toThrow('anidado');
   });
 });
+
+describe('migration 2 (envelope encryption)', () => {
+  const V1 = MIGRATIONS.filter((m) => m.version === 1);
+
+  it('should keep an existing v1 vault intact as format 1 with empty envelope columns', () => {
+    const db = new Database(':memory:');
+    migrate(db, V1);
+    db.query(
+      `INSERT INTO vault_meta (id, salt, iterations, verifier, created_at, updated_at)
+       VALUES (1, ?, 310000, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
+    ).run(new Uint8Array(16).fill(1), new Uint8Array(48).fill(2));
+
+    expect(migrate(db)).toEqual([2]);
+
+    const row = db
+      .query<{ format_version: number; wrapped_dek: Uint8Array | null; iterations: number }, []>(
+        'SELECT format_version, wrapped_dek, iterations FROM vault_meta WHERE id = 1',
+      )
+      .get()!;
+    expect(row).toEqual({ format_version: 1, wrapped_dek: null, iterations: 310_000 });
+  });
+
+  it('should require the whole envelope for format 2 (consistency CHECK)', async () => {
+    const db = openInMemoryDatabase();
+    const { vault } = createRepositories(db);
+    const base = {
+      salt: new Uint8Array(16).fill(1),
+      iterations: 600_000,
+      verifier: new Uint8Array(48).fill(2),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await expect(
+      vault.save({
+        ...base,
+        formatVersion: 2,
+        wrappedDek: null,
+        recoverySalt: null,
+        recoveryWrappedDek: null,
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      vault.save({
+        ...base,
+        formatVersion: 2,
+        wrappedDek: new Uint8Array(60),
+        recoverySalt: new Uint8Array(16),
+        recoveryWrappedDek: new Uint8Array(60),
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('should reject unknown format versions', () => {
+    const db = openInMemoryDatabase();
+    expect(() =>
+      db
+        .query(
+          `INSERT INTO vault_meta (id, salt, iterations, verifier, format_version, created_at, updated_at)
+           VALUES (1, ?, 600000, ?, 3, 'x', 'x')`,
+        )
+        .run(new Uint8Array(16), new Uint8Array(48)),
+    ).toThrow();
+  });
+});

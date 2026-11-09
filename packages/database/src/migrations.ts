@@ -60,6 +60,41 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_audit_created ON audit_log(created_at);
     `,
   },
+  {
+    version: 2,
+    description: 'cifrado de envoltura: clave de datos envuelta y clave de recuperación',
+    // SQLite no permite añadir un CHECK entre columnas con ALTER: se reconstruye la tabla.
+    // Las bóvedas existentes quedan en formato 1 y se actualizan al desbloquearlas.
+    // COALESCE: un CHECK con NULL se considera cumplido, así que NULL debe contar como 0.
+    sql: `
+      CREATE TABLE vault_meta_v2 (
+        id                   INTEGER PRIMARY KEY CHECK (id = 1),
+        salt                 BLOB    NOT NULL CHECK (length(salt) >= 16),
+        iterations           INTEGER NOT NULL CHECK (iterations >= 100000),
+        verifier             BLOB    NOT NULL CHECK (length(verifier) >= 28),
+        format_version       INTEGER NOT NULL DEFAULT 1 CHECK (format_version IN (1, 2)),
+        wrapped_dek          BLOB,
+        recovery_salt        BLOB,
+        recovery_wrapped_dek BLOB,
+        created_at           TEXT    NOT NULL,
+        updated_at           TEXT    NOT NULL,
+        CHECK (
+          format_version = 1
+          OR (
+            COALESCE(length(wrapped_dek), 0) >= 60
+            AND COALESCE(length(recovery_salt), 0) >= 16
+            AND COALESCE(length(recovery_wrapped_dek), 0) >= 60
+          )
+        )
+      );
+
+      INSERT INTO vault_meta_v2 (id, salt, iterations, verifier, created_at, updated_at)
+        SELECT id, salt, iterations, verifier, created_at, updated_at FROM vault_meta;
+
+      DROP TABLE vault_meta;
+      ALTER TABLE vault_meta_v2 RENAME TO vault_meta;
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {
