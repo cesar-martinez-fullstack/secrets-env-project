@@ -13,7 +13,9 @@ const config: UserConfig = {
       rules: {
         // Project policy: no authorship/attribution trailers from tools or assistants.
         'no-ai-attribution': ({ raw }) => {
-          const forbidden = /co-authored-by:|generated (with|by)|\bclaude\b|\banthropic\b/i;
+          // Trailers y firmas de herramientas/asistentes. El scope `claude` (la carpeta
+          // .claude/) es legítimo y no cuenta como atribución.
+          const forbidden = /co-authored-by:|generated (with|by)|@anthropic\.com|claude code/i;
           return [
             !forbidden.test(raw ?? ''),
             'commit message must not contain co-author or tool/AI attribution',
