@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ToastHost from '@/components/ui/ToastHost.vue';
+import RecoveryKeyDialog from '@/components/vault/RecoveryKeyDialog.vue';
 </script>
 
 <template>
@@ -8,6 +9,7 @@ import ToastHost from '@/components/ui/ToastHost.vue';
       <component :is="Component" />
     </Transition>
   </RouterView>
+  <RecoveryKeyDialog />
   <ToastHost />
 </template>
 

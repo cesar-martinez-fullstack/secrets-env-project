@@ -10,6 +10,8 @@ const props = defineProps<{
   open: boolean;
   title: string;
   maxWidth?: 'sm' | 'md' | 'lg';
+  /** `false` = no se cierra con Escape, clic externo ni botón (diálogos que exigen una acción). */
+  dismissible?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -22,8 +24,12 @@ const maxClass = {
   lg: 'max-w-2xl',
 } as const;
 
+function requestClose() {
+  if (props.dismissible !== false) emit('close');
+}
+
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && props.open) emit('close');
+  if (event.key === 'Escape' && props.open) requestClose();
 }
 
 watch(
@@ -50,7 +56,7 @@ onBeforeUnmount(() => {
       <div
         v-if="open"
         class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/45 p-4 backdrop-blur-sm sm:items-center"
-        @click.self="emit('close')"
+        @click.self="requestClose"
       >
         <div
           class="card w-full p-6 shadow-xl"
@@ -62,6 +68,7 @@ onBeforeUnmount(() => {
           <div class="mb-4 flex items-start justify-between gap-4">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ title }}</h2>
             <button
+              v-if="dismissible !== false"
               type="button"
               class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               aria-label="Cerrar"

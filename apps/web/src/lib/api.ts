@@ -11,9 +11,13 @@ import type {
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
+  RecoverVaultResponseDto,
+  RecoveryKeyDto,
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
+  SetupVaultResponseDto,
+  UnlockVaultResponseDto,
   ValidationIssue,
   VaultStatusDto,
 } from '@secretvault/shared';
@@ -76,15 +80,27 @@ export const api = {
   getVaultStatus: () => request<VaultStatusDto>('/api/vault/status'),
 
   setupVault: (masterPassword: string) =>
-    request<OkDto>('/api/vault/setup', {
+    request<SetupVaultResponseDto>('/api/vault/setup', {
       method: 'POST',
       body: JSON.stringify({ masterPassword }),
     }),
 
   unlockVault: (masterPassword: string) =>
-    request<OkDto>('/api/vault/unlock', {
+    request<UnlockVaultResponseDto>('/api/vault/unlock', {
       method: 'POST',
       body: JSON.stringify({ masterPassword }),
+    }),
+
+  recoverVault: (recoveryKey: string, newPassword: string) =>
+    request<RecoverVaultResponseDto>('/api/vault/recover', {
+      method: 'POST',
+      body: JSON.stringify({ recoveryKey, newPassword }),
+    }),
+
+  regenerateRecoveryKey: (currentPassword: string) =>
+    request<RecoveryKeyDto>('/api/vault/recovery-key', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword }),
     }),
 
   lockVault: () => request<OkDto>('/api/vault/lock', { method: 'POST' }),
