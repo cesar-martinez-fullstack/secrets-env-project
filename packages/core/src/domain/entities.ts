@@ -1,0 +1,94 @@
+/**
+ * Entidades de dominio de SecretVault.
+ * Este paquete NO conoce HTTP, Bun, Vue ni SQLite: solo reglas de negocio puras.
+ */
+import type { AuditEventType } from '@secretvault/shared';
+
+/** Registro único de la bóveda (fila id=1 en la base de datos). */
+export interface VaultInfo {
+  salt: Uint8Array;
+  iterations: number;
+  /** Blob AES-256-GCM de un texto verificador conocido. Valida la contraseña maestra. */
+  verifier: Uint8Array;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Environment {
+  id: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EnvironmentWithCount extends Environment {
+  secretCount: number;
+}
+
+/** Secreto persistido: el valor y la nota viajan cifrados (AES-256-GCM). */
+export interface SecretRecord {
+  id: number;
+  environmentId: number;
+  name: string;
+  valueEnc: Uint8Array;
+  noteEnc: Uint8Array | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SecretWithMeta extends SecretRecord {
+  environmentName: string;
+}
+
+/** Modelo de lectura para listados: valor SIEMPRE enmascarado. */
+export interface SecretSummary {
+  id: number;
+  environmentId: number;
+  environmentName: string;
+  name: string;
+  maskedValue: string;
+  hasNote: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Secreto desencriptado bajo demanda (reveal). */
+export interface DecryptedSecret {
+  id: number;
+  environmentId: number;
+  environmentName: string;
+  name: string;
+  value: string;
+  note: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuditEvent {
+  id: number;
+  type: AuditEventType;
+  message: string;
+  createdAt: Date;
+}
+
+/** Entrada desencriptada lista para formatear en la exportación. */
+export interface ExportEntry {
+  name: string;
+  value: string;
+  note: string | null;
+}
+
+export interface ImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  invalidLines: number;
+}
+
+/** Sesión activa: la clave vive SOLO en RAM, ligada a un token opaco. */
+export interface VaultSession {
+  sessionId: string;
+  key: Uint8Array;
+  expiresAt: Date;
+  createdAt: Date;
+}
