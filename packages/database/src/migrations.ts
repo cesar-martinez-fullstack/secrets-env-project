@@ -72,15 +72,41 @@ export class SchemaTooNewError extends Error {
   }
 }
 
+/**
+ * Base de datos creada antes de existir las migraciones (esquema sin versionar y formato
+ * cifrado anterior). No se puede migrar: se rechaza con un mensaje accionable.
+ */
+export class LegacyDatabaseError extends Error {
+  constructor() {
+    super(
+      'La base de datos fue creada por una versión anterior a v0.1.0 (sin migraciones) y su ' +
+        'formato cifrado ya no es compatible. Muévela o bórrala (carpeta SV_DATA_DIR) para crear ' +
+        'una bóveda nueva; no se modificó nada.',
+    );
+    this.name = 'LegacyDatabaseError';
+  }
+}
+
+function hasTable(db: Database, name: string): boolean {
+  return (
+    db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name) != null
+  );
+}
+
 export function currentVersion(db: Database): number {
   return db.query<{ user_version: number }, []>('PRAGMA user_version').get()!.user_version;
 }
 
+/** Rechaza (sin tocar nada) bases que esta versión no puede ni debe migrar. */
+function assertMigratable(db: Database, from: number, latest: number): void {
+  if (from > latest) throw new SchemaTooNewError(from, latest);
+  if (from === 0 && hasTable(db, 'vault_meta')) throw new LegacyDatabaseError();
+}
+
 /** Aplica las migraciones pendientes. Devuelve las versiones aplicadas. */
 export function migrate(db: Database, migrations: readonly Migration[] = MIGRATIONS): number[] {
-  const latest = migrations.at(-1)?.version ?? 0;
   const from = currentVersion(db);
-  if (from > latest) throw new SchemaTooNewError(from, latest);
+  assertMigratable(db, from, migrations.at(-1)?.version ?? 0);
 
   const applied: number[] = [];
   for (const migration of migrations.filter((m) => m.version > from)) {
