@@ -45,6 +45,10 @@ export type AuditEventType =
   | 'vault.unlock_failed'
   | 'vault.lock'
   | 'vault.password_changed'
+  | 'vault.upgraded'
+  | 'vault.recovered'
+  | 'vault.recovery_failed'
+  | 'vault.recovery_key_regenerated'
   | 'env.created'
   | 'env.renamed'
   | 'env.deleted'
@@ -61,6 +65,10 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.unlock_failed',
   'vault.lock',
   'vault.password_changed',
+  'vault.upgraded',
+  'vault.recovered',
+  'vault.recovery_failed',
+  'vault.recovery_key_regenerated',
   'env.created',
   'env.renamed',
   'env.deleted',
