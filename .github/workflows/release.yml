@@ -1,0 +1,92 @@
+name: Release
+
+# Runs when a version tag is pushed on main (see docs/GIT_WORKFLOW.md).
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  BUN_VERSION: 1.4.4
+  HUSKY: 0
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the tag is on main
+        run: |
+          git fetch origin main --depth=1000
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build:web
+
+      - name: Verify tag matches package.json version
+        run: test "v$(bun -e 'console.log(require("./package.json").version)')" = "$GITHUB_REF_NAME"
+
+      - name: Extract release notes from CHANGELOG
+        run: bash scripts/changelog-section.sh "${GITHUB_REF_NAME#v}" > RELEASE_NOTES.md
+
+      - name: Build binaries
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for target in linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64; do
+            name="secretvault-${GITHUB_REF_NAME}-${target}"
+            ext=""; [ "$target" = "windows-x64" ] && ext=".exe"
+            mkdir -p "pkg/$name"
+            bun build --compile --minify --sourcemap=none --target "bun-${target}" \
+              apps/api/src/index.ts --outfile "pkg/$name/secretvault${ext}"
+            cp -r apps/api/public "pkg/$name/public"
+            cp LICENSE README.md CHANGELOG.md .env.example "pkg/$name/"
+            if [ "$target" = "windows-x64" ]; then
+              (cd pkg && zip -qr "../dist/$name.zip" "$name")
+            else
+              tar -C pkg -czf "dist/$name.tar.gz" "$name"
+            fi
+          done
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease";; esac
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md $prerelease
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
