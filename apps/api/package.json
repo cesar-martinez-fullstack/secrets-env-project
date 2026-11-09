@@ -1,0 +1,22 @@
+{
+  "name": "@secretvault/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot run src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@secretvault/core": "workspace:*",
+    "@secretvault/crypto": "workspace:*",
+    "@secretvault/database": "workspace:*",
+    "@secretvault/shared": "workspace:*",
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "typescript": "^5.6.0"
+  }
+}

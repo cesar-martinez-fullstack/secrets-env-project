@@ -1,0 +1,82 @@
+/**
+ * Utilidades HTTP: respuestas JSON (no-cache), cookies de sesión y lectura
+ * validada del body.
+ */
+import type { Context } from 'hono';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { SESSION_COOKIE } from '@secretvault/shared';
+import { ValidationFailedError } from '@secretvault/core';
+import type { ApiConfig } from '../config';
+
+/** Respuesta JSON estándar (nunca cacheable: datos sensibles). */
+export function jsonResponse<T>(c: Context, data: T, status: 200 | 201 = 200) {
+  return c.json(data, status, { 'Cache-Control': 'no-store' });
+}
+
+export function sessionCookieOptions(config: ApiConfig) {
+  return {
+    httpOnly: true,
+    sameSite: 'Lax' as const,
+    path: '/',
+    secure: config.cookieSecure,
+    // La expiración de la cookie acompaña la ventana deslizante de inactividad.
+    maxAge: config.autoLockMinutes * 60,
+  };
+}
+
+export function setSessionCookie(c: Context, sessionId: string, config: ApiConfig): void {
+  setCookie(c, SESSION_COOKIE, sessionId, sessionCookieOptions(config));
+}
+
+export function getSessionId(c: Context): string | undefined {
+  return getCookie(c, SESSION_COOKIE);
+}
+
+export function clearSessionCookie(c: Context): void {
+  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+}
+
+/** Lee el body JSON validando que sea un objeto plano. */
+export async function readJsonBody<T extends object>(c: Context): Promise<T> {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    throw invalidBody();
+  }
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    throw invalidBody();
+  }
+  return body as T;
+}
+
+function invalidBody(): ValidationFailedError {
+  return new ValidationFailedError([{ field: 'body', message: 'JSON inválido o vacío.' }]);
+}
+
+/** Exige un campo string en el body. */
+export function requireString(body: object, field: string): string {
+  const value = (body as Record<string, unknown>)[field];
+  if (typeof value !== 'string') {
+    throw new ValidationFailedError([{ field, message: 'Campo requerido y debe ser texto.' }]);
+  }
+  return value;
+}
+
+/** Exige un campo entero en el body. */
+export function requireInt(body: object, field: string): number {
+  const value = (body as Record<string, unknown>)[field];
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new ValidationFailedError([{ field, message: 'Campo requerido y debe ser entero.' }]);
+  }
+  return value;
+}
+
+/** Convierte y valida un :id de ruta. */
+export function parseIdParam(raw: string): number {
+  const id = Number.parseInt(raw, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new ValidationFailedError([{ field: 'id', message: 'Identificador inválido.' }]);
+  }
+  return id;
+}
