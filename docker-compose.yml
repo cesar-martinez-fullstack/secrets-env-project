@@ -1,0 +1,50 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  SecretVault — despliegue local con Docker Compose
+#
+#   docker compose up -d --build
+#
+#  La base de datos SQLite (secrets.db) vive en el volumen Docker
+#  "secretvault-data": sobrevive reinicios, recreaciones y actualizaciones
+#  de imagen. La clave maestra NUNCA está en ningún volumen (solo RAM).
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+  secretvault:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: secretvault:latest
+    container_name: secretvault
+    ports:
+      # SOLO loopback del host: la bóveda no es alcanzable desde la red local.
+      # (Dentro del contenedor la app escucha en 0.0.0.0; este mapeo es la barrera.)
+      - '127.0.0.1:3000:3000'
+    volumes:
+      # ── Persistencia del SQLite fuera del contenedor ──
+      - secretvault-data:/app/data
+      # Alternativa (bind mount, archivo visible en el host):
+      #   - ./docker-data:/app/data
+    environment:
+      # Minutos de inactividad antes de bloquear la bóveda (borra la clave de RAM).
+      SV_AUTO_LOCK_MINUTES: '15'
+      # Iteraciones PBKDF2 (sube el valor si tu máquina lo permite).
+      SV_PBKDF2_ITERATIONS: '600000'
+      # Activa 'true' si publicas detrás de un proxy con HTTPS.
+      SV_COOKIE_SECURE: 'false'
+      SV_TRUST_PROXY: 'false'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'bun',
+          '-e',
+          "const r = await fetch('http://127.0.0.1:3000/api/health'); if (!r.ok) process.exit(1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  secretvault-data:
