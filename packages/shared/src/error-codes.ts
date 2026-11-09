@@ -1,0 +1,47 @@
+/**
+ * Códigos de error del API. Compartidos por backend (emisor) y frontend (consumidor).
+ */
+export type ApiErrorCode =
+  | 'VAULT_ALREADY_INITIALIZED'
+  | 'VAULT_NOT_INITIALIZED'
+  | 'VAULT_LOCKED'
+  | 'INVALID_MASTER_PASSWORD'
+  | 'WEAK_MASTER_PASSWORD'
+  | 'ENVIRONMENT_NOT_FOUND'
+  | 'ENVIRONMENT_NAME_REQUIRED'
+  | 'ENVIRONMENT_NAME_TAKEN'
+  | 'SECRET_NOT_FOUND'
+  | 'SECRET_NAME_REQUIRED'
+  | 'SECRET_NAME_INVALID'
+  | 'SECRET_NAME_TAKEN'
+  | 'SECRET_VALUE_REQUIRED'
+  | 'VALIDATION_FAILED'
+  | 'RATE_LIMITED'
+  | 'NOT_FOUND'
+  | 'INVALID_JSON'
+  | 'INTERNAL_ERROR';
+
+export const API_ERROR_CODES: readonly ApiErrorCode[] = [
+  'VAULT_ALREADY_INITIALIZED',
+  'VAULT_NOT_INITIALIZED',
+  'VAULT_LOCKED',
+  'INVALID_MASTER_PASSWORD',
+  'WEAK_MASTER_PASSWORD',
+  'ENVIRONMENT_NOT_FOUND',
+  'ENVIRONMENT_NAME_REQUIRED',
+  'ENVIRONMENT_NAME_TAKEN',
+  'SECRET_NOT_FOUND',
+  'SECRET_NAME_REQUIRED',
+  'SECRET_NAME_INVALID',
+  'SECRET_NAME_TAKEN',
+  'SECRET_VALUE_REQUIRED',
+  'VALIDATION_FAILED',
+  'RATE_LIMITED',
+  'NOT_FOUND',
+  'INVALID_JSON',
+  'INTERNAL_ERROR',
+];
+
+export function isApiErrorCode(value: unknown): value is ApiErrorCode {
+  return typeof value === 'string' && (API_ERROR_CODES as readonly string[]).includes(value);
+}
