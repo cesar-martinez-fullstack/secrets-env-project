@@ -24,6 +24,9 @@ export const PUBLIC_ROUTES = new Set<string>([
   'POST /api/vault/setup',
   'POST /api/vault/unlock',
   'POST /api/vault/lock', // idempotente por diseño (bloquea si hay sesión)
+  // Recuperación de acceso: no hay sesión (se olvidó la contraseña). La protege la clave de
+  // recuperación de 256 bits + rate limit (10/15 min) + auditoría de los fallos.
+  'POST /api/vault/recover',
 ]);
 
 /** Manifest completo de rutas del API (method + path). */
@@ -34,6 +37,8 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/vault/unlock',
   'POST /api/vault/lock',
   'POST /api/vault/change-password',
+  'POST /api/vault/recover',
+  'POST /api/vault/recovery-key',
   'GET /api/environments',
   'POST /api/environments',
   'PATCH /api/environments/:id',

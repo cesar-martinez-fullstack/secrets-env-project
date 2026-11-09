@@ -34,6 +34,7 @@ export interface Container {
     setup: RateLimiter;
     unlock: RateLimiter;
     changePassword: RateLimiter;
+    recover: RateLimiter;
   };
 }
 
@@ -47,7 +48,6 @@ export function createContainer(config: ApiConfig): Container {
   const vaultService = new VaultService({
     vaultRepo: repositories.vault,
     environments: repositories.environments,
-    secrets: repositories.secrets,
     crypto,
     sessions: sessionStore,
     audit: repositories.audit,
@@ -80,10 +80,11 @@ export function createContainer(config: ApiConfig): Container {
     secretService,
     auditService,
     rateLimiters: {
-      // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min (por IP).
+      // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).
       setup: new RateLimiter(20, 10 * 60_000),
       unlock: new RateLimiter(10, 5 * 60_000),
       changePassword: new RateLimiter(10, 15 * 60_000),
+      recover: new RateLimiter(10, 15 * 60_000),
     },
   };
 }
