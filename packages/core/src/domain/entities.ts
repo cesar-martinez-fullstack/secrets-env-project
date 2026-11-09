@@ -8,10 +8,22 @@ import type { AuditEventType } from '@secretvault/shared';
 export interface VaultInfo {
   salt: Uint8Array;
   iterations: number;
-  /** Blob AES-256-GCM de un texto verificador conocido. Valida la contraseña maestra. */
+  /** Blob AES-256-GCM de un texto verificador conocido, cifrado con la clave de datos. */
   verifier: Uint8Array;
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * 1 = formato inicial (la clave derivada de la contraseña cifra los secretos directamente).
+   * 2 = cifrado de envoltura: una clave de datos (DEK) aleatoria cifra los secretos y se guarda
+   *     envuelta dos veces (contraseña y clave de recuperación).
+   */
+  formatVersion: 1 | 2;
+  /** DEK envuelta con la KEK de la contraseña maestra (solo formato 2). */
+  wrappedDek: Uint8Array | null;
+  /** Sal del HKDF de la clave de recuperación (solo formato 2). */
+  recoverySalt: Uint8Array | null;
+  /** DEK envuelta con la KEK de la clave de recuperación (solo formato 2). */
+  recoveryWrappedDek: Uint8Array | null;
 }
 
 export interface Environment {

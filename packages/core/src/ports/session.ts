@@ -18,9 +18,6 @@ export interface SessionStore {
   /** Elimina la sesión y destruye la clave en memoria. */
   remove(sessionId: string): Promise<void>;
 
-  /** Sustituye la clave de una sesión (tras rotar la contraseña maestra). */
-  rotateKey(sessionId: string, newKey: Uint8Array): Promise<VaultSession | null>;
-
   /** Purga sesiones expiradas (auto-lock por inactividad). Devuelve cuántas murieron. */
   purgeExpired(): Promise<number>;
 
