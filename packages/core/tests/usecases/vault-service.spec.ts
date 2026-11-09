@@ -405,6 +405,17 @@ describe('VaultService', () => {
       expect(sessions.create).toHaveBeenCalledTimes(1); // solo la de createVault
     });
 
+    it('should wipe the opened DEK from memory if persisting the recovery fails', async () => {
+      const { recoveryKey } = await createVault();
+      vault.save.mockRejectedValueOnce(new Error('disco lleno'));
+      crypto.unwrapKey.mockClear();
+
+      await expect(service.recover(recoveryKey, NEW_PASSWORD)).rejects.toThrow('disco lleno');
+
+      const opened = (await crypto.unwrapKey.mock.results[0]!.value) as Uint8Array;
+      expect(opened.every((byte) => byte === 0)).toBe(true);
+    });
+
     it('should reject malformed recovery keys', async () => {
       await createVault();
       for (const bad of ['', 'abc', 'ñ'.repeat(52), 'A'.repeat(51)]) {

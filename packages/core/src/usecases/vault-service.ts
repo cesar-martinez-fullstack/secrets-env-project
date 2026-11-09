@@ -191,24 +191,26 @@ export class VaultService {
     if (!this.hasRecovery(info)) throw new RecoveryNotAvailableError();
 
     const dek = await this.openWithRecoveryAuditingFailure(recoveryKeyText, info);
-    const master = await this.wrapForMaster(dek, newPassword);
-    const recovery = await this.wrapForRecovery(dek);
+    return this.zeroOnFailure(dek, async () => {
+      const master = await this.wrapForMaster(dek, newPassword);
+      const recovery = await this.wrapForRecovery(dek);
 
-    await this.deps.unitOfWork.run(async () => {
-      await this.deps.vaultRepo.save({
-        ...info,
-        ...master,
-        ...recovery.fields,
-        updatedAt: new Date(),
+      await this.deps.unitOfWork.run(async () => {
+        await this.deps.vaultRepo.save({
+          ...info,
+          ...master,
+          ...recovery.fields,
+          updatedAt: new Date(),
+        });
+        await this.deps.audit.record(
+          'vault.recovered',
+          'Acceso recuperado con la clave de recuperación; contraseña y clave de recuperación renovadas.',
+        );
       });
-      await this.deps.audit.record(
-        'vault.recovered',
-        'Acceso recuperado con la clave de recuperación; contraseña y clave de recuperación renovadas.',
-      );
-    });
 
-    const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
-    return { session, recoveryKey: recovery.text };
+      const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
+      return { session, recoveryKey: recovery.text };
+    });
   }
 
   /** Genera una clave de recuperación nueva (invalida la anterior). Exige la contraseña actual. */
@@ -335,27 +337,39 @@ export class VaultService {
     dek: Uint8Array,
     password: string,
   ): Promise<Required<VaultAccess>> {
-    const master = await this.wrapForMaster(dek, password);
-    const recovery = await this.wrapForRecovery(dek);
-    await this.deps.unitOfWork.run(async () => {
-      await this.deps.vaultRepo.save({
-        ...info,
-        ...master,
-        ...recovery.fields,
-        formatVersion: 2,
-        updatedAt: new Date(),
+    return this.zeroOnFailure(dek, async () => {
+      const master = await this.wrapForMaster(dek, password);
+      const recovery = await this.wrapForRecovery(dek);
+      await this.deps.unitOfWork.run(async () => {
+        await this.deps.vaultRepo.save({
+          ...info,
+          ...master,
+          ...recovery.fields,
+          formatVersion: 2,
+          updatedAt: new Date(),
+        });
+        await this.deps.audit.record(
+          'vault.upgraded',
+          'Bóveda actualizada al cifrado de envoltura con clave de recuperación.',
+        );
+        await this.deps.audit.record('vault.unlock', 'Bóveda desbloqueada.');
       });
-      await this.deps.audit.record(
-        'vault.upgraded',
-        'Bóveda actualizada al cifrado de envoltura con clave de recuperación.',
-      );
-      await this.deps.audit.record('vault.unlock', 'Bóveda desbloqueada.');
+      const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
+      return { session, recoveryKey: recovery.text };
     });
-    const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
-    return { session, recoveryKey: recovery.text };
   }
 
   // ── Utilidades ────────────────────────────────────────────────────────────
+
+  /** Si el trabajo falla, la DEK recién abierta se borra de RAM en vez de quedar huérfana. */
+  private async zeroOnFailure<T>(dek: Uint8Array, work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      dek.fill(0);
+      throw error;
+    }
+  }
 
   private hasRecovery(info: VaultInfo): boolean {
     return info.formatVersion === 2 && !!info.recoverySalt && !!info.recoveryWrappedDek;
