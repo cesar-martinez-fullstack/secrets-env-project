@@ -2,6 +2,10 @@
 
 <!-- What does this change do, and why is it needed? Link the issue: Closes #123 -->
 
+## Acceptance criteria
+
+<!-- The user-visible behaviour this PR delivers, 3-5 given/when/then lines, and how it was verified (tests, browser). -->
+
 ## Type of change
 
 - [ ] feat — new functionality

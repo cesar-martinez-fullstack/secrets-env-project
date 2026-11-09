@@ -33,12 +33,15 @@ feature/x      ●─●       ●   (merge with --no-ff via Pull Request)
 ```bash
 git switch develop && git pull
 git switch -c feature/export-strategy
-# ...commit in small, conventional steps...
+# ...1 to 5 coherent commits, each leaving the repo green...
 git push -u origin feature/export-strategy
 # open a Pull Request  feature/export-strategy -> develop
 ```
 
 - Pull Requests target **`develop`** (never `main`, except `release/*` and `hotfix/*`).
+- One PR is one vertical slice (or one coherent change), reviewable in a single sitting: roughly under 400
+  diff lines excluding lockfiles and generated files. Larger work is split by slice, never by layer.
+- 1 to 5 commits per PR; each one builds and passes the checks. No WIP, no commit per file or per layer.
 - CI must be green; review the checklist in the PR template.
 - Merge with a **merge commit** (`--no-ff`): the branch history stays visible.
 - Delete the branch after merging.
