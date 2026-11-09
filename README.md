@@ -30,7 +30,8 @@ while the vault is unlocked and is wiped when it locks.
 - **Import / export** — paste a `.env` to import; export as `.env`, CSV or a printable PDF.
 - **Audit log** — every unlock, failed unlock, reveal, export and password rotation is recorded (never with values).
 - **Auto-lock** — locks after inactivity, with an absolute session lifetime cap.
-- **Password rotation** — re-encrypts every secret atomically under a new key.
+- **Recovery key** — a 256-bit key shown once lets you regain access if you forget the master password;
+  using it issues a new one. Changing the password never re-encrypts your secrets (envelope encryption).
 - **Secret generator**, light/dark theme, and a single-container Docker deployment.
 
 ## Security model
@@ -49,7 +50,9 @@ SecretVault is built for **one user on one machine**. It is intentionally not re
 
 Honest limitations — please read [docs/SECURITY.md](docs/SECURITY.md):
 
-- The master password is **unrecoverable by design**. Lose it and the secrets are gone.
+- There is no email reset or server-side recovery. If you lose **both** the master password and the
+  recovery key, the secrets are gone. The recovery key (shown once, at setup) is a second secret you
+  must keep **offline**: anyone who has it can open the vault.
 - Variable **names** are stored in plaintext (needed for instant search); values and notes are encrypted.
 - JavaScript cannot guarantee secure erasure of RAM; keys are zeroed on a best-effort basis.
 - This project has **not** been independently audited. Use it at your own risk.
