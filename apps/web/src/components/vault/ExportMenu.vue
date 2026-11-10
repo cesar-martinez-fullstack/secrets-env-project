@@ -2,7 +2,7 @@
 /**
  * Menú de exportación del ambiente activo: .env, CSV, JSON y PDF estilizado.
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { EXPORT_FORMATS } from '@secretvault/shared';
 import type { ExportFormat } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
@@ -11,6 +11,12 @@ import { useDataStore } from '@/stores/data';
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 const data = useDataStore();
+
+const canExport = computed(() => (data.activeEnv?.secretCount ?? 0) > 0);
+
+watch(canExport, (allowed) => {
+  if (!allowed) open.value = false;
+});
 
 const META: Record<
   ExportFormat,
@@ -27,7 +33,7 @@ const META: Record<
 };
 
 function exportAs(format: ExportFormat): void {
-  if (data.activeEnvId === null) return;
+  if (!canExport.value || data.activeEnvId === null) return;
   const url = `/api/secrets/export?environmentId=${data.activeEnvId}&format=${format}`;
   window.location.assign(url);
   open.value = false;
@@ -47,8 +53,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
   <div ref="root" class="relative">
     <button
       type="button"
-      class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-      :disabled="data.activeEnvId === null"
+      class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:disabled:hover:bg-zinc-900"
+      :disabled="!canExport"
+      :title="canExport ? undefined : 'No hay secretos para exportar en este ambiente'"
       @click="open = !open"
     >
       <AppIcon name="download" :size="15" />
