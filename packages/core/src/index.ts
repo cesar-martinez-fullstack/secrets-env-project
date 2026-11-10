@@ -14,3 +14,4 @@ export * from './usecases/project-service';
 export * from './usecases/environment-service';
 export * from './usecases/secret-service';
 export * from './usecases/audit-service';
+export * from './usecases/share-service';

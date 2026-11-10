@@ -36,6 +36,11 @@ export function secretNoteAad(environmentId: number, name: string): string {
   return `${AAD_SECRET_NOTE}:${environmentId}:${name}`;
 }
 
+/** AAD del paquete para compartir: incluye las iteraciones para que no se puedan alterar sin invalidarlo. */
+export function shareAad(iterations: number): string {
+  return `secretvault:aad:share:v1:${iterations}`;
+}
+
 export interface VaultCryptoService {
   /** Bytes aleatorios criptográficamente seguros para la sal del KDF. */
   generateSalt(): Uint8Array;
