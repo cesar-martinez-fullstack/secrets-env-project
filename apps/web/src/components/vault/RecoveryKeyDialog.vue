@@ -3,10 +3,11 @@
  * Muestra la clave de recuperación UNA sola vez. El diálogo es bloqueante: no se puede cerrar
  * hasta que la persona confirme haberla guardado (el servidor no la conserva ni puede repetirla).
  */
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
 import { copyText } from '@/lib/clipboard';
+import { warnBeforeUnload } from '@/lib/before-unload';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import AppIcon from '@/components/AppIcon.vue';
 
@@ -18,8 +19,15 @@ const open = computed(() => vault.pendingRecoveryKey !== null);
 const groups = computed(() => (vault.pendingRecoveryKey ?? '').split('-'));
 
 watch(open, (isOpen) => {
-  if (isOpen) saved.value = false;
+  if (isOpen) {
+    saved.value = false;
+    window.addEventListener('beforeunload', warnBeforeUnload);
+  } else {
+    window.removeEventListener('beforeunload', warnBeforeUnload);
+  }
 });
+
+onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnload));
 
 async function copy(): Promise<void> {
   const key = vault.pendingRecoveryKey;
