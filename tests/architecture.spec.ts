@@ -10,8 +10,9 @@
  * 4. Referencias circulares dentro de cada paquete
  * 5. Convenciones de nombrado de archivos por capa
  */
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, expect, it } from 'bun:test';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const ROOT = path.join(import.meta.dir, '..');
 const SRC_DIRS: Record<string, string> = {
