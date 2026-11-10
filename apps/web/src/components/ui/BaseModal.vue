@@ -6,13 +6,16 @@
 import { onBeforeUnmount, watch } from 'vue';
 import AppIcon from '@/components/AppIcon.vue';
 
-const props = defineProps<{
-  open: boolean;
-  title: string;
-  maxWidth?: 'sm' | 'md' | 'lg';
-  /** `false` = no se cierra con Escape, clic externo ni botón (diálogos que exigen una acción). */
-  dismissible?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    title: string;
+    maxWidth?: 'sm' | 'md' | 'lg';
+    /** `false` = no se cierra con Escape, clic externo ni botón (diálogos que exigen una acción). */
+    dismissible?: boolean;
+  }>(),
+  { maxWidth: 'md', dismissible: true },
+);
 
 const emit = defineEmits<{
   close: [];
@@ -25,7 +28,7 @@ const maxClass = {
 } as const;
 
 function requestClose() {
-  if (props.dismissible !== false) emit('close');
+  if (props.dismissible) emit('close');
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -60,7 +63,7 @@ onBeforeUnmount(() => {
       >
         <div
           class="card w-full p-6 shadow-xl"
-          :class="maxClass[maxWidth ?? 'md']"
+          :class="maxClass[maxWidth]"
           role="dialog"
           aria-modal="true"
           :aria-label="title"
@@ -68,7 +71,7 @@ onBeforeUnmount(() => {
           <div class="mb-4 flex items-start justify-between gap-4">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ title }}</h2>
             <button
-              v-if="dismissible !== false"
+              v-if="dismissible"
               type="button"
               class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               aria-label="Cerrar"
