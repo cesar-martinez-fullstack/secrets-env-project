@@ -9,6 +9,9 @@ Arquitectura (C4, trade-offs, qué NO hacemos): [docs/ARCHITECTURE.md](docs/ARCH
 Decisiones: [docs/adr/](docs/adr/README.md) (ADR para todo lo difícil de revertir).
 Contexto detallado: [docs/context.md](docs/context.md) · Seguridad: [docs/SECURITY.md](docs/SECURITY.md) ·
 Testing: [docs/TESTING.md](docs/TESTING.md) · Pendientes: [docs/TODO.md](docs/TODO.md).
+Estado del proyecto: [docs/FEATURES.md](docs/FEATURES.md) (qué hace y en qué estado) ·
+[docs/ISSUES.md](docs/ISSUES.md) (bugs y deuda) · [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) (herramientas y MCPs) ·
+índice en [docs/README.md](docs/README.md).
 
 ## Comandos
 
@@ -23,6 +26,20 @@ bun run test:security     # suite OWASP + perímetro
 bun audit                 # vulnerabilidades de dependencias
 docker compose up -d --build   # despliegue (puerto SOLO en 127.0.0.1)
 ```
+
+## Forma de trabajo: rebanadas verticales
+
+No se desarrolla en cascada ni por capas. Cada funcionalidad es una **rebanada vertical**: interfaz, API, caso
+de uso, datos y tests, lo mínimo en cada capa, que **da valor por sí sola** y se verifica en el navegador
+(Playwright CLI) antes de empezar la siguiente. Se diseña solo lo que la rebanada actual necesita; un ADR
+únicamente para decisiones difíciles de revertir. Skill: `vertical-slice`. Reglas: `.claude/rules/vertical-slices.md`.
+
+- **Un PR = una rebanada** (o un cambio coherente), revisable de una sentada; **1 a 5 commits** que dejan todo
+  en verde. Ni un commit por capa ni una lluvia de PRs minúsculos.
+- **Código limpio, vigente y probado:** sin comentarios que narran el código, sin APIs obsoletas, sin `any`,
+  sin código muerto, con tests. Reglas: `.claude/rules/code-quality.md`.
+- **Seguimiento al día, sin saturar:** al entregar una rebanada se actualiza su fila en `docs/FEATURES.md`; al
+  hallar un bug, una entrada en `docs/ISSUES.md`; un MCP o herramienta nueva, `docs/REQUIREMENTS.md`.
 
 ## Reglas de comportamiento
 
@@ -88,7 +105,7 @@ web ──HTTP──► api ──► core ──► shared
 
 - TypeScript estricto. Archivos: `*-service.ts`, `*-repository.ts`, `*.routes.ts`, `*.spec.ts`.
 - Docs y UI en español; commits y nombres de tests (`it('should ...')`) en inglés.
-- Comentarios solo para el **por qué** no obvio; nada de comentarios de tarea.
+- Sin comentarios salvo el **porqué** no deducible (ver `code-quality.md`).
 - Prettier + ESLint obligatorios (hooks de Husky). Límites de Clean Code como warnings: no añadir
   warnings nuevos sin justificar.
 - Detalle por tema en `.claude/rules/`.
@@ -127,7 +144,7 @@ Flujo completo en [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) y `.claude/rules/
 | `architecture-principles` | Decisiones de diseño: SOLID, Clean, puertos, ACID, YAGNI |
 | `design-patterns`         | Elegir/aplicar un patrón con ejemplos del propio código  |
 | `owasp-security-review`   | DESPUÉS de tocar auth/cripto/rutas/datos                 |
-| `add-usecase`             | Añadir un caso de uso + ruta + tests de punta a punta    |
+| `vertical-slice`          | Entregar una funcionalidad como rebanada vertical        |
 | `db-migration`            | Cambiar el esquema de forma segura                       |
 | `test-coverage`           | Detectar y cubrir huecos de tests                        |
 | `cut-release`             | Versionar a partir de Conventional Commits               |
