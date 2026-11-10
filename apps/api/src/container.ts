@@ -8,6 +8,7 @@ import {
   EnvironmentService,
   ProjectService,
   SecretService,
+  ShareService,
   VaultService,
   type SessionStore,
 } from '@secretvault/core';
@@ -31,12 +32,14 @@ export interface Container {
   projectService: ProjectService;
   environmentService: EnvironmentService;
   secretService: SecretService;
+  shareService: ShareService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
     unlock: RateLimiter;
     changePassword: RateLimiter;
     recover: RateLimiter;
+    share: RateLimiter;
   };
 }
 
@@ -78,6 +81,15 @@ export function createContainer(config: ApiConfig): Container {
     unitOfWork,
   });
 
+  const shareService = new ShareService({
+    projects: repositories.projects,
+    environments: repositories.environments,
+    secrets: repositories.secrets,
+    crypto,
+    audit: repositories.audit,
+    unitOfWork,
+  });
+
   const auditService = new AuditService({ audit: repositories.audit });
 
   return {
@@ -88,6 +100,7 @@ export function createContainer(config: ApiConfig): Container {
     projectService,
     environmentService,
     secretService,
+    shareService,
     auditService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).
@@ -95,6 +108,7 @@ export function createContainer(config: ApiConfig): Container {
       unlock: new RateLimiter(10, 5 * 60_000),
       changePassword: new RateLimiter(10, 15 * 60_000),
       recover: new RateLimiter(10, 15 * 60_000),
+      share: new RateLimiter(10, 5 * 60_000),
     },
   };
 }

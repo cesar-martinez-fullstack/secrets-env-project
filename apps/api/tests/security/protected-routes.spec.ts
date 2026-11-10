@@ -53,6 +53,10 @@ export const ROUTE_MANIFEST: string[] = [
   'DELETE /api/secrets/:id',
   'POST /api/secrets/:id/reveal',
   'POST /api/secrets/import',
+  'POST /api/share/projects/:id/export',
+  'POST /api/share/environments/:id/export',
+  'POST /api/share/preview',
+  'POST /api/share/import',
   'GET /api/secrets/export',
   'GET /api/audit',
 ];
@@ -72,6 +76,7 @@ function scanRouteFiles(): string[] {
     'projects.routes.ts',
     'environments.routes.ts',
     'secrets.routes.ts',
+    'share.routes.ts',
     'audit.routes.ts',
   ]) {
     const source = readFileSync(join(SRC_ROUTES, file), 'utf8');
@@ -83,9 +88,11 @@ function scanRouteFiles(): string[] {
             ? '/api/projects'
             : file === 'environments.routes.ts'
               ? '/api/environments'
-              : file === 'secrets.routes.ts'
-                ? '/api/secrets'
-                : '/api/audit';
+              : file === 'share.routes.ts'
+                ? '/api/share'
+                : file === 'secrets.routes.ts'
+                  ? '/api/secrets'
+                  : '/api/audit';
       const sub = match[2] === '/' ? '' : match[2]!;
       found.push(`${match[1]!.toUpperCase()} ${prefix}${sub}`);
     }
