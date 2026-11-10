@@ -11,15 +11,16 @@ paquetes · superficie de red · flujo de trabajo del repositorio. No para decis
 
 ## Índice
 
-| ADR                                              | Título                                                   | Estado   |
-| ------------------------------------------------ | -------------------------------------------------------- | -------- |
-| [0001](0001-modular-monolith.md)                 | Monolito modular con Clean Architecture                  | Aceptado |
-| [0002](0002-sqlite-storage.md)                   | SQLite de un solo archivo como almacenamiento            | Aceptado |
-| [0003](0003-row-bound-aad.md)                    | Cifrado AES-GCM con AAD ligado a la fila                 | Aceptado |
-| [0004](0004-local-only-perimeter.md)             | Perímetro solo-localhost                                 | Aceptado |
-| [0006](0006-envelope-encryption-recovery-key.md) | Cifrado de envoltura y clave de recuperación             | Aceptado |
-| [0007](0007-projects.md)                         | Proyectos como nivel de organización dentro de la bóveda | Aceptado |
-| [0005](0005-git-flow-and-releases.md)            | Git Flow, Conventional Commits y tags SemVer             | Aceptado |
+| ADR                                              | Título                                                          | Estado    |
+| ------------------------------------------------ | --------------------------------------------------------------- | --------- |
+| [0001](0001-modular-monolith.md)                 | Monolito modular con Clean Architecture                         | Aceptado  |
+| [0002](0002-sqlite-storage.md)                   | SQLite de un solo archivo como almacenamiento                   | Aceptado  |
+| [0003](0003-row-bound-aad.md)                    | Cifrado AES-GCM con AAD ligado a la fila                        | Aceptado  |
+| [0004](0004-local-only-perimeter.md)             | Perímetro solo-localhost                                        | Aceptado  |
+| [0006](0006-envelope-encryption-recovery-key.md) | Cifrado de envoltura y clave de recuperación                    | Aceptado  |
+| [0007](0007-projects.md)                         | Proyectos como nivel de organización dentro de la bóveda        | Aceptado  |
+| [0008](0008-decoupled-personalization.md)        | Personalización desacoplada: ajustes, tokens de diseño y textos | Propuesto |
+| [0005](0005-git-flow-and-releases.md)            | Git Flow, Conventional Commits y tags SemVer                    | Aceptado  |
 
 ## Plantilla
 
