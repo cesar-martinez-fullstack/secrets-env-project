@@ -137,6 +137,11 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_environments_project ON environments(project_id);
     `,
   },
+  {
+    version: 4,
+    description: 'secretos: marca de origen para los recibidos por un archivo compartido',
+    sql: 'ALTER TABLE secrets ADD COLUMN imported_at TEXT;',
+  },
 ];
 
 export class SchemaTooNewError extends Error {

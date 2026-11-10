@@ -59,6 +59,7 @@ export class SecretService {
       name: secret.name,
       maskedValue: MASKED_VALUE,
       hasNote: secret.noteEnc !== null,
+      importedAt: secret.importedAt ?? null,
       createdAt: secret.createdAt,
       updatedAt: secret.updatedAt,
     };
@@ -151,6 +152,7 @@ export class SecretService {
       name: renamed ? newName : undefined,
       valueEnc,
       noteEnc,
+      importedAt: patch.value === undefined ? undefined : null,
     });
 
     await this.deps.audit.record(

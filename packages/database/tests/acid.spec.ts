@@ -169,7 +169,7 @@ describe('migration 2 (envelope encryption)', () => {
        VALUES (1, ?, 310000, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
     ).run(new Uint8Array(16).fill(1), new Uint8Array(48).fill(2));
 
-    expect(migrate(db)).toEqual([2, 3]);
+    expect(migrate(db)).toEqual([2, 3, 4]);
 
     const row = db
       .query<{ format_version: number; wrapped_dek: Uint8Array | null; iterations: number }, []>(
@@ -258,7 +258,7 @@ describe('migration 3 (projects)', () => {
       ).run(env, name, BLOB, now, now);
     }
 
-    expect(migrate(db)).toEqual([3]);
+    expect(migrate(db)).toEqual([3, 4]);
 
     const projects = db.query('SELECT id, name FROM projects').all();
     expect(projects).toEqual([{ id: 1, name: 'General' }]);
@@ -329,5 +329,30 @@ describe('migration 3 (projects)', () => {
       'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, ?, ?, ?)',
     ).run('Local', now, now);
     expect(() => db.query('DELETE FROM projects WHERE id = 1').run()).toThrow();
+  });
+});
+
+describe('migration 4 (imported mark)', () => {
+  it('should keep existing secrets and leave them unmarked', () => {
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    migrate(
+      db,
+      MIGRATIONS.filter((m) => m.version <= 3),
+    );
+    const now = '2024-01-01T00:00:00.000Z';
+    db.query(
+      'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, ?, ?, ?)',
+    ).run('Local', now, now);
+    db.query(
+      'INSERT INTO secrets (environment_id, name, value_enc, created_at, updated_at) VALUES (1, ?, ?, ?, ?)',
+    ).run('API_KEY', new Uint8Array(32).fill(7), now, now);
+
+    migrate(db);
+
+    expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
+    expect(db.query('SELECT name, imported_at FROM secrets').all()).toEqual([
+      { name: 'API_KEY', imported_at: null },
+    ]);
   });
 });

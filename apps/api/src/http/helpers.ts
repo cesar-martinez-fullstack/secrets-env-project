@@ -72,6 +72,30 @@ export function requireInt(body: object, field: string): number {
   return value;
 }
 
+/** Campo entero opcional: ausente o `null` valen `null`. */
+export function optionalInt(body: object, field: string): number | null {
+  const value = (body as Record<string, unknown>)[field];
+  return value === undefined || value === null ? null : requireInt(body, field);
+}
+
+/** Exige un campo booleano en el body. */
+export function requireBoolean(body: object, field: string): boolean {
+  const value = (body as Record<string, unknown>)[field];
+  if (typeof value !== 'boolean') {
+    throw new ValidationFailedError([{ field, message: 'Campo requerido y debe ser booleano.' }]);
+  }
+  return value;
+}
+
+/** Exige una lista de textos en el body. */
+export function requireStringList(body: object, field: string): string[] {
+  const value = (body as Record<string, unknown>)[field];
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw new ValidationFailedError([{ field, message: 'Debe ser una lista de textos.' }]);
+  }
+  return value;
+}
+
 /** Convierte y valida un :id de ruta. */
 export function parseIdParam(raw: string): number {
   const id = Number.parseInt(raw, 10);

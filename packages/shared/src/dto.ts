@@ -109,6 +109,7 @@ export interface SecretDto {
   name: string;
   maskedValue: string;
   hasNote: boolean;
+  importedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -168,14 +169,30 @@ export interface ShareExportRequestDto {
   passphrase: string;
 }
 
-export interface ShareContentRequestDto {
+export interface SharePreviewRequestDto {
   content: string;
   passphrase: string;
+  projectId?: number | null;
+}
+
+export interface ShareImportRequestDto {
+  content: string;
+  passphrase: string;
+  projectId: number | null;
+  separateEnvironments: string[];
+  overwrite: boolean;
+}
+
+export interface SharePreviewEnvironmentDto {
+  name: string;
+  secretCount: number;
+  exists: boolean;
+  conflicts: string[];
 }
 
 export interface SharePreviewDto {
   projectName: string;
-  environments: { name: string; secretCount: number }[];
+  environments: SharePreviewEnvironmentDto[];
   secretCount: number;
 }
 
@@ -183,7 +200,9 @@ export interface ShareImportResultDto {
   projectId: number;
   projectName: string;
   environmentCount: number;
-  secretCount: number;
+  importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
 }
 
 export interface ShareFileDto {

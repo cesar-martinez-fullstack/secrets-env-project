@@ -57,10 +57,16 @@ export interface SecretRepository {
     name: string;
     valueEnc: Uint8Array;
     noteEnc: Uint8Array | null;
+    importedAt?: Date | null;
   }): Promise<SecretRecord>;
   update(
     id: number,
-    patch: { name?: string; valueEnc?: Uint8Array; noteEnc?: Uint8Array | null },
+    patch: {
+      name?: string;
+      valueEnc?: Uint8Array;
+      noteEnc?: Uint8Array | null;
+      importedAt?: Date | null;
+    },
   ): Promise<SecretRecord>;
   delete(id: number): Promise<void>;
 }
