@@ -52,7 +52,10 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "verify": "bun run typecheck && bun run lint:check && bun test",
-    "audit": "bun audit --audit-level=high"
+    "audit": "bun audit --audit-level=moderate"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
