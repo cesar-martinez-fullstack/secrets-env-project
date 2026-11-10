@@ -20,6 +20,7 @@ proyecto y para no repetir errores.
 | ISS-016 | deuda     | El frontend no tiene tests de componentes ni de stores                                                                          | Cubrir con `@vue/test-utils` + `happy-dom` al tocar cada pieza                                              |
 | ISS-017 | deuda     | Exceso de comentarios que narran el código en archivos heredados                                                                | Recortar al tocar cada archivo (`code-quality.md`), sin limpieza masiva                                     |
 | ISS-018 | deuda     | Saltos de versión mayor pendientes en el frontend: Vite 6→8, `@vitejs/plugin-vue` 5→6, `vue-tsc` 2→3, Pinia 2→4, Vue Router 4→5 | PRs de Dependabot #7 a #11; probar juntos en una rama                                                       |
+| ISS-024 | deuda     | El buscador muestra dos botones para limpiar (el nativo del navegador y el propio)                                              | Quitar el botón nativo (`type="search"` con `appearance: none`) o el propio                                 |
 | ISS-021 | bug       | Si se recarga la página antes de confirmar la clave de recuperación, la clave se pierde (solo vive en memoria del navegador)    | Avisar con `beforeunload` mientras esté pendiente; si ocurre, se regenera desde Seguridad con la contraseña |
 
 ## En revisión

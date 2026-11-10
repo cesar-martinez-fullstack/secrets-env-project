@@ -27,6 +27,12 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 | F-014 | Exportar un ambiente a `.env`, CSV o PDF                                  | Hecho  | 0.1.0   |
 | F-015 | Generador de valores aleatorios                                           | Hecho  | 0.1.0   |
 
+## Organización
+
+| ID    | Funcionalidad                                                                                     | Estado      | Versión |
+| ----- | ------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-120 | Proyectos: agrupar ambientes en un árbol; crear, renombrar y eliminar proyectos vacíos (ADR-0007) | En revisión | 0.2.0   |
+
 ## Auditoría y experiencia
 
 | ID    | Funcionalidad                                            | Estado | Versión |
@@ -52,3 +58,12 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 El resto del backlog (backup y restauración, borrado automático del portapapeles, E2E en CI, etc.) está en
 [TODO.md](TODO.md) y entra aquí cuando se corta como rebanada.
+
+## Planeado · organización y Postman
+
+| ID    | Rebanada                                                                                         | Estado   | Versión |
+| ----- | ------------------------------------------------------------------------------------------------ | -------- | ------- |
+| F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada             | Planeado | 0.2.0   |
+| F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | Planeado | 0.2.0   |
+| F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | Planeado | 0.2.0   |
+| F-124 | Mover un ambiente a otro proyecto                                                                | Planeado | 0.2.0   |
