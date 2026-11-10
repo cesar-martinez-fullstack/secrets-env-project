@@ -77,19 +77,19 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 
 ## Planeado · gestión de secretos y ajustes
 
-| ID    | Rebanada                                                                                                            | Estado   | Versión |
-| ----- | ------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| F-125 | Selección múltiple y borrado en lote, con confirmación que cuenta y lista los nombres (atómico)                     | Planeado | 0.2.0   |
-| F-126 | Orden alfabético A→Z / Z→A, con la preferencia guardada                                                             | Planeado | 0.2.0   |
-| F-127 | Orden manual por ambiente: arrastrar y soltar, con botones subir y bajar (solo en modo Manual)                      | Planeado | 0.2.0   |
-| F-130 | Ajustes · 1: cambiar el logo de la pantalla de entrada (PNG, JPEG o WebP; fuera de la bóveda)                       | Planeado | 0.2.0   |
-| F-131 | Ajustes · 2: nombre de la app, color de acento y tema por defecto                                                   | Planeado | 0.2.0   |
-| F-132 | Ajustes · 3: seguridad editable (auto-bloqueo, vida de sesión, borrado del portapapeles); pide contraseña           | Planeado | 0.2.0   |
-| F-133 | Ajustes · 4: copia de seguridad (exportar el archivo cifrado) y retención o vaciado de la auditoría                 | Planeado | 0.2.0   |
-| F-134 | Idioma de la interfaz: español e inglés                                                                             | Planeado | 0.2.0   |
-| F-135 | Tema con vista previa: modo (claro, oscuro o automático), 7 acentos y fondo; reemplaza los colores fijos por tokens | Planeado | 0.2.0   |
-| F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                | Planeado | 0.2.0   |
-| F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad       | Planeado | 0.2.0   |
+| ID    | Rebanada                                                                                                                                             | Estado      | Versión |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-125 | Selección múltiple y borrado en lote, con confirmación que cuenta y lista los nombres (atómico)                                                      | Planeado    | 0.2.0   |
+| F-126 | Orden alfabético A→Z / Z→A, con la preferencia guardada                                                                                              | Planeado    | 0.2.0   |
+| F-127 | Orden manual por ambiente: arrastrar y soltar, con botones subir y bajar (solo en modo Manual)                                                       | Planeado    | 0.2.0   |
+| F-130 | Ajustes · 1: cambiar el logo de la pantalla de entrada (PNG, JPEG o WebP; fuera de la bóveda)                                                        | Planeado    | 0.2.0   |
+| F-131 | Ajustes · 2: nombre de la app, color de acento y tema por defecto                                                                                    | Planeado    | 0.2.0   |
+| F-132 | Ajustes · 3: seguridad editable (auto-bloqueo, vida de sesión, borrado del portapapeles); pide contraseña                                            | Planeado    | 0.2.0   |
+| F-133 | Ajustes · 4: copia de seguridad (exportar el archivo cifrado) y retención o vaciado de la auditoría                                                  | Planeado    | 0.2.0   |
+| F-134 | Idioma de la interfaz: español e inglés (selector en la entrada y en la barra; se recuerda en el navegador)                                          | En revisión | 0.2.0   |
+| F-135 | Tema con vista previa: modo (claro, oscuro o automático), 7 acentos y fondo; reemplaza los colores fijos por tokens                                  | Planeado    | 0.2.0   |
+| F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                 | Planeado    | 0.2.0   |
+| F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                        | Planeado    | 0.2.0   |
 
 Los ajustes son **por instancia** (quien tiene la bóveda abierta los administra, sin roles) y se guardan fuera de
 la bóveda, en la carpeta de datos, para poder leerse antes de desbloquear. El logo solo admite imágenes
