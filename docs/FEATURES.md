@@ -30,10 +30,11 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Organización
 
-| ID    | Funcionalidad                                                                                                           | Estado      | Versión |
-| ----- | ----------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-120 | Proyectos: agrupar ambientes en un árbol; crear, renombrar y eliminar proyectos vacíos (ADR-0007)                       | En revisión | 0.2.0   |
-| F-140 | Compartir un proyecto o un ambiente en un archivo cifrado con frase de paso e importarlo como proyecto nuevo (ADR-0009) | En revisión | 0.2.0   |
+| ID    | Funcionalidad                                                                                                                                                                                             | Estado      | Versión |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-120 | Proyectos: agrupar ambientes en un árbol; crear, renombrar y eliminar proyectos vacíos (ADR-0007)                                                                                                         | En revisión | 0.2.0   |
+| F-140 | Compartir un proyecto o un ambiente en un archivo cifrado con frase de paso e importarlo como proyecto nuevo (ADR-0009)                                                                                   | En revisión | 0.2.0   |
+| F-141 | Importar un archivo compartido en un proyecto existente (selector con búsqueda): mezclar o crear aparte cada ambiente repetido, omitir o sobrescribir variables y marca «Importado» hasta editar el valor | En revisión | 0.2.0   |
 
 ## Auditoría y experiencia
 
@@ -66,14 +67,13 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 
 ## Planeado · organización y Postman
 
-| ID    | Rebanada                                                                                                         | Estado   | Versión |
-| ----- | ---------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada                             | Planeado | 0.2.0   |
-| F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones)                 | Planeado | 0.2.0   |
-| F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto                    | Planeado | 0.2.0   |
-| F-124 | Mover un ambiente a otro proyecto                                                                                | Planeado | 0.2.0   |
-| F-141 | Importar un archivo compartido en un proyecto existente: añade ambientes y variables, con política de conflictos | Planeado | 0.2.0   |
-| F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                                     | Planeado | 0.2.0   |
+| ID    | Rebanada                                                                                         | Estado   | Versión |
+| ----- | ------------------------------------------------------------------------------------------------ | -------- | ------- |
+| F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada             | Planeado | 0.2.0   |
+| F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | Planeado | 0.2.0   |
+| F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | Planeado | 0.2.0   |
+| F-124 | Mover un ambiente a otro proyecto                                                                | Planeado | 0.2.0   |
+| F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                     | Planeado | 0.2.0   |
 
 ## Planeado · gestión de secretos y ajustes
 
