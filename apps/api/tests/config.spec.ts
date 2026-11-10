@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, loadDotEnv } from '../src/config';
+import { insecureExposureWarning, loadConfig, loadDotEnv } from '../src/config';
 
 const ENV_KEYS = [
   'PORT',
@@ -134,6 +134,44 @@ describe('loadConfig', () => {
     const config = loadConfig({ PORT: 'no-es-un-número', SV_AUTO_LOCK_MINUTES: '' });
     expect(config.port).toBe(3000);
     expect(config.autoLockMinutes).toBe(15);
+  });
+});
+
+describe('insecureExposureWarning', () => {
+  it('should warn when the host is non-loopback without a secure cookie', () => {
+    const warning = insecureExposureWarning({
+      host: '0.0.0.0',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]'],
+      cookieSecure: false,
+    });
+    expect(warning).toContain('SV_COOKIE_SECURE');
+  });
+
+  it('should warn when an allowed host outside loopback is added without a secure cookie', () => {
+    const warning = insecureExposureWarning({
+      host: '127.0.0.1',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]', 'vault.home.lan'],
+      cookieSecure: false,
+    });
+    expect(warning).toContain('SV_COOKIE_SECURE');
+  });
+
+  it('should stay quiet for the loopback-only default', () => {
+    const warning = insecureExposureWarning({
+      host: '127.0.0.1',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]'],
+      cookieSecure: false,
+    });
+    expect(warning).toBeNull();
+  });
+
+  it('should stay quiet when the cookie is secure even off loopback', () => {
+    const warning = insecureExposureWarning({
+      host: '0.0.0.0',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]', 'vault.home.lan'],
+      cookieSecure: true,
+    });
+    expect(warning).toBeNull();
   });
 });
 

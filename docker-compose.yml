@@ -24,6 +24,15 @@ services:
       - secretvault-data:/app/data
       # Alternativa (bind mount, archivo visible en el host):
       #   - ./docker-data:/app/data
+    # Endurecimiento: el binario no necesita ningún privilegio de Linux ni escribir
+    # fuera de /app/data. Si apareciera una RCE en el runtime, esto limita el daño.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       # Minutos de inactividad antes de bloquear la bóveda (borra la clave de RAM).
       SV_AUTO_LOCK_MINUTES: '15'

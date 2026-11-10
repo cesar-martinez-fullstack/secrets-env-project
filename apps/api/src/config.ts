@@ -113,6 +113,27 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
+/**
+ * Detecta la combinación peligrosa de apartarse de loopback (bind o `Host` aceptado)
+ * sin exigir `Secure` en la cookie de sesión: la sesión viajaría en texto plano por
+ * esa red. No bloquea el arranque (hay usos válidos tras un proxy sin TLS en una red
+ * propia de confianza), pero no debe pasar en silencio.
+ */
+export function insecureExposureWarning(
+  config: Pick<ApiConfig, 'host' | 'allowedHosts' | 'cookieSecure'>,
+): string | null {
+  if (config.cookieSecure) return null;
+  const loopback = new Set<string>(LOOPBACK_HOSTS);
+  const exposedHost = !loopback.has(config.host.toLowerCase());
+  const exposedAllowedHost = config.allowedHosts.some((h) => !loopback.has(h));
+  if (!exposedHost && !exposedAllowedHost) return null;
+  return (
+    'La cookie de sesión no tiene el flag Secure (SV_COOKIE_SECURE=false) pero la app ' +
+    'acepta un host fuera de loopback. La sesión viajaría sin cifrar en esa red. ' +
+    'Activa SV_COOKIE_SECURE=true detrás de HTTPS, o vuelve HOST/SV_ALLOWED_HOSTS a loopback.'
+  );
+}
+
 export function loadConfig(env: Record<string, string | undefined> = Bun.env): ApiConfig {
   const port = clamp(toInt(env.PORT, 3000), 1, 65_535);
   const isProduction = env.NODE_ENV === 'production';
