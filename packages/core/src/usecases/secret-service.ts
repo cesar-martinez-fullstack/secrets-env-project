@@ -55,6 +55,7 @@ export class SecretService {
       id: secret.id,
       environmentId: secret.environmentId,
       environmentName: secret.environmentName,
+      projectName: secret.projectName,
       name: secret.name,
       maskedValue: MASKED_VALUE,
       hasNote: secret.noteEnc !== null,
@@ -126,7 +127,8 @@ export class SecretService {
     );
 
     const full = await this.deps.secrets.findById(created.id);
-    return this.toSummary(full ?? { ...created, environmentName: env.name });
+    if (!full) throw new SecretNotFoundError(created.id);
+    return this.toSummary(full);
   }
 
   async update(

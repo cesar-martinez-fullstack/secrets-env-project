@@ -178,7 +178,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
         <span
           class="hidden shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 md:inline-block"
         >
-          {{ secret.environmentName }}
+          {{ secret.projectName }} › {{ secret.environmentName }}
         </span>
 
         <!-- Valor enmascarado / revelado -->

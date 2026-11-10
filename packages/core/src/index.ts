@@ -10,6 +10,7 @@ export * from './ports/transaction';
 
 // Use cases
 export * from './usecases/vault-service';
+export * from './usecases/project-service';
 export * from './usecases/environment-service';
 export * from './usecases/secret-service';
 export * from './usecases/audit-service';

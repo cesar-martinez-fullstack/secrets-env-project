@@ -12,10 +12,16 @@
  * recuperación permite abrir la bóveda sin la contraseña. Regla de oro: la DEK y las KEK
  * solo existen en RAM; en disco quedan únicamente sus versiones envueltas.
  */
-import { decodeRecoveryKey, encodeRecoveryKey, validateMasterPassword } from '@secretvault/shared';
+import {
+  DEFAULT_PROJECT_NAME,
+  decodeRecoveryKey,
+  encodeRecoveryKey,
+  validateMasterPassword,
+} from '@secretvault/shared';
 import type {
   AuditRepository,
   EnvironmentRepository,
+  ProjectRepository,
   VaultRepository,
 } from '../ports/repositories';
 import type { VaultCryptoService } from '../ports/crypto';
@@ -45,6 +51,7 @@ export interface VaultConfig {
 
 export interface VaultServiceDeps {
   vaultRepo: VaultRepository;
+  projects: ProjectRepository;
   environments: EnvironmentRepository;
   crypto: VaultCryptoService;
   sessions: SessionStore;
@@ -114,7 +121,10 @@ export class VaultService {
         updatedAt: now,
       });
       if ((await this.deps.environments.list()).length === 0) {
-        await this.deps.environments.create('Local');
+        const project =
+          (await this.deps.projects.findByName(DEFAULT_PROJECT_NAME)) ??
+          (await this.deps.projects.create(DEFAULT_PROJECT_NAME));
+        await this.deps.environments.create(project.id, 'Local');
       }
       await this.deps.audit.record('vault.setup', 'Bóveda inicializada con contraseña maestra.');
     });

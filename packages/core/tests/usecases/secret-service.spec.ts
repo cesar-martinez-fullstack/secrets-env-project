@@ -31,6 +31,7 @@ function secretWithMeta(overrides: Record<string, unknown> = {}) {
     id: 1,
     environmentId: 1,
     environmentName: 'Local',
+    projectName: 'General',
     name: 'DATABASE_URL',
     valueEnc: new TextEncoder().encode('enc:postgres://x'),
     noteEnc: null,

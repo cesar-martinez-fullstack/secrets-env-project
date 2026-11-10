@@ -6,6 +6,7 @@
 import {
   AuditService,
   EnvironmentService,
+  ProjectService,
   SecretService,
   VaultService,
   type SessionStore,
@@ -27,6 +28,7 @@ export interface Container {
   db: SqliteDatabase;
   sessionStore: SessionStore;
   vaultService: VaultService;
+  projectService: ProjectService;
   environmentService: EnvironmentService;
   secretService: SecretService;
   auditService: AuditService;
@@ -47,6 +49,7 @@ export function createContainer(config: ApiConfig): Container {
 
   const vaultService = new VaultService({
     vaultRepo: repositories.vault,
+    projects: repositories.projects,
     environments: repositories.environments,
     crypto,
     sessions: sessionStore,
@@ -55,7 +58,13 @@ export function createContainer(config: ApiConfig): Container {
     config: { iterations: config.iterations, autoLockMinutes: config.autoLockMinutes },
   });
 
+  const projectService = new ProjectService({
+    projects: repositories.projects,
+    audit: repositories.audit,
+  });
+
   const environmentService = new EnvironmentService({
+    projects: repositories.projects,
     environments: repositories.environments,
     secrets: repositories.secrets,
     audit: repositories.audit,
@@ -76,6 +85,7 @@ export function createContainer(config: ApiConfig): Container {
     db,
     sessionStore,
     vaultService,
+    projectService,
     environmentService,
     secretService,
     auditService,

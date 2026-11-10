@@ -13,6 +13,12 @@ export interface Migration {
   version: number;
   description: string;
   sql: string;
+  /**
+   * La migración reconstruye una tabla referenciada por otras. Un `DROP TABLE` con claves foráneas
+   * activas borraría en cascada a las filas hijas, así que el ejecutor las desactiva mientras
+   * dura (procedimiento oficial de SQLite), verifica `foreign_key_check` y las reactiva.
+   */
+  rebuildsTables?: boolean;
 }
 
 export const MIGRATIONS: readonly Migration[] = [
@@ -95,6 +101,42 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE vault_meta_v2 RENAME TO vault_meta;
     `,
   },
+  {
+    version: 3,
+    description: 'proyectos: los ambientes pertenecen a un proyecto',
+    rebuildsTables: true,
+    sql: `
+      CREATE TABLE projects (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL UNIQUE COLLATE NOCASE CHECK (length(trim(name)) > 0),
+        created_at TEXT    NOT NULL,
+        updated_at TEXT    NOT NULL
+      );
+
+      INSERT INTO projects (name, created_at, updated_at) VALUES (
+        'General',
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      );
+
+      CREATE TABLE environments_v3 (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+        name       TEXT    NOT NULL COLLATE NOCASE CHECK (length(trim(name)) > 0),
+        created_at TEXT    NOT NULL,
+        updated_at TEXT    NOT NULL,
+        UNIQUE (project_id, name)
+      );
+
+      INSERT INTO environments_v3 (id, project_id, name, created_at, updated_at)
+        SELECT id, (SELECT id FROM projects WHERE name = 'General'), name, created_at, updated_at
+        FROM environments;
+
+      DROP TABLE environments;
+      ALTER TABLE environments_v3 RENAME TO environments;
+      CREATE INDEX idx_environments_project ON environments(project_id);
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {
@@ -138,23 +180,40 @@ function assertMigratable(db: Database, from: number, latest: number): void {
   if (from === 0 && hasTable(db, 'vault_meta')) throw new LegacyDatabaseError();
 }
 
+function foreignKeysEnabled(db: Database): boolean {
+  return db.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()!.foreign_keys === 1;
+}
+
+function assertNoForeignKeyViolations(db: Database): void {
+  if (db.query('PRAGMA foreign_key_check').all().length > 0) {
+    throw new Error('La migración dejó filas que violan claves foráneas; se revierte.');
+  }
+}
+
+function applyMigration(db: Database, migration: Migration): void {
+  const suspendForeignKeys = migration.rebuildsTables === true && foreignKeysEnabled(db);
+  // PRAGMA foreign_keys no tiene efecto dentro de una transacción.
+  if (suspendForeignKeys) db.exec('PRAGMA foreign_keys = OFF');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.exec(migration.sql);
+    if (suspendForeignKeys) assertNoForeignKeyViolations(db);
+    db.exec(`PRAGMA user_version = ${migration.version}`);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  } finally {
+    if (suspendForeignKeys) db.exec('PRAGMA foreign_keys = ON');
+  }
+}
+
 /** Aplica las migraciones pendientes. Devuelve las versiones aplicadas. */
 export function migrate(db: Database, migrations: readonly Migration[] = MIGRATIONS): number[] {
   const from = currentVersion(db);
   assertMigratable(db, from, migrations.at(-1)?.version ?? 0);
 
-  const applied: number[] = [];
-  for (const migration of migrations.filter((m) => m.version > from)) {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      db.exec(migration.sql);
-      db.exec(`PRAGMA user_version = ${migration.version}`);
-      db.exec('COMMIT');
-      applied.push(migration.version);
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-  }
-  return applied;
+  const pending = migrations.filter((m) => m.version > from);
+  for (const migration of pending) applyMigration(db, migration);
+  return pending.map((m) => m.version);
 }

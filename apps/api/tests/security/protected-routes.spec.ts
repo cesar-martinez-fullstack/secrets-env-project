@@ -39,6 +39,10 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/vault/change-password',
   'POST /api/vault/recover',
   'POST /api/vault/recovery-key',
+  'GET /api/projects',
+  'POST /api/projects',
+  'PATCH /api/projects/:id',
+  'DELETE /api/projects/:id',
   'GET /api/environments',
   'POST /api/environments',
   'PATCH /api/environments/:id',
@@ -65,6 +69,7 @@ function scanRouteFiles(): string[] {
   }
   for (const file of [
     'vault.routes.ts',
+    'projects.routes.ts',
     'environments.routes.ts',
     'secrets.routes.ts',
     'audit.routes.ts',
@@ -74,11 +79,13 @@ function scanRouteFiles(): string[] {
       const prefix =
         file === 'vault.routes.ts'
           ? '/api/vault'
-          : file === 'environments.routes.ts'
-            ? '/api/environments'
-            : file === 'secrets.routes.ts'
-              ? '/api/secrets'
-              : '/api/audit';
+          : file === 'projects.routes.ts'
+            ? '/api/projects'
+            : file === 'environments.routes.ts'
+              ? '/api/environments'
+              : file === 'secrets.routes.ts'
+                ? '/api/secrets'
+                : '/api/audit';
       const sub = match[2] === '/' ? '' : match[2]!;
       found.push(`${match[1]!.toUpperCase()} ${prefix}${sub}`);
     }

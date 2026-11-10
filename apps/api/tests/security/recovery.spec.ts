@@ -141,10 +141,9 @@ describe('actualización de una bóveda de formato 1', () => {
       `INSERT INTO vault_meta (id, salt, iterations, verifier, created_at, updated_at)
        VALUES (1, ?, 100000, ?, ?, ?)`,
     ).run(salt, verifier, now, now);
-    db.query("INSERT INTO environments (name, created_at, updated_at) VALUES ('Local', ?, ?)").run(
-      now,
-      now,
-    );
+    db.query(
+      "INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, 'Local', ?, ?)",
+    ).run(now, now);
     const valueEnc = await crypto.encrypt(
       oldKey,
       'valor-heredado',

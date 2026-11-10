@@ -35,6 +35,7 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     id: s.id,
     environmentId: s.environmentId,
     environmentName: s.environmentName,
+    projectName: s.projectName,
     name: s.name,
     maskedValue: s.maskedValue,
     hasNote: s.hasNote,

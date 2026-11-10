@@ -51,8 +51,8 @@ describe('SqliteEnvironmentRepository', () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
 
-    const local = await environments.create('Local');
-    await environments.create('QA');
+    const local = await environments.create(1, 'Local');
+    await environments.create(1, 'QA');
     await secrets.create({ environmentId: local.id, name: 'A', valueEnc: VALUE_A, noteEnc: null });
     await secrets.create({ environmentId: local.id, name: 'B', valueEnc: VALUE_B, noteEnc: null });
 
@@ -70,17 +70,17 @@ describe('SqliteEnvironmentRepository', () => {
   it('should enforce unique names case-insensitively', async () => {
     const db = openInMemoryDatabase();
     const { environments } = createRepositories(db);
-    await environments.create('Local');
-    expect(await environments.findByName('LOCAL')).not.toBeNull();
-    expect(() => environments.create('local')).toThrow(); // UNIQUE COLLATE NOCASE
+    await environments.create(1, 'Local');
+    expect(await environments.findByName(1, 'LOCAL')).not.toBeNull();
+    expect(() => environments.create(1, 'local')).toThrow(); // UNIQUE COLLATE NOCASE
     closeDatabase(db);
   });
 
   it('should list in creation order', async () => {
     const db = openInMemoryDatabase();
     const { environments } = createRepositories(db);
-    await environments.create('B');
-    await environments.create('A');
+    await environments.create(1, 'B');
+    await environments.create(1, 'A');
     expect((await environments.list()).map((e) => e.name)).toEqual(['B', 'A']);
     closeDatabase(db);
   });
@@ -90,7 +90,7 @@ describe('SqliteSecretRepository', () => {
   it('should create, read, update and delete secrets with their encrypted blobs intact', async () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
-    const env = await environments.create('Local');
+    const env = await environments.create(1, 'Local');
 
     const created = await secrets.create({
       environmentId: env.id,
@@ -116,8 +116,8 @@ describe('SqliteSecretRepository', () => {
   it('should enforce unique names per environment (case-insensitive) but allow across environments', async () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
-    const local = await environments.create('Local');
-    const qa = await environments.create('QA');
+    const local = await environments.create(1, 'Local');
+    const qa = await environments.create(1, 'QA');
 
     await secrets.create({
       environmentId: local.id,
@@ -137,8 +137,8 @@ describe('SqliteSecretRepository', () => {
   it('should filter by environment and search by substring case-insensitively', async () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
-    const local = await environments.create('Local');
-    const qa = await environments.create('QA');
+    const local = await environments.create(1, 'Local');
+    const qa = await environments.create(1, 'QA');
 
     await secrets.create({
       environmentId: local.id,
@@ -173,7 +173,7 @@ describe('SqliteSecretRepository', () => {
   it('should cascade-delete secrets when the environment is removed', async () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
-    const env = await environments.create('Local');
+    const env = await environments.create(1, 'Local');
     const s = await secrets.create({
       environmentId: env.id,
       name: 'A',
@@ -222,6 +222,92 @@ describe('SqliteAuditRepository', () => {
       'evento-7',
       'evento-6',
     ]); // conserva los más recientes
+    closeDatabase(db);
+  });
+});
+
+describe('SqliteProjectRepository', () => {
+  it('should start with the default project and count its environments', async () => {
+    const db = openInMemoryDatabase();
+    const { projects, environments } = createRepositories(db);
+    await environments.create(1, 'Local');
+    await environments.create(1, 'QA');
+
+    const list = await projects.listWithCounts();
+
+    expect(list.map((p) => [p.name, p.environmentCount])).toEqual([['General', 2]]);
+    closeDatabase(db);
+  });
+
+  it('should create, find case-insensitively, rename and delete an empty project', async () => {
+    const db = openInMemoryDatabase();
+    const { projects } = createRepositories(db);
+
+    const created = await projects.create('Tienda');
+    expect((await projects.findByName('TIENDA'))?.id).toBe(created.id);
+    expect((await projects.findById(created.id))?.name).toBe('Tienda');
+
+    await projects.rename(created.id, 'Tienda online');
+    expect((await projects.findById(created.id))?.name).toBe('Tienda online');
+    expect(await projects.countEnvironments(created.id)).toBe(0);
+
+    await projects.delete(created.id);
+    expect(await projects.findById(created.id)).toBeNull();
+    closeDatabase(db);
+  });
+
+  it('should not allow two projects with the same name, ignoring case', async () => {
+    const db = openInMemoryDatabase();
+    const { projects } = createRepositories(db);
+    await projects.create('Tienda');
+    await expect(projects.create('tienda')).rejects.toThrow();
+    closeDatabase(db);
+  });
+
+  it('should refuse to delete a project that still has environments', async () => {
+    const db = openInMemoryDatabase();
+    const { projects, environments } = createRepositories(db);
+    const project = await projects.create('Tienda');
+    await environments.create(project.id, 'Local');
+
+    await expect(projects.delete(project.id)).rejects.toThrow();
+    expect(await projects.countEnvironments(project.id)).toBe(1);
+    closeDatabase(db);
+  });
+});
+
+describe('environments scoped by project', () => {
+  it('should allow the same name in different projects and find it per project', async () => {
+    const db = openInMemoryDatabase();
+    const { projects, environments } = createRepositories(db);
+    const shop = await projects.create('Tienda');
+
+    const general = await environments.create(1, 'Local');
+    const inShop = await environments.create(shop.id, 'Local');
+
+    expect(general.id).not.toBe(inShop.id);
+    expect((await environments.findByName(1, 'local'))?.id).toBe(general.id);
+    expect((await environments.findByName(shop.id, 'LOCAL'))?.id).toBe(inShop.id);
+    expect(inShop.projectId).toBe(shop.id);
+    closeDatabase(db);
+  });
+
+  it('should expose the project name on every secret', async () => {
+    const db = openInMemoryDatabase();
+    const { projects, environments, secrets } = createRepositories(db);
+    const shop = await projects.create('Tienda');
+    const env = await environments.create(shop.id, 'Local');
+    const secret = await secrets.create({
+      environmentId: env.id,
+      name: 'API_KEY',
+      valueEnc: VALUE_A,
+      noteEnc: null,
+    });
+
+    const loaded = await secrets.findById(secret.id);
+
+    expect(loaded?.projectName).toBe('Tienda');
+    expect(loaded?.environmentName).toBe('Local');
     closeDatabase(db);
   });
 });

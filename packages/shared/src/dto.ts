@@ -69,14 +69,31 @@ export interface RecoveryKeyDto {
   recoveryKey: string;
 }
 
+export interface ProjectDto {
+  id: number;
+  name: string;
+  environmentCount: number;
+  createdAt: string;
+}
+
+export interface CreateProjectRequestDto {
+  name: string;
+}
+
+export interface RenameProjectRequestDto {
+  name: string;
+}
+
 export interface EnvironmentDto {
   id: number;
+  projectId: number;
   name: string;
   secretCount: number;
   createdAt: string;
 }
 
 export interface CreateEnvironmentRequestDto {
+  projectId: number;
   name: string;
 }
 
@@ -88,6 +105,7 @@ export interface SecretDto {
   id: number;
   environmentId: number;
   environmentName: string;
+  projectName: string;
   name: string;
   maskedValue: string;
   hasNote: boolean;

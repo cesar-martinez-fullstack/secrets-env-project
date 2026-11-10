@@ -71,6 +71,34 @@ export class WeakMasterPasswordError extends DomainError {
   }
 }
 
+export class ProjectNotFoundError extends DomainError {
+  constructor(id: number) {
+    super('PROJECT_NOT_FOUND', `El proyecto #${id} no existe.`, 404);
+  }
+}
+
+export class ProjectNameRequiredError extends DomainError {
+  constructor() {
+    super('PROJECT_NAME_REQUIRED', 'El nombre del proyecto es obligatorio.', 400);
+  }
+}
+
+export class ProjectNameTakenError extends DomainError {
+  constructor(name: string) {
+    super('PROJECT_NAME_TAKEN', `Ya existe un proyecto llamado «${name}».`, 409);
+  }
+}
+
+export class ProjectNotEmptyError extends DomainError {
+  constructor(name: string, environmentCount: number) {
+    super(
+      'PROJECT_NOT_EMPTY',
+      `El proyecto «${name}» tiene ${environmentCount} ambiente(s). Elimínalos o muévelos antes de borrarlo.`,
+      409,
+    );
+  }
+}
+
 export class EnvironmentNotFoundError extends DomainError {
   constructor(id: number) {
     super('ENVIRONMENT_NOT_FOUND', `El ambiente #${id} no existe.`, 404);

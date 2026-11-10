@@ -6,29 +6,45 @@ import {
   EnvironmentNotFoundError,
   EnvironmentNameRequiredError,
   EnvironmentNameTakenError,
+  ProjectNotFoundError,
 } from '../../src/domain/errors';
 import { EnvironmentService } from '../../src/usecases/environment-service';
 import { AuditService } from '../../src/usecases/audit-service';
 import {
   mockAuditRepo,
   mockEnvRepo,
+  mockProjectRepo,
   mockSecretRepo,
   type MockAuditRepo,
   type MockEnvRepo,
+  type MockProjectRepo,
   type MockSecretRepo,
 } from '../helpers/mocks';
 
+const env = (overrides: Record<string, unknown> = {}) => ({
+  id: 1,
+  projectId: 1,
+  name: 'Local',
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
 describe('EnvironmentService', () => {
+  let projects: MockProjectRepo;
   let envs: MockEnvRepo;
   let secrets: MockSecretRepo;
   let audit: MockAuditRepo;
   let service: EnvironmentService;
 
   beforeEach(() => {
+    projects = mockProjectRepo();
     envs = mockEnvRepo();
     secrets = mockSecretRepo();
     audit = mockAuditRepo();
+    projects.findById.mockResolvedValue({ id: 1, name: 'General' });
     service = new EnvironmentService({
+      projects: projects.repo,
       environments: envs.repo,
       secrets: secrets.repo,
       audit: audit.repo,
@@ -37,9 +53,7 @@ describe('EnvironmentService', () => {
 
   describe('list', () => {
     it('should return environments with their secret counts', async () => {
-      envs.listWithCounts.mockResolvedValue([
-        { id: 1, name: 'Local', secretCount: 4, createdAt: new Date(), updatedAt: new Date() },
-      ]);
+      envs.listWithCounts.mockResolvedValue([{ ...env(), secretCount: 4 }]);
       const list = await service.list();
       expect(list[0]?.name).toBe('Local');
       expect(list[0]?.secretCount).toBe(4);
@@ -47,52 +61,45 @@ describe('EnvironmentService', () => {
   });
 
   describe('create', () => {
-    it('should trim the name, create and audit', async () => {
+    it('should trim the name, create it inside the project and audit', async () => {
       envs.findByName.mockResolvedValue(null);
-      envs.create.mockResolvedValue({
-        id: 2,
-        name: 'QA',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      envs.create.mockResolvedValue(env({ id: 2, name: 'QA' }));
 
-      const created = await service.create('  QA  ');
+      const created = await service.create(1, '  QA  ');
 
-      expect(envs.create).toHaveBeenCalledWith('QA');
+      expect(envs.findByName).toHaveBeenCalledWith(1, 'QA');
+      expect(envs.create).toHaveBeenCalledWith(1, 'QA');
       expect(created.name).toBe('QA');
-      expect(audit.record).toHaveBeenCalledWith('env.created', expect.stringContaining('QA'));
+      expect(audit.record).toHaveBeenCalledWith('env.created', expect.stringContaining('General'));
     });
 
-    it('should reject duplicate names case-insensitively', async () => {
-      envs.findByName.mockResolvedValue({
-        id: 1,
-        name: 'local',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      await expect(service.create('LOCAL')).rejects.toThrow(EnvironmentNameTakenError);
+    it('should reject duplicate names inside the same project, ignoring case', async () => {
+      envs.findByName.mockResolvedValue(env({ name: 'local' }));
+      await expect(service.create(1, 'LOCAL')).rejects.toThrow(EnvironmentNameTakenError);
       expect(envs.create).not.toHaveBeenCalled();
     });
 
+    it('should reject a project that does not exist before touching environments', async () => {
+      projects.findById.mockResolvedValue(null);
+      await expect(service.create(9, 'QA')).rejects.toThrow(ProjectNotFoundError);
+      expect(envs.findByName).not.toHaveBeenCalled();
+    });
+
     it('should reject empty names', async () => {
-      await expect(service.create('   ')).rejects.toThrow(EnvironmentNameRequiredError);
+      await expect(service.create(1, '   ')).rejects.toThrow(EnvironmentNameRequiredError);
       expect(envs.findByName).not.toHaveBeenCalled();
     });
   });
 
   describe('rename', () => {
     it('should rename and audit the transition old → new', async () => {
-      envs.findById.mockResolvedValue({
-        id: 1,
-        name: 'Local',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      envs.findById.mockResolvedValue(env({ id: 1, name: 'Local' }));
       envs.findByName.mockResolvedValue(null);
       envs.rename.mockResolvedValue(undefined);
 
       const renamed = await service.rename(1, '  Dev  ');
 
+      expect(envs.findByName).toHaveBeenCalledWith(1, 'Dev');
       expect(envs.rename).toHaveBeenCalledWith(1, 'Dev');
       expect(renamed.name).toBe('Dev');
       expect(audit.record).toHaveBeenCalledWith('env.renamed', expect.stringContaining('Local'));
@@ -100,36 +107,16 @@ describe('EnvironmentService', () => {
     });
 
     it('should allow keeping the same name (rename to itself)', async () => {
-      envs.findById.mockResolvedValue({
-        id: 1,
-        name: 'Local',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      envs.findByName.mockResolvedValue({
-        id: 1,
-        name: 'Local',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      envs.findById.mockResolvedValue(env({ id: 1, name: 'Local' }));
+      envs.findByName.mockResolvedValue(env({ id: 1, name: 'Local' }));
 
       await service.rename(1, 'Local');
       expect(envs.rename).toHaveBeenCalledWith(1, 'Local');
     });
 
     it('should reject renaming to a name taken by another environment', async () => {
-      envs.findById.mockResolvedValue({
-        id: 1,
-        name: 'Local',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      envs.findByName.mockResolvedValue({
-        id: 2,
-        name: 'QA',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      envs.findById.mockResolvedValue(env({ id: 1, name: 'Local' }));
+      envs.findByName.mockResolvedValue(env({ id: 2, name: 'QA' }));
 
       await expect(service.rename(1, 'QA')).rejects.toThrow(EnvironmentNameTakenError);
       expect(envs.rename).not.toHaveBeenCalled();
@@ -143,17 +130,13 @@ describe('EnvironmentService', () => {
 
   describe('delete', () => {
     it('should delete with cascade and audit the number of secrets removed', async () => {
-      envs.findById.mockResolvedValue({
-        id: 1,
-        name: 'QA',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      envs.findById.mockResolvedValue(env({ id: 1, name: 'QA' }));
       secrets.list.mockResolvedValue([
         {
           id: 1,
           environmentId: 1,
           environmentName: 'QA',
+          projectName: 'General',
           name: 'A',
           valueEnc: new Uint8Array(4),
           noteEnc: null,
@@ -164,6 +147,7 @@ describe('EnvironmentService', () => {
           id: 2,
           environmentId: 1,
           environmentName: 'QA',
+          projectName: 'General',
           name: 'B',
           valueEnc: new Uint8Array(4),
           noteEnc: null,

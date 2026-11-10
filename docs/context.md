@@ -147,7 +147,8 @@ Decisiones y por qué:
 
 ```sql
 vault_meta(id=1: salt, iterations, verifier, created_at, updated_at)
-environments(id, name UNIQUE COLLATE NOCASE, created_at, updated_at)
+projects(id, name UNIQUE COLLATE NOCASE, created_at, updated_at)  -- 'General' por defecto
+environments(id, project_id FK RESTRICT, name UNIQUE(project,name) COLLATE NOCASE, created_at, updated_at)
 secrets(id, environment_id FK CASCADE, name UNIQUE(env,name) COLLATE NOCASE,
         value_enc BLOB, note_enc BLOB NULL, created_at, updated_at)
 audit_log(id, type, message, created_at)  -- podado a 1000 eventos (AUDIT_MAX_EVENTS)

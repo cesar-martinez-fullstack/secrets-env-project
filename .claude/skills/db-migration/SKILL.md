@@ -9,7 +9,8 @@ description: Cambiar el esquema de SQLite de forma segura (migración versionada
   `packages/database/src/migrations.ts`. Cada una corre en transacción y sube `PRAGMA user_version`.
 - SQLite no permite `ALTER TABLE … ADD CONSTRAINT`: para cambiar constraints se usa el patrón
   "crear tabla nueva → copiar → borrar vieja → renombrar" dentro de la misma migración
-  (con `PRAGMA foreign_keys=OFF` gestionado por el runner, o `PRAGMA defer_foreign_keys=ON`).
+  y se marca la migración con `rebuildsTables: true`: el ejecutor apaga `foreign_keys` (un `DROP TABLE` con ellas
+  activas borraría en cascada a las filas hijas), valida `foreign_key_check` y las reactiva, incluso si falla.
 - Mantén los `CHECK`/`FK`/`UNIQUE`: son la defensa de consistencia. Añadir uno nuevo exige validar
   que los datos existentes lo cumplen (consulta previa en la migración o falla con mensaje claro).
 

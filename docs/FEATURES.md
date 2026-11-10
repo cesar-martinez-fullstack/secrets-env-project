@@ -8,25 +8,31 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Bóveda y acceso
 
-| ID    | Funcionalidad                                                                     | Estado      | Versión | Referencia       |
-| ----- | --------------------------------------------------------------------------------- | ----------- | ------- | ---------------- |
-| F-001 | Crear bóveda con contraseña maestra, desbloquear, bloquear y auto-bloqueo         | Hecho       | 0.1.0   | —                |
-| F-002 | Perímetro solo-localhost (bind, Host/Origin, CSP, sesión con expiración absoluta) | Hecho       | 0.1.0   | ADR-0004         |
-| F-003 | Clave de recuperación (cifrado de envoltura) y recuperación de acceso             | En revisión | 0.1.0   | PR #14, ADR-0006 |
-| F-004 | Panel de seguridad: cambiar contraseña y regenerar la clave de recuperación       | En revisión | 0.1.0   | PR #14           |
-| F-005 | Actualización automática de bóvedas del formato anterior                          | En revisión | 0.1.0   | PR #14           |
+| ID    | Funcionalidad                                                                     | Estado | Versión | Referencia       |
+| ----- | --------------------------------------------------------------------------------- | ------ | ------- | ---------------- |
+| F-001 | Crear bóveda con contraseña maestra, desbloquear, bloquear y auto-bloqueo         | Hecho  | 0.1.0   | —                |
+| F-002 | Perímetro solo-localhost (bind, Host/Origin, CSP, sesión con expiración absoluta) | Hecho  | 0.1.0   | ADR-0004         |
+| F-003 | Clave de recuperación (cifrado de envoltura) y recuperación de acceso             | Hecho  | 0.1.0   | PR #14, ADR-0006 |
+| F-004 | Panel de seguridad: cambiar contraseña y regenerar la clave de recuperación       | Hecho  | 0.1.0   | PR #14           |
+| F-005 | Actualización automática de bóvedas del formato anterior                          | Hecho  | 0.1.0   | PR #14           |
 
 ## Secretos y ambientes
 
-| ID    | Funcionalidad                                                                         | Estado      | Versión |
-| ----- | ------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-010 | Ambientes: crear, renombrar, eliminar (con conteo de secretos)                        | Hecho       | 0.1.0   |
-| F-011 | Secretos: crear, editar, eliminar; listado enmascarado; revelado auditado             | Hecho       | 0.1.0   |
-| F-012 | Búsqueda global por nombre, en vivo y entre todos los ambientes                       | Hecho       | 0.1.0   |
-| F-013 | Importar desde `.env` pegado, con vista previa                                        | Hecho       | 0.1.0   |
-| F-014 | Exportar un ambiente a `.env`, CSV o PDF                                              | Hecho       | 0.1.0   |
-| F-016 | Exportar un ambiente a JSON (documento versionado con ambiente, nombre, valor y nota) | En revisión | 0.2.0   |
-| F-015 | Generador de valores aleatorios                                                       | Hecho       | 0.1.0   |
+| ID    | Funcionalidad                                                                         | Estado | Versión |
+| ----- | ------------------------------------------------------------------------------------- | ------ | ------- |
+| F-010 | Ambientes: crear, renombrar, eliminar (con conteo de secretos)                        | Hecho  | 0.1.0   |
+| F-011 | Secretos: crear, editar, eliminar; listado enmascarado; revelado auditado             | Hecho  | 0.1.0   |
+| F-012 | Búsqueda global por nombre, en vivo y entre todos los ambientes                       | Hecho  | 0.1.0   |
+| F-013 | Importar desde `.env` pegado, con vista previa                                        | Hecho  | 0.1.0   |
+| F-014 | Exportar un ambiente a `.env`, CSV o PDF                                              | Hecho  | 0.1.0   |
+| F-016 | Exportar un ambiente a JSON (documento versionado con ambiente, nombre, valor y nota) | Hecho  | 0.2.0   |
+| F-015 | Generador de valores aleatorios                                                       | Hecho  | 0.1.0   |
+
+## Organización
+
+| ID    | Funcionalidad                                                                                     | Estado      | Versión |
+| ----- | ------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-120 | Proyectos: agrupar ambientes en un árbol; crear, renombrar y eliminar proyectos vacíos (ADR-0007) | En revisión | 0.2.0   |
 
 ## Auditoría y experiencia
 
@@ -56,3 +62,12 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 El resto del backlog (backup y restauración, borrado automático del portapapeles, E2E en CI, etc.) está en
 [TODO.md](TODO.md) y entra aquí cuando se corta como rebanada.
+
+## Planeado · organización y Postman
+
+| ID    | Rebanada                                                                                         | Estado   | Versión |
+| ----- | ------------------------------------------------------------------------------------------------ | -------- | ------- |
+| F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada             | Planeado | 0.2.0   |
+| F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | Planeado | 0.2.0   |
+| F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | Planeado | 0.2.0   |
+| F-124 | Mover un ambiente a otro proyecto                                                                | Planeado | 0.2.0   |

@@ -1,7 +1,6 @@
 /**
- * Store de datos: ambientes, secretos y búsqueda global en tiempo real.
- * Coordina el filtrado: sin búsqueda → secretos del ambiente activo;
- * con búsqueda → resultados en TODOS los ambientes.
+ * Store de datos: proyectos, ambientes, secretos y búsqueda global en tiempo real.
+ * Sin búsqueda → secretos del ambiente activo; con búsqueda → resultados en TODOS los ambientes.
  */
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -9,11 +8,13 @@ import type {
   CreateSecretRequestDto,
   EnvironmentDto,
   ImportSecretsResultDto,
+  ProjectDto,
   SecretDto,
 } from '@secretvault/shared';
 import { api } from '@/lib/api';
 
 export const useDataStore = defineStore('data', () => {
+  const projects = ref<ProjectDto[]>([]);
   const environments = ref<EnvironmentDto[]>([]);
   const secrets = ref<SecretDto[]>([]);
   const activeEnvId = ref<number | null>(null);
@@ -26,6 +27,8 @@ export const useDataStore = defineStore('data', () => {
   const activeEnv = computed<EnvironmentDto | null>(
     () => environments.value.find((e) => e.id === activeEnvId.value) ?? null,
   );
+  const environmentsOf = (projectId: number): EnvironmentDto[] =>
+    environments.value.filter((env) => env.projectId === projectId);
   const isSearching = computed(() => query.value.trim().length > 0);
   const totalSecrets = computed(() =>
     environments.value.reduce((acc, env) => acc + env.secretCount, 0),
@@ -34,7 +37,10 @@ export const useDataStore = defineStore('data', () => {
   async function refreshEnvironments(): Promise<void> {
     loadingEnvs.value = true;
     try {
-      environments.value = await api.listEnvironments();
+      [projects.value, environments.value] = await Promise.all([
+        api.listProjects(),
+        api.listEnvironments(),
+      ]);
       if (
         activeEnvId.value === null ||
         !environments.value.some((e) => e.id === activeEnvId.value)
@@ -72,8 +78,23 @@ export const useDataStore = defineStore('data', () => {
   // Cambiar de ambiente refresca de inmediato.
   watch(activeEnvId, () => void refreshSecrets());
 
-  async function addEnvironment(name: string): Promise<void> {
-    const created = await api.createEnvironment(name);
+  async function addProject(name: string): Promise<void> {
+    await api.createProject(name);
+    await refreshEnvironments();
+  }
+
+  async function renameProject(id: number, name: string): Promise<void> {
+    await api.renameProject(id, name);
+    await Promise.all([refreshEnvironments(), refreshSecrets()]);
+  }
+
+  async function deleteProject(id: number): Promise<void> {
+    await api.deleteProject(id);
+    await refreshEnvironments();
+  }
+
+  async function addEnvironment(projectId: number, name: string): Promise<void> {
+    const created = await api.createEnvironment(projectId, name);
     await refreshEnvironments();
     activeEnvId.value = created.id;
   }
@@ -124,6 +145,7 @@ export const useDataStore = defineStore('data', () => {
   }
 
   return {
+    projects,
     environments,
     secrets,
     activeEnvId,
@@ -131,11 +153,15 @@ export const useDataStore = defineStore('data', () => {
     loadingEnvs,
     loadingSecrets,
     activeEnv,
+    environmentsOf,
     isSearching,
     totalSecrets,
     refreshEnvironments,
     refreshSecrets,
     scheduleRefreshSecrets,
+    addProject,
+    renameProject,
+    deleteProject,
     addEnvironment,
     renameEnvironment,
     deleteEnvironment,
