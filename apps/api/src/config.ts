@@ -95,6 +95,15 @@ function parseHostList(raw: string | undefined): string[] {
     .filter((h) => h.length > 0);
 }
 
+/**
+ * Carpeta del SPA compilado cuando no se fija `SV_PUBLIC_DIR`: `./public` (binario y Docker)
+ * o `./apps/api/public` (salida de `bun run build:web` al correr desde la raíz del monorepo).
+ */
+function defaultPublicDir(): string {
+  const candidates = [resolve('public'), resolve('apps', 'api', 'public')];
+  return candidates.find((dir) => existsSync(join(dir, 'index.html'))) ?? candidates[0]!;
+}
+
 function toInt(value: string | undefined, fallback: number): number {
   const n = Number.parseInt(value ?? '', 10);
   return Number.isFinite(n) ? n : fallback;
@@ -112,7 +121,7 @@ export function loadConfig(env: Record<string, string | undefined> = Bun.env): A
     // Solo loopback por defecto: la bóveda no debe ser alcanzable desde la red.
     host: env.HOST ?? '127.0.0.1',
     dataDir: env.SV_DATA_DIR ? resolve(env.SV_DATA_DIR) : resolve('data'),
-    publicDir: env.SV_PUBLIC_DIR ? resolve(env.SV_PUBLIC_DIR) : resolve('public'),
+    publicDir: env.SV_PUBLIC_DIR ? resolve(env.SV_PUBLIC_DIR) : defaultPublicDir(),
     autoLockMinutes: clamp(toInt(env.SV_AUTO_LOCK_MINUTES, DEFAULT_AUTO_LOCK_MINUTES), 1, 1440),
     iterations: clamp(
       toInt(env.SV_PBKDF2_ITERATIONS, DEFAULT_PBKDF2_ITERATIONS),
