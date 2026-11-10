@@ -15,7 +15,7 @@ Reglas completas en `.claude/rules/vertical-slices.md` y `.claude/rules/code-qua
    (migración nueva si cambia el esquema: skill `db-migration`), ruta fina en `api`, interfaz en `web`.
    Cableado únicamente en `container.ts`. Sin abstracciones para rebanadas futuras.
 5. **Verifica en el navegador** con Playwright CLI desde la carpeta temporal de pruebas (no ensucies el repo):
-   servidor aislado con datos en un directorio temporal, recorrido feliz, fallos probables y consola sin errores.
+   servidor aislado con datos en un directorio temporal (API y Vite con `SV_API_URL`, por el mismo camino que usa la persona), recorrido feliz, fallos probables y consola sin errores.
    Detén el servidor y cierra el navegador al terminar.
 6. **Refactoriza** en verde (extrae al segundo uso real). Recorta comentarios que narran código.
 7. **Cierra**: `bun run verify`, `bun run test:architecture`, `bun run test:security` si tocó seguridad, skill

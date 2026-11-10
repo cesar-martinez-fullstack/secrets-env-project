@@ -21,7 +21,8 @@ y **da valor por sí sola**, desde el primer momento en que alguien puede usarla
    `app.request()`); después los unitarios que hagan falta.
 3. **Implementar lo mínimo en todas las capas** para ponerlo en verde. Sin abstracciones para rebanadas futuras.
 4. **Verificar en el navegador** con Playwright CLI (recorrido feliz y los fallos más probables) y revisar la
-   consola. El resultado se resume en el PR; no se pide a la persona que lo repita.
+   consola, **por el mismo camino que usa la persona**: en desarrollo, Vite en `:5173` con su proxy, no solo el
+   API directo. El resultado se resume en el PR; no se pide a la persona que lo repita.
 5. **Refactorizar** con los tests en verde. Una abstracción se extrae cuando aparece su **segundo** uso real.
 6. **Documentar lo justo**: fila en `FEATURES.md`; entrada en `ISSUES.md` si apareció un bug; ADR solo si hay
    una decisión difícil de revertir (corto, sin diseño de rebanadas futuras).
