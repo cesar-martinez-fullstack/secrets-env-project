@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import {
+  LegacyDatabaseError,
   MIGRATIONS,
   SchemaTooNewError,
   SqliteUnitOfWork,
@@ -42,6 +43,14 @@ describe('migrations', () => {
     expect(currentVersion(db)).toBe(before);
     const leftover = db.query("SELECT name FROM sqlite_master WHERE name = 'ok'").all();
     expect(leftover).toEqual([]);
+  });
+
+  it('should reject a pre-migrations database with a clear error and leave it untouched', () => {
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE vault_meta (id INTEGER PRIMARY KEY)');
+
+    expect(() => migrate(db)).toThrow(LegacyDatabaseError);
+    expect(currentVersion(db)).toBe(0);
   });
 
   it('should refuse to open a database created by a newer version', () => {
