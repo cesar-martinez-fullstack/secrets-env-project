@@ -4,7 +4,7 @@
  */
 import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { SESSION_COOKIE } from '@secretvault/shared';
+import { SESSION_COOKIE, isExportFormat, type ExportFormat } from '@secretvault/shared';
 import { ValidationFailedError } from '@secretvault/core';
 import type { ApiConfig } from '../config';
 
@@ -79,4 +79,11 @@ export function parseIdParam(raw: string): number {
     throw new ValidationFailedError([{ field: 'id', message: 'Identificador inválido.' }]);
   }
   return id;
+}
+
+export function parseExportFormat(raw: string): ExportFormat {
+  if (!isExportFormat(raw)) {
+    throw new ValidationFailedError([{ field: 'format', message: 'Formato inválido.' }]);
+  }
+  return raw;
 }
