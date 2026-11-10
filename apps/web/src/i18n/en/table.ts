@@ -1,0 +1,22 @@
+import type { table as base } from '../es/table';
+
+export const table: Record<keyof typeof base, string> = {
+  'table.emptyTitle': 'This environment is empty',
+  'table.emptyDescription': 'Create your first environment variable or import a whole .env file.',
+  'table.createSecret': 'Create secret',
+  'table.imported': 'Imported',
+  'table.importedTitle': 'Received from a shared file on {date}',
+  'table.hasNote': 'Has a note',
+  'table.hidesIn': 'hides in {seconds}s',
+  'table.edited': 'edited {time}',
+  'table.hide': 'Hide value',
+  'table.reveal': 'Reveal value (10s)',
+  'table.copy': 'Copy value',
+  'table.edit': 'Edit secret',
+  'table.delete': 'Delete secret',
+  'table.revealFailed': 'Could not reveal',
+  'table.copyFailed': 'Could not copy',
+  'table.copied': '{name} copied to the clipboard',
+  'table.copiedBody': 'The value is ready to paste.',
+  'table.clipboardBlocked': 'Your browser blocked access to the clipboard.',
+};

@@ -1,0 +1,77 @@
+export const io = {
+  'import.title': 'Importar variables (.env)',
+  'import.leadStart': 'Pega el contenido de un archivo',
+  'import.leadMiddle': 'para importarlo al ambiente',
+  'import.leadEnd': '. Cada valor se cifrará con AES-256-GCM al guardarse.',
+  'import.valid': '{count} variable(s) válidas',
+  'import.duplicates': '{count} duplicada(s) (gana la última)',
+  'import.invalid': '{count} línea(s) inválidas',
+  'import.overwrite': 'Sobrescribir existentes',
+  'import.overwriteHint':
+    'Si una variable ya existe en el ambiente, reemplaza su valor. Si se desactiva, se omiten.',
+  'import.submit': 'Importar',
+  'import.doneTitle': 'Importación completada',
+  'import.nothingChanged': 'No hubo cambios.',
+  'import.failed': 'Error al importar',
+  'import.created': '{count} nuevo(s)',
+  'import.updated': '{count} actualizado(s)',
+  'import.skipped': '{count} omitido(s)',
+  'import.summary': '{parts} en «{env}».',
+
+  'audit.back': 'Volver a la bóveda',
+  'audit.title': 'Historial de auditoría',
+  'audit.total': '{count} evento(s)',
+  'audit.emptyTitle': 'Sin eventos todavía',
+  'audit.emptyDescription':
+    'Aquí se registrarán creaciones, ediciones, borrados, revelados y exportaciones.',
+  'audit.loadMore': 'Cargar más',
+
+  'shareExport.title': 'Compartir «{name}»',
+  'shareExport.scopeProject': 'el proyecto completo',
+  'shareExport.scopeEnv': 'este ambiente',
+  'shareExport.lead':
+    'Se genera un archivo cifrado con {scope}, sus ambientes y sus secretos. Quien lo reciba necesita la frase de paso para abrirlo en su SecretVault.',
+  'shareExport.passphrase': 'Frase de paso',
+  'shareExport.hide': 'Ocultar',
+  'shareExport.show': 'Mostrar',
+  'shareExport.hidePassphrase': 'Ocultar la frase',
+  'shareExport.showPassphrase': 'Mostrar la frase',
+  'shareExport.generate': 'Generar',
+  'shareExport.hint':
+    'Mínimo {min} caracteres. SecretVault no la guarda: si se pierde, el archivo no se puede abrir.',
+  'shareExport.warning':
+    'Quien tenga el archivo y la frase tendrá acceso a estos secretos y no se puede revocar. Comparte la frase por un canal distinto al del archivo.',
+  'shareExport.download': 'Descargar archivo',
+  'shareExport.doneTitle': 'Archivo generado',
+  'shareExport.doneBody':
+    'Envía la frase de paso a la otra persona por un canal distinto al del archivo.',
+  'shareExport.failed': 'No se pudo compartir',
+
+  'shareImport.title': 'Importar archivo compartido',
+  'shareImport.file': 'Archivo (.svshare)',
+  'shareImport.passphrase': 'Frase de paso',
+  'shareImport.open': 'Abrir archivo',
+  'shareImport.openFailed': 'No se pudo abrir el archivo',
+  'shareImport.importIn': 'Importar en',
+  'shareImport.newProject': 'Proyecto nuevo «{name}»',
+  'shareImport.newProjectHint':
+    'Si ya tienes un proyecto con ese nombre, el nuevo llevará un número al final.',
+  'shareImport.secrets': '{count} secreto(s)',
+  'shareImport.exists': 'Ya existe un ambiente con este nombre.',
+  'shareImport.merge': 'Mezclar con el existente',
+  'shareImport.separate': 'Crear otro aparte',
+  'shareImport.alreadyThere': 'Ya existen:',
+  'shareImport.willCreate': 'Se creará en el proyecto.',
+  'shareImport.conflictLegend': 'Si una variable ya existe',
+  'shareImport.skip': 'Omitirla',
+  'shareImport.replace': 'Sobrescribirla',
+  'shareImport.markNote':
+    'Los secretos recibidos quedan marcados como «Importado» hasta que edites su valor.',
+  'shareImport.submit': 'Importar',
+  'shareImport.failed': 'No se pudo importar',
+  'shareImport.doneTitle': 'Importación completada',
+  'shareImport.doneBody': '«{project}»: {parts}.',
+
+  'picker.search': 'Buscar proyecto',
+  'picker.none': 'Ningún proyecto coincide.',
+} as const;

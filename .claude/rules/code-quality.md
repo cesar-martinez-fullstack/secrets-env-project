@@ -23,6 +23,8 @@ El código debe ser **limpio, vigente y probado**. Nada heredado, obsoleto ni "p
 - Preferir la **plataforma** (`fetch`, Web Crypto, `node:crypto`, APIs de Bun) antes que una dependencia.
 - **Prohibido lo obsoleto o deprecado**: `document.execCommand`, `var`, callbacks de Node en lugar de
   promesas, `require`, `substr`, `new Buffer`, polyfills innecesarios, Options API o mixins de Vue.
+- Interfaz: ningún texto visible literal en componentes ni stores; van por `t('clave')` con el catálogo en
+  `apps/web/src/i18n/{es,en}` (el inglés se completa o el typecheck falla). Fechas con `Intl` y el idioma activo.
 - Vue 3: `<script setup lang="ts">`, Composition API, stores de Pinia en formato _setup_, `defineProps` /
   `defineEmits` tipados. Sin estilos ni lógica de negocio en las plantillas. Una prop booleana ausente vale
   `false` (no `undefined`): para un valor por defecto `true` se usa `withDefaults`.

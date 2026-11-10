@@ -27,6 +27,15 @@ Cuatro piezas independientes, para que cada una cambie sin arrastrar a las demá
 4. **Contenido guiado como datos.** El tour es una lista declarativa de pasos (clave de texto y ancla
    `data-tour`), traducible y editable sin tocar la lógica del componente.
 
+## Decisiones tomadas al implementar
+
+- **Textos (F-134):** capa mínima propia, sin biblioteca: catálogos por área y por idioma en `apps/web/src/i18n`,
+  con claves tipadas. El catálogo inglés es `Record<MessageKey, string>`, así que el typecheck falla si falta una
+  clave, y un test comprueba que ambos idiomas usan los mismos marcadores `{nombre}`. Los códigos de error del
+  API se traducen en el cliente (`error.<CODIGO>`); si el idioma es el base se muestra el mensaje del servidor.
+- **Dónde se guarda el idioma:** por ahora en el navegador (`localStorage`), como el tema. Pasará a los ajustes de
+  instancia cuando exista el puerto de ajustes (F-130).
+
 ## Alternativas consideradas
 
 - **Tema en tiempo de compilación (configuración de Tailwind):** no permite cambiarlo desde la interfaz.

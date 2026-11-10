@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useI18n } from '@/i18n/use-i18n';
 import { useToastStore } from '@/stores/toast';
 import BaseModal from '@/components/ui/BaseModal.vue';
 
@@ -16,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>();
 
 const toast = useToastStore();
+const { t, describeError } = useI18n();
 const name = ref('');
 const submitting = ref(false);
 
@@ -34,7 +36,7 @@ async function submit(): Promise<void> {
     await props.save(trimmed);
     emit('close');
   } catch (error) {
-    toast.push('error', 'No se pudo guardar', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('nameForm.saveFailed'), describeError(error));
   } finally {
     submitting.value = false;
   }
@@ -44,7 +46,7 @@ async function submit(): Promise<void> {
 <template>
   <BaseModal :open="open" :title="title" max-width="sm" @close="emit('close')">
     <form @submit.prevent="submit">
-      <label for="name-form-input" class="label-text">Nombre</label>
+      <label for="name-form-input" class="label-text">{{ t('common.name') }}</label>
       <input
         id="name-form-input"
         v-model="name"
@@ -61,7 +63,7 @@ async function submit(): Promise<void> {
           class="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
           @click="emit('close')"
         >
-          Cancelar
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"

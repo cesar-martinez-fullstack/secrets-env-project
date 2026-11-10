@@ -2,6 +2,7 @@
 /**
  * Diálogo de confirmación con variante peligrosa (rojo) para acciones destructivas.
  */
+import { useI18n } from '@/i18n/use-i18n';
 import BaseModal from '@/components/ui/BaseModal.vue';
 
 defineProps<{
@@ -16,6 +17,8 @@ const emit = defineEmits<{
   confirm: [];
   cancel: [];
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -27,7 +30,7 @@ const emit = defineEmits<{
         class="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
         @click="emit('cancel')"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -39,7 +42,7 @@ const emit = defineEmits<{
         "
         @click="emit('confirm')"
       >
-        {{ confirmText ?? 'Confirmar' }}
+        {{ confirmText ?? t('common.confirm') }}
       </button>
     </div>
   </BaseModal>

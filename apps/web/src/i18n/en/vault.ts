@@ -1,0 +1,36 @@
+import type { vault as base } from '../es/vault';
+
+export const vault: Record<keyof typeof base, string> = {
+  'vault.lockedTitle': 'Vault locked',
+  'vault.lockedBody': 'The key was wiped from memory.',
+  'vault.projectHasEnvsTitle': 'The project has environments',
+  'vault.projectHasEnvsBody': 'Delete its {count} environment(s) first so you can delete «{name}».',
+  'vault.deleteProjectTitle': 'Delete project',
+  'vault.deleteProjectMessage': 'Delete the empty project «{name}»?',
+  'vault.deleteProjectConfirm': 'Delete {name}',
+  'vault.projectDeleted': 'Project deleted',
+  'vault.projectDeletedBody': '«{name}» was deleted.',
+  'vault.deleteEnvTitle': 'Delete environment',
+  'vault.deleteEnvMessage':
+    'The environment «{name}» will be deleted along with its {count} encrypted secret(s). This cannot be undone.',
+  'vault.envDeleted': 'Environment deleted',
+  'vault.envDeletedBody': '«{name}» and its secrets were deleted.',
+  'vault.deleteSecretTitle': 'Delete secret',
+  'vault.deleteSecretMessage':
+    'Delete the secret «{name}» from the environment «{env}»? This cannot be undone.',
+  'vault.delete': 'Delete',
+  'vault.secretDeleted': 'Secret deleted',
+  'vault.secretDeletedBody': '«{name}» was deleted.',
+  'vault.error': 'Error',
+  'vault.resultsFor': 'Results for',
+  'vault.searchingAll': 'Searching across all environments',
+  'vault.envSummary': '{count} secret(s) · AES-256-GCM encrypted',
+  'vault.title': 'Vault',
+  'vault.import': 'Import',
+  'vault.new': 'New',
+  'vault.searchCount': '{count} result(s) across multiple environments',
+  'vault.firstEnvTitle': 'Create your first environment',
+  'vault.firstEnvDescription':
+    'Environments (Local, QA, Production…) group your environment variables.',
+  'vault.createEnv': 'Create environment',
+};

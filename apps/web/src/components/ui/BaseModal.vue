@@ -4,6 +4,7 @@
  * transición suave y bloqueo de scroll del body.
  */
 import { onBeforeUnmount, watch } from 'vue';
+import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 
 const props = withDefaults(
@@ -20,6 +21,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   close: [];
 }>();
+
+const { t } = useI18n();
 
 const maxClass = {
   sm: 'max-w-md',
@@ -74,7 +77,7 @@ onBeforeUnmount(() => {
               v-if="dismissible"
               type="button"
               class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              aria-label="Cerrar"
+              :aria-label="t('common.close')"
               @click="emit('close')"
             >
               <AppIcon name="x" />

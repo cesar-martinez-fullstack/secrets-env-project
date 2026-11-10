@@ -1,0 +1,21 @@
+export const table = {
+  'table.emptyTitle': 'Este ambiente está vacío',
+  'table.emptyDescription':
+    'Crea tu primera variable de entorno o importa un archivo .env completo.',
+  'table.createSecret': 'Crear secreto',
+  'table.imported': 'Importado',
+  'table.importedTitle': 'Recibido por un archivo compartido el {date}',
+  'table.hasNote': 'Tiene nota',
+  'table.hidesIn': 'se oculta en {seconds}s',
+  'table.edited': 'editado {time}',
+  'table.hide': 'Ocultar valor',
+  'table.reveal': 'Revelar valor (10s)',
+  'table.copy': 'Copiar valor',
+  'table.edit': 'Editar secreto',
+  'table.delete': 'Eliminar secreto',
+  'table.revealFailed': 'No se pudo revelar',
+  'table.copyFailed': 'No se pudo copiar',
+  'table.copied': '{name} copiado al portapapeles',
+  'table.copiedBody': 'El valor está disponible para pegar.',
+  'table.clipboardBlocked': 'Tu navegador bloqueó el acceso al portapapeles.',
+} as const;

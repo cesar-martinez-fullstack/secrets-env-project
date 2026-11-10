@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
 import { relativeTime, absoluteTime } from '@/lib/time';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 
 const props = defineProps<{
   secrets: SecretDto[];
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToastStore();
+const { t, describeError, localeStore } = useI18n();
 
 interface Revealed {
   value: string;
@@ -86,7 +88,7 @@ async function toggleReveal(secret: SecretDto): Promise<void> {
     });
     ensureTicker();
   } catch (error) {
-    toast.push('error', 'No se pudo revelar', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('table.revealFailed'), describeError(error));
   }
 }
 
@@ -103,20 +105,16 @@ async function copySecret(secret: SecretDto): Promise<void> {
       value = detail.value;
     } catch (error) {
       copyBusy.delete(secret.id);
-      toast.push('error', 'No se pudo copiar', error instanceof Error ? error.message : undefined);
+      toast.push('error', t('table.copyFailed'), describeError(error));
       return;
     }
     copyBusy.delete(secret.id);
   }
   const ok = await copyText(value!);
   if (ok) {
-    toast.push(
-      'success',
-      `${secret.name} copiado al portapapeles`,
-      'El valor está disponible para pegar.',
-    );
+    toast.push('success', t('table.copied', { name: secret.name }), t('table.copiedBody'));
   } else {
-    toast.push('error', 'No se pudo copiar', 'Tu navegador bloqueó el acceso al portapapeles.');
+    toast.push('error', t('table.copyFailed'), t('table.clipboardBlocked'));
   }
 }
 </script>
@@ -132,8 +130,8 @@ async function copySecret(secret: SecretDto): Promise<void> {
   <EmptyState
     v-else-if="secrets.length === 0"
     icon="database"
-    title="Este ambiente está vacío"
-    description="Crea tu primera variable de entorno o importa un archivo .env completo."
+    :title="t('table.emptyTitle')"
+    :description="t('table.emptyDescription')"
   >
     <button
       type="button"
@@ -141,7 +139,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
       @click="emit('create-first')"
     >
       <AppIcon name="plus" :size="16" />
-      Crear secreto
+      {{ t('table.createSecret') }}
     </button>
   </EmptyState>
 
@@ -162,23 +160,27 @@ async function copySecret(secret: SecretDto): Promise<void> {
             </span>
             <span
               v-if="secret.importedAt"
-              :title="`Recibido por un archivo compartido el ${absoluteTime(secret.importedAt)}`"
+              :title="
+                t('table.importedTitle', {
+                  date: absoluteTime(secret.importedAt, localeStore.locale),
+                })
+              "
               class="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
               data-testid="imported-badge"
             >
-              Importado
+              {{ t('table.imported') }}
             </span>
-            <span v-if="secret.hasNote" title="Tiene nota" class="text-amber-500/80">
+            <span v-if="secret.hasNote" :title="t('table.hasNote')" class="text-amber-500/80">
               <AppIcon name="sticky" :size="13" />
             </span>
           </div>
           <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
-            <span v-if="isRevealed(secret.id)" class="font-medium text-indigo-500"
-              >se oculta en {{ secondsLeft[secret.id] ?? 0 }}s</span
-            >
-            <span :title="absoluteTime(secret.updatedAt)"
-              >editado {{ relativeTime(secret.updatedAt) }}</span
-            >
+            <span v-if="isRevealed(secret.id)" class="font-medium text-indigo-500">{{
+              t('table.hidesIn', { seconds: secondsLeft[secret.id] ?? 0 })
+            }}</span>
+            <span :title="absoluteTime(secret.updatedAt, localeStore.locale)">{{
+              t('table.edited', { time: relativeTime(secret.updatedAt, localeStore.locale) })
+            }}</span>
           </div>
         </div>
 
@@ -211,7 +213,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200/60 hover:text-zinc-700 dark:hover:bg-zinc-700/60 dark:hover:text-zinc-200"
-            :title="isRevealed(secret.id) ? 'Ocultar valor' : 'Revelar valor (10s)'"
+            :title="isRevealed(secret.id) ? t('table.hide') : t('table.reveal')"
             @click="toggleReveal(secret)"
           >
             <AppIcon :name="isRevealed(secret.id) ? 'eye-off' : 'eye'" :size="15" />
@@ -220,7 +222,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200/60 hover:text-zinc-700 disabled:opacity-50 dark:hover:bg-zinc-700/60 dark:hover:text-zinc-200"
-            :title="'Copiar valor'"
+            :title="t('table.copy')"
             :disabled="copyBusy.has(secret.id)"
             @click="copySecret(secret)"
           >
@@ -239,7 +241,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-400"
-            title="Editar secreto"
+            :title="t('table.edit')"
             @click="emit('edit', secret)"
           >
             <AppIcon name="pencil" :size="15" />
@@ -247,7 +249,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50 dark:hover:text-red-400"
-            title="Eliminar secreto"
+            :title="t('table.delete')"
             @click="emit('remove', secret)"
           >
             <AppIcon name="trash" :size="15" />

@@ -7,6 +7,7 @@ import { computed, ref, watch } from 'vue';
 import { parseEnvContent } from '@secretvault/shared';
 import { useDataStore } from '@/stores/data';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 
 const data = useDataStore();
 const toast = useToastStore();
+const { t, describeError } = useI18n();
 
 const content = ref('');
 const overwrite = ref(false);
@@ -50,17 +52,19 @@ async function submit(): Promise<void> {
   try {
     const result = await data.importSecrets(data.activeEnvId, content.value, overwrite.value);
     const parts: string[] = [];
-    if (result.imported > 0) parts.push(`${result.imported} nuevo(s)`);
-    if (result.updated > 0) parts.push(`${result.updated} actualizado(s)`);
-    if (result.skipped > 0) parts.push(`${result.skipped} omitido(s)`);
+    if (result.imported > 0) parts.push(t('import.created', { count: result.imported }));
+    if (result.updated > 0) parts.push(t('import.updated', { count: result.updated }));
+    if (result.skipped > 0) parts.push(t('import.skipped', { count: result.skipped }));
     toast.push(
       'success',
-      'Importación completada',
-      parts.length > 0 ? `${parts.join(', ')} en «${data.activeEnv?.name}».` : 'No hubo cambios.',
+      t('import.doneTitle'),
+      parts.length > 0
+        ? t('import.summary', { parts: parts.join(', '), env: data.activeEnv?.name ?? '' })
+        : t('import.nothingChanged'),
     );
     emit('close');
   } catch (error) {
-    toast.push('error', 'Error al importar', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('import.failed'), describeError(error));
   } finally {
     submitting.value = false;
   }
@@ -68,14 +72,14 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <BaseModal :open="open" title="Importar variables (.env)" max-width="lg" @close="emit('close')">
+  <BaseModal :open="open" :title="t('import.title')" max-width="lg" @close="emit('close')">
     <p class="mb-4 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-      Pega el contenido de un archivo
+      {{ t('import.leadStart') }}
       <code class="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-800">.env</code>
-      para importarlo al ambiente
+      {{ t('import.leadMiddle') }}
       <strong class="font-semibold text-zinc-700 dark:text-zinc-300"
         >«{{ data.activeEnv?.name }}»</strong
-      >. Cada valor se cifrará con AES-256-GCM al guardarse.
+      >{{ t('import.leadEnd') }}
     </p>
 
     <textarea
@@ -90,19 +94,19 @@ async function submit(): Promise<void> {
       <span
         class="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
       >
-        {{ preview.valid }} variable(s) válidas
+        {{ t('import.valid', { count: preview.valid }) }}
       </span>
       <span
         v-if="preview.duplicates > 0"
         class="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
       >
-        {{ preview.duplicates }} duplicada(s) (gana la última)
+        {{ t('import.duplicates', { count: preview.duplicates }) }}
       </span>
       <span
         v-if="preview.invalid > 0"
         class="rounded-full bg-red-50 px-2.5 py-1 font-medium text-red-700 dark:bg-red-950/60 dark:text-red-400"
       >
-        {{ preview.invalid }} línea(s) inválidas
+        {{ t('import.invalid', { count: preview.invalid }) }}
       </span>
     </div>
 
@@ -111,11 +115,10 @@ async function submit(): Promise<void> {
     >
       <input v-model="overwrite" type="checkbox" class="mt-0.5 h-4 w-4 accent-indigo-600" />
       <span>
-        <span class="font-medium text-zinc-700 dark:text-zinc-300">Sobrescribir existentes</span>
-        <span class="block text-xs text-zinc-400"
-          >Si una variable ya existe en el ambiente, reemplaza su valor. Si se desactiva, se
-          omiten.</span
-        >
+        <span class="font-medium text-zinc-700 dark:text-zinc-300">{{
+          t('import.overwrite')
+        }}</span>
+        <span class="block text-xs text-zinc-400">{{ t('import.overwriteHint') }}</span>
       </span>
     </label>
 
@@ -125,7 +128,7 @@ async function submit(): Promise<void> {
         class="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
         @click="emit('close')"
       >
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -135,7 +138,7 @@ async function submit(): Promise<void> {
       >
         <AppIcon v-if="submitting" name="loader" :size="15" class="animate-spin" />
         <AppIcon v-else name="upload" :size="15" />
-        Importar
+        {{ t('import.submit') }}
       </button>
     </div>
   </BaseModal>

@@ -6,6 +6,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import { copyText } from '@/lib/clipboard';
 import { saveTextFile } from '@/lib/download';
 import { warnBeforeUnload } from '@/lib/before-unload';
@@ -14,6 +15,7 @@ import AppIcon from '@/components/AppIcon.vue';
 
 const vault = useVaultStore();
 const toast = useToastStore();
+const { t } = useI18n();
 
 const saved = ref(false);
 const open = computed(() => vault.pendingRecoveryKey !== null);
@@ -36,8 +38,8 @@ async function copy(): Promise<void> {
   const ok = await copyText(key);
   toast.push(
     ok ? 'success' : 'error',
-    ok ? 'Clave copiada' : 'No se pudo copiar',
-    ok ? 'Pégala en un lugar seguro y bórrala del portapapeles.' : undefined,
+    ok ? t('recovery.copiedTitle') : t('recovery.copyFailed'),
+    ok ? t('recovery.copiedBody') : undefined,
   );
 }
 
@@ -45,42 +47,38 @@ function download(): void {
   const key = vault.pendingRecoveryKey;
   if (!key) return;
   const text = [
-    'SecretVault — clave de recuperación',
+    t('recovery.fileTitle'),
     '',
     key,
     '',
-    'Guárdala fuera de este equipo (papel o gestor de confianza).',
-    'Quien tenga esta clave puede abrir tu bóveda: no la compartas.',
-    'Si usas la clave para recuperar el acceso, se genera una nueva y esta deja de funcionar.',
+    t('recovery.fileLine1'),
+    t('recovery.fileLine2'),
+    t('recovery.fileLine3'),
     '',
   ].join('\n');
-  saveTextFile('secretvault-clave-de-recuperacion.txt', text);
+  saveTextFile(t('recovery.fileName'), text);
 }
 
 function confirmSaved(): void {
   if (!saved.value) return;
   vault.acknowledgeRecoveryKey();
-  toast.push('success', 'Clave de recuperación guardada', 'Ya no se volverá a mostrar.');
+  toast.push('success', t('recovery.confirmedTitle'), t('recovery.confirmedBody'));
 }
 </script>
 
 <template>
-  <BaseModal
-    :open="open"
-    title="Guarda tu clave de recuperación"
-    max-width="md"
-    :dismissible="false"
-  >
+  <BaseModal :open="open" :title="t('recovery.title')" max-width="md" :dismissible="false">
     <div data-testid="recovery-dialog" class="space-y-4">
       <p class="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        Si olvidas tu contraseña maestra, esta clave es la <strong>única</strong> forma de recuperar
-        tus secretos. Se muestra <strong>una sola vez</strong>: SecretVault no la guarda.
+        {{ t('recovery.leadStart') }} <strong>{{ t('recovery.leadOnly') }}</strong>
+        {{ t('recovery.leadMiddle') }} <strong>{{ t('recovery.leadOnce') }}</strong
+        >{{ t('recovery.leadEnd') }}
       </p>
 
       <div
         data-testid="recovery-key"
         class="grid grid-cols-4 gap-2 rounded-xl border border-indigo-200 bg-indigo-50 p-4 font-mono text-sm font-semibold tracking-wider text-indigo-900 select-all dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200"
-        aria-label="Clave de recuperación"
+        :aria-label="t('recovery.keyLabel')"
       >
         <span v-for="(group, index) in groups" :key="index" class="text-center">{{ group }}</span>
       </div>
@@ -91,14 +89,14 @@ function confirmSaved(): void {
           class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           @click="copy"
         >
-          <AppIcon name="copy" :size="15" /> Copiar
+          <AppIcon name="copy" :size="15" /> {{ t('recovery.copy') }}
         </button>
         <button
           type="button"
           class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           @click="download"
         >
-          <AppIcon name="download" :size="15" /> Descargar .txt
+          <AppIcon name="download" :size="15" /> {{ t('recovery.download') }}
         </button>
       </div>
 
@@ -107,9 +105,8 @@ function confirmSaved(): void {
       >
         <AppIcon name="alert" :size="15" class="mt-0.5 shrink-0" />
         <span>
-          Guárdala <strong>fuera de este equipo</strong> (papel o un gestor de confianza). Quien
-          tenga esta clave puede abrir tu bóveda. Si la pierdes junto con la contraseña, los
-          secretos son irrecuperables.
+          {{ t('recovery.warnStart') }} <strong>{{ t('recovery.warnOutside') }}</strong>
+          {{ t('recovery.warnEnd') }}
         </span>
       </div>
 
@@ -122,7 +119,7 @@ function confirmSaved(): void {
           type="checkbox"
           class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600"
         />
-        He guardado mi clave de recuperación en un lugar seguro.
+        {{ t('recovery.saved') }}
       </label>
 
       <button
@@ -132,7 +129,7 @@ function confirmSaved(): void {
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-600/25 transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         @click="confirmSaved"
       >
-        Continuar
+        {{ t('recovery.continue') }}
       </button>
     </div>
   </BaseModal>

@@ -4,6 +4,7 @@ import type { SharePreviewDto } from '@secretvault/shared';
 import { api } from '@/lib/api';
 import { useDataStore } from '@/stores/data';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import ProjectPicker from '@/components/ui/ProjectPicker.vue';
@@ -13,6 +14,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const data = useDataStore();
 const toast = useToastStore();
+const { t, describeError } = useI18n();
 
 const content = ref('');
 const fileName = ref('');
@@ -23,7 +25,9 @@ const separate = ref<string[]>([]);
 const overwrite = ref(false);
 const busy = ref(false);
 
-const newProjectLabel = computed(() => `Proyecto nuevo «${preview.value?.projectName ?? ''}»`);
+const newProjectLabel = computed(() =>
+  t('shareImport.newProject', { name: preview.value?.projectName ?? '' }),
+);
 const mergedConflicts = computed(
   () =>
     preview.value?.environments.filter(
@@ -59,7 +63,7 @@ async function run<T>(work: () => Promise<T>, failure: string): Promise<T | null
   try {
     return await work();
   } catch (error) {
-    toast.push('error', failure, error instanceof Error ? error.message : undefined);
+    toast.push('error', failure, describeError(error));
     return null;
   } finally {
     busy.value = false;
@@ -69,7 +73,7 @@ async function run<T>(work: () => Promise<T>, failure: string): Promise<T | null
 async function loadPreview(projectId: number | null): Promise<boolean> {
   const result = await run(
     () => api.previewShare({ content: content.value, passphrase: passphrase.value, projectId }),
-    'No se pudo abrir el archivo',
+    t('shareImport.openFailed'),
   );
   if (!result) return false;
   preview.value = result;
@@ -105,13 +109,17 @@ async function confirmImport(): Promise<void> {
         separateEnvironments: separate.value,
         overwrite: overwrite.value,
       }),
-    'No se pudo importar',
+    t('shareImport.failed'),
   );
   if (!result) return;
-  const parts = [`${result.importedCount} nuevo(s)`];
-  if (result.updatedCount > 0) parts.push(`${result.updatedCount} actualizado(s)`);
-  if (result.skippedCount > 0) parts.push(`${result.skippedCount} omitido(s)`);
-  toast.push('success', 'Importación completada', `«${result.projectName}»: ${parts.join(', ')}.`);
+  const parts = [t('import.created', { count: result.importedCount })];
+  if (result.updatedCount > 0) parts.push(t('import.updated', { count: result.updatedCount }));
+  if (result.skippedCount > 0) parts.push(t('import.skipped', { count: result.skippedCount }));
+  toast.push(
+    'success',
+    t('shareImport.doneTitle'),
+    t('shareImport.doneBody', { project: result.projectName, parts: parts.join(', ') }),
+  );
   emit('close');
 }
 
@@ -122,11 +130,11 @@ const primaryButton =
 </script>
 
 <template>
-  <BaseModal :open="open" title="Importar archivo compartido" max-width="md" @close="emit('close')">
+  <BaseModal :open="open" :title="t('shareImport.title')" max-width="md" @close="emit('close')">
     <div class="space-y-4" data-testid="share-import">
       <div v-if="!preview" class="space-y-4">
         <div>
-          <label for="share-file" class="label-text">Archivo (.svshare)</label>
+          <label for="share-file" class="label-text">{{ t('shareImport.file') }}</label>
           <input
             id="share-file"
             type="file"
@@ -136,7 +144,9 @@ const primaryButton =
           />
         </div>
         <div>
-          <label for="share-import-passphrase" class="label-text">Frase de paso</label>
+          <label for="share-import-passphrase" class="label-text">{{
+            t('shareImport.passphrase')
+          }}</label>
           <input
             id="share-import-passphrase"
             v-model="passphrase"
@@ -147,21 +157,23 @@ const primaryButton =
           />
         </div>
         <div class="flex justify-end gap-2">
-          <button type="button" :class="secondaryButton" @click="emit('close')">Cancelar</button>
+          <button type="button" :class="secondaryButton" @click="emit('close')">
+            {{ t('common.cancel') }}
+          </button>
           <button
             type="button"
             :disabled="!content || !passphrase || busy"
             :class="primaryButton"
             @click="openPackage"
           >
-            Abrir archivo
+            {{ t('shareImport.open') }}
           </button>
         </div>
       </div>
 
       <div v-else class="space-y-4">
         <div>
-          <span class="label-text">Importar en</span>
+          <span class="label-text">{{ t('shareImport.importIn') }}</span>
           <ProjectPicker
             :model-value="destination"
             :new-label="newProjectLabel"
@@ -169,7 +181,7 @@ const primaryButton =
             @update:model-value="changeDestination"
           />
           <p v-if="destination === null" class="mt-1.5 text-xs text-zinc-400">
-            Si ya tienes un proyecto con ese nombre, el nuevo llevará un número al final.
+            {{ t('shareImport.newProjectHint') }}
           </p>
         </div>
 
@@ -183,13 +195,13 @@ const primaryButton =
               <span class="flex items-center gap-2 font-medium text-zinc-800 dark:text-zinc-200">
                 <AppIcon name="folder" :size="14" class="text-indigo-500" /> {{ env.name }}
               </span>
-              <span class="text-xs tabular-nums text-zinc-400"
-                >{{ env.secretCount }} secreto(s)</span
-              >
+              <span class="text-xs tabular-nums text-zinc-400">{{
+                t('shareImport.secrets', { count: env.secretCount })
+              }}</span>
             </div>
             <template v-if="env.exists">
               <p class="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-                Ya existe un ambiente con este nombre.
+                {{ t('shareImport.exists') }}
               </p>
               <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
                 <label class="flex items-center gap-1.5">
@@ -199,7 +211,7 @@ const primaryButton =
                     :checked="!separate.includes(env.name)"
                     @change="setMode(env.name, 'merge')"
                   />
-                  Mezclar con el existente
+                  {{ t('shareImport.merge') }}
                 </label>
                 <label class="flex items-center gap-1.5">
                   <input
@@ -208,42 +220,45 @@ const primaryButton =
                     :checked="separate.includes(env.name)"
                     @change="setMode(env.name, 'separate')"
                   />
-                  Crear otro aparte
+                  {{ t('shareImport.separate') }}
                 </label>
               </div>
               <p
                 v-if="env.conflicts.length > 0 && !separate.includes(env.name)"
                 class="mt-2 text-xs text-zinc-500"
               >
-                Ya existen: <span class="font-mono">{{ env.conflicts.join(', ') }}</span>
+                {{ t('shareImport.alreadyThere') }}
+                <span class="font-mono">{{ env.conflicts.join(', ') }}</span>
               </p>
             </template>
             <p v-else-if="destination !== null" class="mt-1.5 text-xs text-zinc-400">
-              Se creará en el proyecto.
+              {{ t('shareImport.willCreate') }}
             </p>
           </li>
         </ul>
 
         <fieldset v-if="mergedConflicts.length > 0" class="text-sm" data-testid="share-conflicts">
-          <legend class="label-text">Si una variable ya existe</legend>
+          <legend class="label-text">{{ t('shareImport.conflictLegend') }}</legend>
           <label class="mr-5 inline-flex items-center gap-1.5">
             <input v-model="overwrite" type="radio" name="overwrite" :value="false" />
-            Omitirla
+            {{ t('shareImport.skip') }}
           </label>
           <label class="inline-flex items-center gap-1.5">
             <input v-model="overwrite" type="radio" name="overwrite" :value="true" />
-            Sobrescribirla
+            {{ t('shareImport.replace') }}
           </label>
         </fieldset>
 
         <p class="text-xs text-zinc-400">
-          Los secretos recibidos quedan marcados como «Importado» hasta que edites su valor.
+          {{ t('shareImport.markNote') }}
         </p>
 
         <div class="flex justify-end gap-2">
-          <button type="button" :class="secondaryButton" @click="preview = null">Atrás</button>
+          <button type="button" :class="secondaryButton" @click="preview = null">
+            {{ t('common.back') }}
+          </button>
           <button type="button" :disabled="busy" :class="primaryButton" @click="confirmImport">
-            Importar
+            {{ t('shareImport.submit') }}
           </button>
         </div>
       </div>

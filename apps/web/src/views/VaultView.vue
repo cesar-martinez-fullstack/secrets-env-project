@@ -9,6 +9,7 @@ import type { EnvironmentDto, ProjectDto, SecretDto } from '@secretvault/shared'
 import { useDataStore } from '@/stores/data';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue';
 import SecretsTable from '@/components/vault/SecretsTable.vue';
@@ -29,6 +30,7 @@ const router = useRouter();
 const data = useDataStore();
 const vault = useVaultStore();
 const toast = useToastStore();
+const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
 const secretModalOpen = ref(false);
@@ -58,7 +60,7 @@ const confirmState = ref<{
   title: '',
   message: '',
   danger: true,
-  confirmText: 'Eliminar',
+  confirmText: '',
   action: null,
 });
 
@@ -84,7 +86,7 @@ onBeforeUnmount(() => {
 
 async function handleLock(): Promise<void> {
   await vault.lock();
-  toast.push('info', 'Bóveda bloqueada', 'La clave fue borrada de la memoria.');
+  toast.push('info', t('vault.lockedTitle'), t('vault.lockedBody'));
   await router.replace('/');
 }
 
@@ -112,20 +114,24 @@ function askDeleteProject(project: ProjectDto): void {
   if (project.environmentCount > 0) {
     toast.push(
       'info',
-      'El proyecto tiene ambientes',
-      `Elimina primero sus ${project.environmentCount} ambiente(s) para poder borrar «${project.name}».`,
+      t('vault.projectHasEnvsTitle'),
+      t('vault.projectHasEnvsBody', { count: project.environmentCount, name: project.name }),
     );
     return;
   }
   confirmState.value = {
     open: true,
-    title: 'Eliminar proyecto',
-    message: `¿Eliminar el proyecto vacío «${project.name}»?`,
+    title: t('vault.deleteProjectTitle'),
+    message: t('vault.deleteProjectMessage', { name: project.name }),
     danger: true,
-    confirmText: `Eliminar ${project.name}`,
+    confirmText: t('vault.deleteProjectConfirm', { name: project.name }),
     action: async () => {
       await data.deleteProject(project.id);
-      toast.push('success', 'Proyecto eliminado', `«${project.name}» fue borrado.`);
+      toast.push(
+        'success',
+        t('vault.projectDeleted'),
+        t('vault.projectDeletedBody', { name: project.name }),
+      );
     },
   };
 }
@@ -150,13 +156,13 @@ function openRenameEnv(env: EnvironmentDto): void {
 function askDeleteEnv(env: EnvironmentDto): void {
   confirmState.value = {
     open: true,
-    title: 'Eliminar ambiente',
-    message: `Se eliminará el ambiente «${env.name}» junto con sus ${env.secretCount} secreto(s) cifrado(s). Esta acción no se puede deshacer.`,
+    title: t('vault.deleteEnvTitle'),
+    message: t('vault.deleteEnvMessage', { name: env.name, count: env.secretCount }),
     danger: true,
-    confirmText: `Eliminar ${env.name}`,
+    confirmText: t('vault.deleteProjectConfirm', { name: env.name }),
     action: async () => {
       await data.deleteEnvironment(env.id);
-      toast.push('success', 'Ambiente eliminado', `«${env.name}» y sus secretos fueron borrados.`);
+      toast.push('success', t('vault.envDeleted'), t('vault.envDeletedBody', { name: env.name }));
     },
   };
 }
@@ -164,13 +170,17 @@ function askDeleteEnv(env: EnvironmentDto): void {
 function askDeleteSecret(secret: SecretDto): void {
   confirmState.value = {
     open: true,
-    title: 'Eliminar secreto',
-    message: `¿Eliminar el secreto «${secret.name}» del ambiente «${secret.environmentName}»? Esta acción no se puede deshacer.`,
+    title: t('vault.deleteSecretTitle'),
+    message: t('vault.deleteSecretMessage', { name: secret.name, env: secret.environmentName }),
     danger: true,
-    confirmText: 'Eliminar',
+    confirmText: t('vault.delete'),
     action: async () => {
       await data.removeSecret(secret.id);
-      toast.push('success', 'Secreto eliminado', `«${secret.name}» fue borrado.`);
+      toast.push(
+        'success',
+        t('vault.secretDeleted'),
+        t('vault.secretDeletedBody', { name: secret.name }),
+      );
     },
   };
 }
@@ -179,7 +189,7 @@ async function runConfirm(): Promise<void> {
   try {
     await confirmState.value.action?.();
   } catch (error) {
-    toast.push('error', 'Error', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('vault.error'), describeError(error));
   } finally {
     confirmState.value = { ...confirmState.value, open: false };
   }
@@ -212,12 +222,12 @@ async function runConfirm(): Promise<void> {
           <div class="min-w-0">
             <template v-if="data.isSearching">
               <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Resultados para
+                {{ t('vault.resultsFor') }}
                 <span class="font-mono text-indigo-600 dark:text-indigo-400"
                   >«{{ data.query.trim() }}»</span
                 >
               </h1>
-              <p class="text-xs text-zinc-400">Buscando entre todos los ambientes</p>
+              <p class="text-xs text-zinc-400">{{ t('vault.searchingAll') }}</p>
             </template>
             <template v-else-if="data.activeEnv">
               <h1
@@ -226,12 +236,12 @@ async function runConfirm(): Promise<void> {
                 {{ data.activeEnv.name }}
               </h1>
               <p class="text-xs text-zinc-400">
-                {{ data.activeEnv.secretCount }} secreto(s) · cifrado AES-256-GCM
+                {{ t('vault.envSummary', { count: data.activeEnv.secretCount }) }}
               </p>
             </template>
             <template v-else>
               <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Bóveda
+                {{ t('vault.title') }}
               </h1>
             </template>
           </div>
@@ -244,7 +254,7 @@ async function runConfirm(): Promise<void> {
               @click="importOpen = true"
             >
               <AppIcon name="upload" :size="15" />
-              Importar
+              {{ t('vault.import') }}
             </button>
             <ExportMenu />
             <button
@@ -253,7 +263,7 @@ async function runConfirm(): Promise<void> {
               @click="openCreateSecret"
             >
               <AppIcon name="plus" :size="15" />
-              Nuevo
+              {{ t('vault.new') }}
             </button>
           </div>
         </div>
@@ -264,7 +274,7 @@ async function runConfirm(): Promise<void> {
             v-if="data.isSearching && data.secrets.length > 0"
             class="border-b border-zinc-100 px-4 py-2 text-xs text-zinc-400 dark:border-zinc-800"
           >
-            {{ data.secrets.length }} resultado(s) en múltiples ambientes
+            {{ t('vault.searchCount', { count: data.secrets.length }) }}
           </div>
           <SecretsTable
             :secrets="data.secrets"
@@ -282,8 +292,8 @@ async function runConfirm(): Promise<void> {
         >
           <EmptyState
             icon="folder"
-            title="Crea tu primer ambiente"
-            description="Los ambientes (Local, QA, Production…) agrupan tus variables de entorno."
+            :title="t('vault.firstEnvTitle')"
+            :description="t('vault.firstEnvDescription')"
           >
             <button
               type="button"
@@ -291,7 +301,7 @@ async function runConfirm(): Promise<void> {
               @click="openCreateFirstEnv"
             >
               <AppIcon name="plus" :size="16" />
-              Crear ambiente
+              {{ t('vault.createEnv') }}
             </button>
           </EmptyState>
         </div>

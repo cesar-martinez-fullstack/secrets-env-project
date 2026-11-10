@@ -1,0 +1,42 @@
+import type { secrets as base } from '../es/secrets';
+
+export const secrets: Record<keyof typeof base, string> = {
+  'secretForm.titleEdit': 'Edit «{name}»',
+  'secretForm.titleNew': 'New secret',
+  'secretForm.name': 'Variable name',
+  'secretForm.namePlaceholder': 'e.g. DATABASE_URL',
+  'secretForm.nameHint':
+    'Letters, digits, hyphens or dots; must start with a letter or underscore.',
+  'secretForm.value': 'Value',
+  'secretForm.valueKeep': 'Empty = keep the current value',
+  'secretForm.valuePlaceholder': 'Secret value',
+  'secretForm.hide': 'Hide',
+  'secretForm.show': 'Show',
+  'secretForm.generate': 'Generate a random value',
+  'secretForm.note': 'Note',
+  'secretForm.optional': '(optional)',
+  'secretForm.notePlaceholder': 'What is this key for?',
+  'secretForm.noteHint': 'Notes are also encrypted with AES-256-GCM.',
+  'secretForm.saving': 'Saving…',
+  'secretForm.saveChanges': 'Save changes',
+  'secretForm.create': 'Create secret',
+  'secretForm.updatedTitle': 'Secret updated',
+  'secretForm.createdTitle': 'Secret created',
+  'secretForm.savedBody': '{name} was saved encrypted.',
+  'secretForm.noEnvTitle': 'No environment',
+  'secretForm.noEnvBody': 'Create an environment first.',
+  'secretForm.saveFailed': 'Could not save',
+
+  'export.button': 'Export',
+  'export.nothing': 'There are no secrets to export in this environment',
+  'export.env': '.env file',
+  'export.envHint': 'Standard dotenv format',
+  'export.csv': 'CSV sheet',
+  'export.csvHint': 'For Excel / Sheets (see warning)',
+  'export.json': 'JSON file',
+  'export.jsonHint': 'Structured, great for scripts',
+  'export.pdf': 'PDF report',
+  'export.pdfHint': 'Styled, ready to print',
+  'export.warning':
+    'The downloaded file contains secrets in plain text. Handle it with care. In CSV, Excel may treat a value that starts with = + - or @ as a formula: do not open it without checking it first.',
+};
