@@ -35,8 +35,12 @@ export const DEFAULT_AUTO_LOCK_MINUTES = 15;
 export const API_BASE = '/api' as const;
 
 /** Formatos de exportación soportados. */
-export type ExportFormat = 'env' | 'csv' | 'pdf';
-export const EXPORT_FORMATS: readonly ExportFormat[] = ['env', 'csv', 'pdf'];
+export const EXPORT_FORMATS = ['env', 'csv', 'json', 'pdf'] as const;
+export type ExportFormat = (typeof EXPORT_FORMATS)[number];
+
+export function isExportFormat(value: string): value is ExportFormat {
+  return (EXPORT_FORMATS as readonly string[]).includes(value);
+}
 
 /** Tipos de eventos registrados en la auditoría local. */
 export type AuditEventType =

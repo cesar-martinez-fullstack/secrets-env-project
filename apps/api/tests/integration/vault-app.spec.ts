@@ -214,7 +214,7 @@ describe('API integration — ciclo de vida completo', () => {
     expect(await json(res)).toEqual({ imported: 1, updated: 1, skipped: 0, invalidLines: 1 });
   });
 
-  it('GET /api/secrets/export descarga en .env, CSV y PDF', async () => {
+  it('GET /api/secrets/export descarga en .env, CSV, JSON y PDF', async () => {
     const envRes = await get('/api/secrets/export?environmentId=1&format=env');
     expect(envRes.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
     expect(envRes.headers.get('Content-Disposition')).toContain('.env');
@@ -226,6 +226,30 @@ describe('API integration — ciclo de vida completo', () => {
     expect(csvRes.headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
     const csvText = await csvRes.text();
     expect(csvText).toContain('name,value,note');
+
+    const jsonRes = await get('/api/secrets/export?environmentId=1&format=json');
+    expect(jsonRes.status).toBe(200);
+    expect(jsonRes.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(jsonRes.headers.get('Content-Disposition')).toMatch(
+      /^attachment; filename="secretvault-local-\d{4}-\d{2}-\d{2}\.json"$/,
+    );
+    expect(jsonRes.headers.get('Cache-Control')).toBe('no-store');
+    const doc = await json<{
+      version: number;
+      secrets: { environment: string; name: string; value: string }[];
+    }>(jsonRes);
+    expect(doc.version).toBe(1);
+    expect(doc.secrets).toContainEqual(
+      expect.objectContaining({
+        environment: 'Local',
+        name: 'DATABASE_URL_V2',
+        value: 'postgres://v2',
+      }),
+    );
+
+    const invalid = await get('/api/secrets/export?environmentId=1&format=xml');
+    expect(invalid.status).toBe(400);
+    expect(await json(invalid)).toMatchObject({ error: { code: 'VALIDATION_FAILED' } });
 
     const pdfRes = await get('/api/secrets/export?environmentId=1&format=pdf');
     expect(pdfRes.headers.get('Content-Type')).toBe('application/pdf');

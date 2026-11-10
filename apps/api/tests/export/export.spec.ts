@@ -2,7 +2,10 @@
  * Tests de los exportadores: .env, CSV (escaping) y PDF (estructura binaria).
  */
 import { describe, expect, it } from 'bun:test';
+import { EXPORT_FORMATS } from '@secretvault/shared';
 import { buildCsvExport } from '../../src/export/csv';
+import { EXPORT_FORMATTERS, exportFilename } from '../../src/export/formatters';
+import { buildJsonExport } from '../../src/export/json';
 import { buildPdfExport } from '../../src/export/pdf';
 
 const ENTRIES = [
@@ -107,5 +110,90 @@ describe('PDF export', () => {
     const text = Buffer.from(pdf).toString('latin1');
     expect(text).toContain('?'); // sustituido, no roto
     expect(text.trimEnd().endsWith('%%EOF')).toBe(true);
+  });
+});
+
+const INPUT = {
+  environmentName: 'Local',
+  generatedAt: new Date('2026-01-15T10:30:00Z'),
+  entries: ENTRIES,
+  iterations: 600_000,
+};
+
+describe('JSON export', () => {
+  it('should produce a versioned document with the environment on every secret', () => {
+    expect(JSON.parse(buildJsonExport(INPUT))).toEqual({
+      version: 1,
+      exportedAt: '2026-01-15T10:30:00.000Z',
+      secrets: [
+        {
+          environment: 'Local',
+          name: 'DATABASE_URL',
+          value: 'postgres://admin:S3cr3t@localhost:5432/app',
+          note: 'BD principal',
+        },
+        { environment: 'Local', name: 'API_KEY', value: 'sk_live_abcdef123456', note: null },
+      ],
+    });
+  });
+
+  it('should round-trip values that need escaping', () => {
+    const tricky = 'línea 1\nlínea "2"\t\\ ñ 🔐 </script>';
+    const doc = JSON.parse(
+      buildJsonExport({ ...INPUT, entries: [{ name: 'TRICKY', value: tricky, note: tricky }] }),
+    ) as { secrets: { value: string; note: string }[] };
+    expect(doc.secrets[0]?.value).toBe(tricky);
+    expect(doc.secrets[0]?.note).toBe(tricky);
+  });
+
+  it('should be indented and end with a newline', () => {
+    const text = buildJsonExport(INPUT);
+    expect(text.startsWith('{\n  "version": 1,')).toBe(true);
+    expect(text.endsWith('}\n')).toBe(true);
+  });
+
+  it('should export an empty environment as an empty list', () => {
+    const doc = JSON.parse(buildJsonExport({ ...INPUT, entries: [] })) as { secrets: unknown[] };
+    expect(doc.secrets).toEqual([]);
+  });
+});
+
+describe('export formatters', () => {
+  it('should provide a formatter for every export format', () => {
+    for (const format of EXPORT_FORMATS) expect(EXPORT_FORMATTERS[format]).toBeDefined();
+  });
+
+  it('should declare the content type of each format', () => {
+    expect(EXPORT_FORMATTERS.env.contentType).toBe('text/plain; charset=utf-8');
+    expect(EXPORT_FORMATTERS.csv.contentType).toBe('text/csv; charset=utf-8');
+    expect(EXPORT_FORMATTERS.json.contentType).toBe('application/json; charset=utf-8');
+    expect(EXPORT_FORMATTERS.pdf.contentType).toBe('application/pdf');
+  });
+
+  it('should build non-empty output for every format', () => {
+    for (const format of EXPORT_FORMATS) {
+      expect(EXPORT_FORMATTERS[format].build(INPUT).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('should warn about plaintext in the .env header', () => {
+    const text = EXPORT_FORMATTERS.env.build(INPUT) as string;
+    expect(text).toContain('Ambiente: Local');
+    expect(text).toContain('ADVERTENCIA');
+    expect(text).toContain('DATABASE_URL=');
+  });
+});
+
+describe('exportFilename', () => {
+  const generatedAt = new Date('2026-01-15T10:30:00Z');
+
+  it('should slug the environment name and use the format as extension', () => {
+    expect(exportFilename('Producción QA', generatedAt, 'json')).toBe(
+      'secretvault-produccion-qa-2026-01-15.json',
+    );
+  });
+
+  it('should fall back to a generic name when nothing usable remains', () => {
+    expect(exportFilename('***', generatedAt, 'env')).toBe('secretvault-ambiente-2026-01-15.env');
   });
 });
