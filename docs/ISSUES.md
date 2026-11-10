@@ -12,22 +12,25 @@ proyecto y para no repetir errores.
 
 ## Abiertas
 
-| ID      | Tipo      | Resumen                                                                                                                         | Notas                                                                                                   |
-| ------- | --------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| ISS-013 | seguridad | El export CSV no neutraliza valores que empiezan por `=`, `+`, `-` o `@` (inyección de fórmulas en Excel)                       | Prefijar corrompería contraseñas válidas; decisión pendiente (aviso en UI u opción "seguro para Excel") |
-| ISS-014 | deuda     | `lib/clipboard.ts` usa el API deprecado `document.execCommand` como alternativa                                                 | `localhost` es contexto seguro: `navigator.clipboard` basta; eliminar el fallback                       |
-| ISS-015 | deuda     | 27 advertencias de ESLint (complejidad y tamaño de funciones), sobre todo en rutas y stores                                     | Extraer handlers; no silenciar la regla                                                                 |
-| ISS-016 | deuda     | El frontend no tiene tests de componentes ni de stores                                                                          | Cubrir con `@vue/test-utils` + `happy-dom` al tocar cada pieza                                          |
-| ISS-017 | deuda     | Exceso de comentarios que narran el código en archivos heredados                                                                | Recortar al tocar cada archivo (`code-quality.md`), sin limpieza masiva                                 |
-| ISS-018 | deuda     | Saltos de versión mayor pendientes en el frontend: Vite 6→8, `@vitejs/plugin-vue` 5→6, `vue-tsc` 2→3, Pinia 2→4, Vue Router 4→5 | PRs de Dependabot #7 a #11; probar juntos en una rama                                                   |
+| ID      | Tipo      | Resumen                                                                                                                         | Notas                                                                                                       |
+| ------- | --------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ISS-013 | seguridad | El export CSV no neutraliza valores que empiezan por `=`, `+`, `-` o `@` (inyección de fórmulas en Excel)                       | Prefijar corrompería contraseñas válidas; decisión pendiente (aviso en UI u opción "seguro para Excel")     |
+| ISS-014 | deuda     | `lib/clipboard.ts` usa el API deprecado `document.execCommand` como alternativa                                                 | `localhost` es contexto seguro: `navigator.clipboard` basta; eliminar el fallback                           |
+| ISS-015 | deuda     | 27 advertencias de ESLint (complejidad y tamaño de funciones), sobre todo en rutas y stores                                     | Extraer handlers; no silenciar la regla                                                                     |
+| ISS-016 | deuda     | El frontend no tiene tests de componentes ni de stores                                                                          | Cubrir con `@vue/test-utils` + `happy-dom` al tocar cada pieza                                              |
+| ISS-017 | deuda     | Exceso de comentarios que narran el código en archivos heredados                                                                | Recortar al tocar cada archivo (`code-quality.md`), sin limpieza masiva                                     |
+| ISS-018 | deuda     | Saltos de versión mayor pendientes en el frontend: Vite 6→8, `@vitejs/plugin-vue` 5→6, `vue-tsc` 2→3, Pinia 2→4, Vue Router 4→5 | PRs de Dependabot #7 a #11; probar juntos en una rama                                                       |
+| ISS-021 | bug       | Si se recarga la página antes de confirmar la clave de recuperación, la clave se pierde (solo vive en memoria del navegador)    | Avisar con `beforeunload` mientras esté pendiente; si ocurre, se regenera desde Seguridad con la contraseña |
 
 ## En revisión
 
-| ID      | Tipo | Resumen                                                                                      | Resolución                                                                                    |
-| ------- | ---- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| ISS-009 | bug  | Una base creada antes de las migraciones hacía fallar el arranque con "table already exists" | PR #12: se rechaza con un mensaje claro y no se modifica; test de regresión en `acid.spec.ts` |
-| ISS-010 | bug  | Desde la raíz del repo, `:3000` mostraba "Frontend no construido" aunque estuviera compilado | PR #13: el API busca también `apps/api/public`; test en `config.spec.ts`                      |
-| ISS-011 | bug  | `ConfirmDialog` usaba `<BaseModal>` sin importarlo y sus botones quedaban siempre visibles   | PR #14: import añadido; verificado en navegador                                               |
+| ID      | Tipo | Resumen                                                                                                                       | Resolución                                                                                    |
+| ------- | ---- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| ISS-009 | bug  | Una base creada antes de las migraciones hacía fallar el arranque con "table already exists"                                  | PR #12: se rechaza con un mensaje claro y no se modifica; test de regresión en `acid.spec.ts` |
+| ISS-010 | bug  | Desde la raíz del repo, `:3000` mostraba "Frontend no construido" aunque estuviera compilado                                  | PR #13: el API busca también `apps/api/public`; test en `config.spec.ts`                      |
+| ISS-011 | bug  | `ConfirmDialog` usaba `<BaseModal>` sin importarlo y sus botones quedaban siempre visibles                                    | PR #14: import añadido; verificado en navegador                                               |
+| ISS-019 | bug  | En desarrollo, `:5173` devolvía 403 al crear o desbloquear: el proxy de Vite reescribía `Host` y el API rechazaba el `Origin` | `changeOrigin: false` en el proxy; verificado en navegador por `:5173`                        |
+| ISS-020 | bug  | `EmptyState` usaba `AppIcon` sin importarlo y el icono no se dibujaba                                                         | Import añadido y prop tipada; sin avisos de Vue en consola                                    |
 
 ## Resueltas
 
