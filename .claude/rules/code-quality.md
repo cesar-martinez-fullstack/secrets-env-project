@@ -24,7 +24,8 @@ El código debe ser **limpio, vigente y probado**. Nada heredado, obsoleto ni "p
 - **Prohibido lo obsoleto o deprecado**: `document.execCommand`, `var`, callbacks de Node en lugar de
   promesas, `require`, `substr`, `new Buffer`, polyfills innecesarios, Options API o mixins de Vue.
 - Vue 3: `<script setup lang="ts">`, Composition API, stores de Pinia en formato _setup_, `defineProps` /
-  `defineEmits` tipados. Sin estilos ni lógica de negocio en las plantillas.
+  `defineEmits` tipados. Sin estilos ni lógica de negocio en las plantillas. Una prop booleana ausente vale
+  `false` (no `undefined`): para un valor por defecto `true` se usa `withDefaults`.
 - Sin exportaciones por defecto salvo las que exige la herramienta (SFC, archivos de configuración).
 - Errores esperados como `DomainError` con código estable; nada de `catch {}` que se traga fallos sin razón
   explícita.

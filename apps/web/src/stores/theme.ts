@@ -1,18 +1,24 @@
 /**
- * Store de tema: claro / oscuro / según sistema operativo.
- * Persistido en localStorage; evita el flash gracias al script inline del index.html.
+ * Store de tema. Sin preferencia guardada sigue al sistema operativo; al alternar se guarda la elección.
  */
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect } from 'vue';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+const STORAGE_KEY = 'sv-theme';
+
+function readStoredMode(): ThemeMode {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'light' || stored === 'dark' ? stored : 'system';
+}
+
 function detectSystemDark(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 export const useThemeStore = defineStore('theme', () => {
-  const mode = ref<ThemeMode>((localStorage.getItem('sv-theme') as ThemeMode) ?? 'system');
+  const mode = ref<ThemeMode>(readStoredMode());
   const systemDark = ref(detectSystemDark());
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
@@ -29,13 +35,12 @@ export const useThemeStore = defineStore('theme', () => {
 
   function setMode(next: ThemeMode): void {
     mode.value = next;
-    localStorage.setItem('sv-theme', next);
+    localStorage.setItem(STORAGE_KEY, next);
   }
 
-  /** Cicla: system → light → dark → system */
-  function cycle(): void {
-    setMode(mode.value === 'system' ? 'light' : mode.value === 'light' ? 'dark' : 'system');
+  function toggle(): void {
+    setMode(isDark.value ? 'light' : 'dark');
   }
 
-  return { mode, isDark, setMode, cycle };
+  return { mode, isDark, setMode, toggle };
 });
