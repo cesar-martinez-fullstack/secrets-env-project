@@ -20,6 +20,7 @@ paquetes · superficie de red · flujo de trabajo del repositorio. No para decis
 | [0006](0006-envelope-encryption-recovery-key.md) | Cifrado de envoltura y clave de recuperación                    | Aceptado  |
 | [0007](0007-projects.md)                         | Proyectos como nivel de organización dentro de la bóveda        | Aceptado  |
 | [0008](0008-decoupled-personalization.md)        | Personalización desacoplada: ajustes, tokens de diseño y textos | Propuesto |
+| [0009](0009-share-package.md)                    | Paquete cifrado para compartir proyectos y ambientes            | Aceptado  |
 | [0005](0005-git-flow-and-releases.md)            | Git Flow, Conventional Commits y tags SemVer                    | Aceptado  |
 
 ## Plantilla

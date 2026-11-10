@@ -15,11 +15,11 @@ import type {
   UnlockVaultResponseDto,
   VaultStatusDto,
 } from '@secretvault/shared';
-import { DomainError } from '@secretvault/core';
 import {
   clearSessionCookie,
   getSessionId,
   jsonResponse,
+  rateLimited,
   readJsonBody,
   requireString,
   setSessionCookie,
@@ -135,12 +135,4 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
   });
 
   return app;
-}
-
-function rateLimited(retryAfterSeconds: number): DomainError {
-  return new DomainError(
-    'RATE_LIMITED',
-    `Demasiados intentos. Espera ${retryAfterSeconds}s antes de reintentar.`,
-    429,
-  );
 }

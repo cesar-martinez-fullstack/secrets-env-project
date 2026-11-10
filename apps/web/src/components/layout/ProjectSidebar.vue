@@ -11,6 +11,9 @@ const emit = defineEmits<{
   'create-env': [project: ProjectDto];
   'rename-env': [env: EnvironmentDto];
   'delete-env': [env: EnvironmentDto];
+  'share-project': [project: ProjectDto];
+  'share-env': [env: EnvironmentDto];
+  'import-share': [];
 }>();
 
 const data = useDataStore();
@@ -40,15 +43,26 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
       <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
         Proyectos
       </h2>
-      <button
-        type="button"
-        class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-indigo-600 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
-        title="Nuevo proyecto"
-        aria-label="Crear proyecto"
-        @click="emit('create-project')"
-      >
-        <AppIcon name="plus" :size="16" />
-      </button>
+      <div class="flex items-center gap-0.5">
+        <button
+          type="button"
+          class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-indigo-600 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+          title="Importar un archivo compartido"
+          aria-label="Importar un archivo compartido"
+          @click="emit('import-share')"
+        >
+          <AppIcon name="upload" :size="16" />
+        </button>
+        <button
+          type="button"
+          class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-indigo-600 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+          title="Nuevo proyecto"
+          aria-label="Crear proyecto"
+          @click="emit('create-project')"
+        >
+          <AppIcon name="plus" :size="16" />
+        </button>
+      </div>
     </div>
 
     <nav
@@ -91,6 +105,15 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
               @click.stop="emit('create-env', project)"
             >
               <AppIcon name="plus" :size="14" />
+            </button>
+            <button
+              type="button"
+              :class="iconButton"
+              :title="`Compartir ${project.name}`"
+              :aria-label="`Compartir proyecto ${project.name}`"
+              @click.stop="emit('share-project', project)"
+            >
+              <AppIcon name="share" :size="14" />
             </button>
             <button
               type="button"
@@ -145,6 +168,15 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             <div
               class="absolute right-1.5 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-lg bg-white p-0.5 shadow-sm group-hover:flex dark:bg-zinc-900"
             >
+              <button
+                type="button"
+                :class="iconButton"
+                :title="`Compartir ${env.name}`"
+                :aria-label="`Compartir ambiente ${env.name}`"
+                @click.stop="emit('share-env', env)"
+              >
+                <AppIcon name="share" :size="14" />
+              </button>
               <button
                 type="button"
                 :class="iconButton"

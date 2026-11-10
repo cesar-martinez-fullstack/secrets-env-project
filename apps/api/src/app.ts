@@ -6,6 +6,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { DomainError } from '@secretvault/core';
 import { vaultRoutes } from './routes/vault.routes';
 import { projectRoutes } from './routes/projects.routes';
+import { shareRoutes } from './routes/share.routes';
 import { environmentRoutes } from './routes/environments.routes';
 import { secretRoutes } from './routes/secrets.routes';
 import { auditRoutes } from './routes/audit.routes';
@@ -62,6 +63,7 @@ export function createApp(container: Container): Hono<AppEnv> {
   app.route('/api/projects', projectRoutes(container));
   app.route('/api/environments', environmentRoutes(container));
   app.route('/api/secrets', secretRoutes(container));
+  app.route('/api/share', shareRoutes(container));
   app.route('/api/audit', auditRoutes(container));
 
   // --- SPA (frontend compilado) — catch-all para GET ---

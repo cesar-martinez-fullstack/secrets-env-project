@@ -68,7 +68,9 @@ export type AuditEventType =
   | 'secret.deleted'
   | 'secret.revealed'
   | 'secret.imported'
-  | 'secret.exported';
+  | 'secret.exported'
+  | 'share.exported'
+  | 'share.imported';
 
 export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.setup',
@@ -92,6 +94,8 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'secret.revealed',
   'secret.imported',
   'secret.exported',
+  'share.exported',
+  'share.imported',
 ];
 
 /** Máximo de eventos de auditoría retenidos en la base de datos (se podan los más antiguos). */

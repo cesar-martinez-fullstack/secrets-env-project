@@ -5,7 +5,7 @@
 import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { SESSION_COOKIE, isExportFormat, type ExportFormat } from '@secretvault/shared';
-import { ValidationFailedError } from '@secretvault/core';
+import { DomainError, ValidationFailedError } from '@secretvault/core';
 import type { ApiConfig } from '../config';
 
 /** Respuesta JSON estándar (nunca cacheable: datos sensibles). */
@@ -86,4 +86,12 @@ export function parseExportFormat(raw: string): ExportFormat {
     throw new ValidationFailedError([{ field: 'format', message: 'Formato inválido.' }]);
   }
   return raw;
+}
+
+export function rateLimited(retryAfterSeconds: number): DomainError {
+  return new DomainError(
+    'RATE_LIMITED',
+    `Demasiados intentos. Espera ${retryAfterSeconds}s antes de reintentar.`,
+    429,
+  );
 }

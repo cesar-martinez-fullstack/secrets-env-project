@@ -7,6 +7,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
 import { copyText } from '@/lib/clipboard';
+import { saveTextFile } from '@/lib/download';
 import { warnBeforeUnload } from '@/lib/before-unload';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -53,12 +54,7 @@ function download(): void {
     'Si usas la clave para recuperar el acceso, se genera una nueva y esta deja de funcionar.',
     '',
   ].join('\n');
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'secretvault-clave-de-recuperacion.txt';
-  link.click();
-  URL.revokeObjectURL(url);
+  saveTextFile('secretvault-clave-de-recuperacion.txt', text);
 }
 
 function confirmSaved(): void {

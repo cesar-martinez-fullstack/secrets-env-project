@@ -118,3 +118,22 @@ export interface VaultSession {
   expiresAt: Date;
   createdAt: Date;
 }
+
+export interface ShareFile {
+  content: string;
+  projectName: string;
+  environmentName: string | null;
+}
+
+export interface SharePreview {
+  projectName: string;
+  environments: { name: string; secretCount: number }[];
+  secretCount: number;
+}
+
+export interface ShareImportResult {
+  projectId: number;
+  projectName: string;
+  environmentCount: number;
+  secretCount: number;
+}

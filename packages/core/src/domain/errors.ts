@@ -152,3 +152,13 @@ export class ValidationFailedError extends DomainError {
     super('VALIDATION_FAILED', 'Datos inválidos.', 400, issues);
   }
 }
+
+export class SharePackageInvalidError extends DomainError {
+  constructor() {
+    super(
+      'SHARE_PACKAGE_INVALID',
+      'No se pudo abrir el archivo: la frase de paso es incorrecta o el archivo está dañado.',
+      400,
+    );
+  }
+}

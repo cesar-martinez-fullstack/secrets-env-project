@@ -36,17 +36,21 @@ export const EXPORT_FORMATTERS = {
   },
 } satisfies Record<ExportFormat, ExportFormatter>;
 
+export function fileSlug(name: string, fallback: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || fallback
+  );
+}
+
 export function exportFilename(
   environmentName: string,
   generatedAt: Date,
   format: ExportFormat,
 ): string {
-  const slug =
-    environmentName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || 'ambiente';
-  return `secretvault-${slug}-${generatedAt.toISOString().slice(0, 10)}.${format}`;
+  return `secretvault-${fileSlug(environmentName, 'ambiente')}-${generatedAt.toISOString().slice(0, 10)}.${format}`;
 }
