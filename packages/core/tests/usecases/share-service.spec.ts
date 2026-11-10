@@ -279,6 +279,8 @@ describe('ShareService', () => {
           ],
         },
         { project: '   ', environments: [] },
+        { project: 'x\n[FAKE] vault.unlock', environments: [] },
+        { project: 'P', environments: [{ name: 'E\r\nfake', secrets: [] }] },
       ];
 
       for (const payload of hostile) {
