@@ -14,6 +14,9 @@ import ProjectSidebar from '@/components/layout/ProjectSidebar.vue';
 import SecretsTable from '@/components/vault/SecretsTable.vue';
 import SecretFormModal from '@/components/vault/SecretFormModal.vue';
 import ImportModal from '@/components/vault/ImportModal.vue';
+import ShareExportModal from '@/components/vault/ShareExportModal.vue';
+import ShareImportModal from '@/components/vault/ShareImportModal.vue';
+import type { ShareTarget } from '@/components/vault/share-target';
 import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
 import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
@@ -39,6 +42,8 @@ const projectModalOpen = ref(false);
 const projectModalEditing = ref<ProjectDto | null>(null);
 
 const importOpen = ref(false);
+const shareTarget = ref<ShareTarget | null>(null);
+const shareImportOpen = ref(false);
 const securityOpen = ref(false);
 
 const confirmState = ref<{
@@ -193,6 +198,11 @@ async function runConfirm(): Promise<void> {
         @create-env="openCreateEnv"
         @rename-env="openRenameEnv"
         @delete-env="askDeleteEnv"
+        @share-project="
+          (project) => (shareTarget = { kind: 'projects', id: project.id, name: project.name })
+        "
+        @share-env="(env) => (shareTarget = { kind: 'environments', id: env.id, name: env.name })"
+        @import-share="shareImportOpen = true"
       />
 
       <!-- Contenido principal -->
@@ -295,6 +305,12 @@ async function runConfirm(): Promise<void> {
       @close="secretModalOpen = false"
     />
     <ImportModal :open="importOpen" @close="importOpen = false" />
+    <ShareExportModal
+      :open="shareTarget !== null"
+      :target="shareTarget"
+      @close="shareTarget = null"
+    />
+    <ShareImportModal :open="shareImportOpen" @close="shareImportOpen = false" />
     <SecurityModal :open="securityOpen" @close="securityOpen = false" />
     <ProjectFormModal
       :open="projectModalOpen"

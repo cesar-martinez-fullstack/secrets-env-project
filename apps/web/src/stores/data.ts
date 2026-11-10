@@ -8,6 +8,7 @@ import type {
   CreateSecretRequestDto,
   EnvironmentDto,
   ImportSecretsResultDto,
+  ShareImportResultDto,
   ProjectDto,
   SecretDto,
 } from '@secretvault/shared';
@@ -140,6 +141,14 @@ export const useDataStore = defineStore('data', () => {
     return result;
   }
 
+  async function importShare(content: string, passphrase: string): Promise<ShareImportResultDto> {
+    const result = await api.importShare({ content, passphrase });
+    await refreshEnvironments();
+    activeEnvId.value = environmentsOf(result.projectId)[0]?.id ?? activeEnvId.value;
+    await refreshSecrets();
+    return result;
+  }
+
   function init(): void {
     void refreshEnvironments().then(() => refreshSecrets());
   }
@@ -169,6 +178,7 @@ export const useDataStore = defineStore('data', () => {
     updateSecret,
     removeSecret,
     importSecrets,
+    importShare,
     init,
   };
 });

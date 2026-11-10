@@ -109,6 +109,13 @@ export const ICONS = {
     '<path d="M14 3v6h7"/>',
   ],
   clock: ['<circle cx="12" cy="12" r="10"/>', '<path d="M12 6v6l4 2"/>'],
+  share: [
+    '<circle cx="18" cy="5" r="3"/>',
+    '<circle cx="6" cy="12" r="3"/>',
+    '<circle cx="18" cy="19" r="3"/>',
+    '<path d="m8.6 13.5 6.8 4"/>',
+    '<path d="m15.4 6.5-6.8 4"/>',
+  ],
   loader: ['<path d="M21 12a9 9 0 1 1-6.219-8.56"/>'],
 } as const;
 

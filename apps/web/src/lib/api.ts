@@ -17,6 +17,11 @@ import type {
   OkDto,
   RecoverVaultResponseDto,
   RecoveryKeyDto,
+  ShareContentRequestDto,
+  ShareExportRequestDto,
+  ShareFileDto,
+  ShareImportResultDto,
+  SharePreviewDto,
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
@@ -173,6 +178,25 @@ export const api = {
 
   importSecrets: (payload: ImportSecretsRequestDto) =>
     request<ImportSecretsResultDto>('/api/secrets/import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  // ── Compartir ─────────────────────────────────────────────────────────
+  exportShare: (target: 'projects' | 'environments', id: number, passphrase: string) =>
+    request<ShareFileDto>(`/api/share/${target}/${id}/export`, {
+      method: 'POST',
+      body: JSON.stringify({ passphrase } satisfies ShareExportRequestDto),
+    }),
+
+  previewShare: (payload: ShareContentRequestDto) =>
+    request<SharePreviewDto>('/api/share/preview', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  importShare: (payload: ShareContentRequestDto) =>
+    request<ShareImportResultDto>('/api/share/import', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
