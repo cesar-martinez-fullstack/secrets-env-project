@@ -7,6 +7,8 @@ import { computed, ref, watch } from 'vue';
 import { passwordStrength } from '@secretvault/shared';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
+import type { MessageKey } from '@/i18n/catalogs';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import AppIcon from '@/components/AppIcon.vue';
 
@@ -15,6 +17,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const vault = useVaultStore();
 const toast = useToastStore();
+const { t, describeError } = useI18n();
 
 const currentPassword = ref('');
 const newPassword = ref('');
@@ -48,7 +51,7 @@ async function run(kind: 'password' | 'recovery', action: () => Promise<void>): 
   try {
     await action();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error desconocido';
+    error.value = describeError(err);
   } finally {
     busy.value = null;
   }
@@ -57,11 +60,7 @@ async function run(kind: 'password' | 'recovery', action: () => Promise<void>): 
 function changePassword(): Promise<void> {
   return run('password', async () => {
     await vault.changeMasterPassword(currentPassword.value, newPassword.value);
-    toast.push(
-      'success',
-      'Contraseña actualizada',
-      'Tus secretos no cambiaron: solo se re-envolvió la clave.',
-    );
+    toast.push('success', t('security.changedTitle'), t('security.changedBody'));
     emit('close');
   });
 }
@@ -75,10 +74,10 @@ function regenerateRecoveryKey(): Promise<void> {
 </script>
 
 <template>
-  <BaseModal :open="open" title="Seguridad" max-width="md" @close="emit('close')">
+  <BaseModal :open="open" :title="t('security.title')" max-width="md" @close="emit('close')">
     <div class="space-y-5" data-testid="security-modal">
       <div>
-        <label for="sec-current" class="label-text">Contraseña maestra actual</label>
+        <label for="sec-current" class="label-text">{{ t('security.current') }}</label>
         <input
           id="sec-current"
           v-model="currentPassword"
@@ -90,10 +89,10 @@ function regenerateRecoveryKey(): Promise<void> {
 
       <section class="space-y-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
         <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          Cambiar la contraseña maestra
+          {{ t('security.changeTitle') }}
         </h3>
         <div>
-          <label for="sec-new" class="label-text">Nueva contraseña</label>
+          <label for="sec-new" class="label-text">{{ t('security.new') }}</label>
           <input
             id="sec-new"
             v-model="newPassword"
@@ -102,11 +101,11 @@ function regenerateRecoveryKey(): Promise<void> {
             class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
           />
           <p v-if="newPassword.length > 0" class="mt-1 text-xs text-zinc-400">
-            Fuerza: {{ ['Muy débil', 'Débil', 'Aceptable', 'Fuerte', 'Excelente'][strength] }}
+            {{ t('security.strength', { label: t(`unlock.strength.${strength}` as MessageKey) }) }}
           </p>
         </div>
         <div>
-          <label for="sec-confirm" class="label-text">Confirmar nueva contraseña</label>
+          <label for="sec-confirm" class="label-text">{{ t('security.confirm') }}</label>
           <input
             id="sec-confirm"
             v-model="confirmPassword"
@@ -118,7 +117,7 @@ function regenerateRecoveryKey(): Promise<void> {
             v-if="confirmPassword.length > 0 && confirmPassword !== newPassword"
             class="mt-1 text-xs text-red-500"
           >
-            Las contraseñas no coinciden.
+            {{ t('unlock.mismatch') }}
           </p>
         </div>
         <button
@@ -129,17 +128,16 @@ function regenerateRecoveryKey(): Promise<void> {
           @click="changePassword"
         >
           <AppIcon v-if="busy === 'password'" name="loader" :size="15" class="animate-spin" />
-          Cambiar contraseña
+          {{ t('security.change') }}
         </button>
       </section>
 
       <section class="space-y-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
         <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          Clave de recuperación
+          {{ t('security.recoveryTitle') }}
         </h3>
         <p class="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Genera una clave nueva. La anterior dejará de funcionar de inmediato. Úsalo si crees que
-          la clave quedó expuesta o si la perdiste (y aún conoces tu contraseña).
+          {{ t('security.recoveryBody') }}
         </p>
         <button
           id="sec-regenerate"
@@ -150,7 +148,7 @@ function regenerateRecoveryKey(): Promise<void> {
         >
           <AppIcon v-if="busy === 'recovery'" name="loader" :size="15" class="animate-spin" />
           <AppIcon v-else name="key" :size="15" />
-          Generar clave nueva
+          {{ t('security.recoveryGenerate') }}
         </button>
       </section>
 

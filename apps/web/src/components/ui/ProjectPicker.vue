@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ProjectDto } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
+import { useI18n } from '@/i18n/use-i18n';
 
 const props = defineProps<{
   modelValue: number | null;
@@ -10,6 +11,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ 'update:modelValue': [id: number | null] }>();
+
+const { t } = useI18n();
 
 const root = ref<HTMLElement | null>(null);
 const search = ref<HTMLInputElement | null>(null);
@@ -81,8 +84,8 @@ const optionClass = (active: boolean): string =>
           ref="search"
           v-model="query"
           type="text"
-          placeholder="Buscar proyecto"
-          aria-label="Buscar proyecto"
+          :placeholder="t('picker.search')"
+          :aria-label="t('picker.search')"
           class="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
         />
       </div>
@@ -115,7 +118,7 @@ const optionClass = (active: boolean): string =>
           v-if="!showNewOption && visibleProjects.length === 0"
           class="px-3 py-2 text-sm text-zinc-400"
         >
-          Ningún proyecto coincide.
+          {{ t('picker.none') }}
         </li>
       </ul>
     </div>

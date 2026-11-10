@@ -7,10 +7,13 @@ import { EXPORT_FORMATS } from '@secretvault/shared';
 import type { ExportFormat } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
 import { useDataStore } from '@/stores/data';
+import { useI18n } from '@/i18n/use-i18n';
+import type { MessageKey } from '@/i18n/catalogs';
 
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 const data = useDataStore();
+const { t } = useI18n();
 
 const canExport = computed(() => (data.activeEnv?.secretCount ?? 0) > 0);
 
@@ -20,16 +23,12 @@ watch(canExport, (allowed) => {
 
 const META: Record<
   ExportFormat,
-  { icon: 'download' | 'file-text'; label: string; description: string }
+  { icon: 'download' | 'file-text'; label: MessageKey; description: MessageKey }
 > = {
-  env: { icon: 'download', label: 'Archivo .env', description: 'Formato dotenv estándar' },
-  csv: { icon: 'download', label: 'Hoja CSV', description: 'Para Excel / Sheets (ver aviso)' },
-  json: {
-    icon: 'download',
-    label: 'Archivo JSON',
-    description: 'Estructurado, ideal para scripts',
-  },
-  pdf: { icon: 'file-text', label: 'Reporte PDF', description: 'Estilizado, apto para imprimir' },
+  env: { icon: 'download', label: 'export.env', description: 'export.envHint' },
+  csv: { icon: 'download', label: 'export.csv', description: 'export.csvHint' },
+  json: { icon: 'download', label: 'export.json', description: 'export.jsonHint' },
+  pdf: { icon: 'file-text', label: 'export.pdf', description: 'export.pdfHint' },
 };
 
 function exportAs(format: ExportFormat): void {
@@ -55,11 +54,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
       type="button"
       class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:disabled:hover:bg-zinc-900"
       :disabled="!canExport"
-      :title="canExport ? undefined : 'No hay secretos para exportar en este ambiente'"
+      :title="canExport ? undefined : t('export.nothing')"
       @click="open = !open"
     >
       <AppIcon name="download" :size="15" />
-      Exportar
+      {{ t('export.button') }}
     </button>
 
     <Transition name="menu">
@@ -77,17 +76,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
           <AppIcon :name="META[format].icon" :size="16" class="text-indigo-500" />
           <span>
             <span class="block text-sm font-medium text-zinc-800 dark:text-zinc-200">{{
-              META[format].label
+              t(META[format].label)
             }}</span>
-            <span class="block text-xs text-zinc-400">{{ META[format].description }}</span>
+            <span class="block text-xs text-zinc-400">{{ t(META[format].description) }}</span>
           </span>
         </button>
         <p
           class="border-t border-zinc-100 px-4 py-2 text-[11px] leading-snug text-zinc-400 dark:border-zinc-800"
         >
-          El archivo descargado contiene secretos en texto claro. Manéjalo con cuidado. En CSV,
-          Excel puede tratar como fórmula un valor que empiece por = + - o @: no lo abras sin
-          revisarlo.
+          {{ t('export.warning') }}
         </p>
       </div>
     </Transition>

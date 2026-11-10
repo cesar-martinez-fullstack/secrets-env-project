@@ -8,12 +8,17 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { passwordStrength } from '@secretvault/shared';
 import { useVaultStore } from '@/stores/vault';
+import type { MessageKey } from '@/i18n/catalogs';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 
 const router = useRouter();
 const vault = useVaultStore();
 const toast = useToastStore();
+const { t, describeError, localeStore } = useI18n();
+
+const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
 
 const password = ref('');
 const confirm = ref('');
@@ -25,7 +30,6 @@ const mode = ref<'unlock' | 'recover'>('unlock');
 const recoveryKeyInput = ref('');
 
 const strength = computed(() => passwordStrength(password.value));
-const strengthLabels = ['Muy débil', 'Débil', 'Aceptable', 'Fuerte', 'Excelente'];
 const strengthColors = [
   'bg-red-500',
   'bg-orange-500',
@@ -68,25 +72,21 @@ async function submit(): Promise<void> {
   try {
     if (mode.value === 'recover') {
       await vault.recover(recoveryKeyInput.value, password.value);
-      toast.push('success', 'Acceso recuperado', 'Tu contraseña maestra fue reemplazada.');
+      toast.push('success', t('unlock.toastRecoveredTitle'), t('unlock.toastRecoveredBody'));
     } else if (vault.initialized) {
       await vault.unlock(password.value);
       toast.push(
         'success',
-        'Bóveda desbloqueada',
-        `Auto-lock en ${vault.autoLockMinutes} min de inactividad.`,
+        t('unlock.toastUnlockedTitle'),
+        t('unlock.toastUnlockedBody', { minutes: vault.autoLockMinutes }),
       );
     } else {
       await vault.setup(password.value);
-      toast.push(
-        'success',
-        'Bóveda creada',
-        'Tu contraseña maestra deriva la clave AES-256 en RAM.',
-      );
+      toast.push('success', t('unlock.toastCreatedTitle'), t('unlock.toastCreatedBody'));
     }
     await router.replace('/vault');
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error desconocido';
+    error.value = describeError(err);
   } finally {
     busy.value = false;
   }
@@ -95,11 +95,21 @@ async function submit(): Promise<void> {
 
 <template>
   <div
-    class="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-950"
+    class="relative flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-950"
     :style="{
       backgroundImage: 'radial-gradient(60% 50% at 50% 0%, rgba(79,70,229,0.07), transparent 70%)',
     }"
   >
+    <button
+      type="button"
+      class="absolute right-4 top-4 rounded-lg px-2.5 py-2 text-xs font-semibold uppercase text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+      :title="t('common.language')"
+      :aria-label="t('common.language')"
+      data-testid="language-toggle"
+      @click="localeStore.setLocale(nextLocale)"
+    >
+      {{ nextLocale }}
+    </button>
     <Transition name="pop" appear>
       <div v-if="ready" class="card w-full max-w-sm p-8">
         <!-- Logo -->
@@ -115,17 +125,17 @@ async function submit(): Promise<void> {
           <p class="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
             {{
               mode === 'recover'
-                ? 'Ingresa tu clave de recuperación y elige una contraseña maestra nueva.'
+                ? t('unlock.subtitleRecover')
                 : vault.initialized
-                  ? 'Tu bóveda está bloqueada. Ingresa tu contraseña maestra.'
-                  : 'Crea la contraseña maestra que protegerá todos tus secretos.'
+                  ? t('unlock.subtitleUnlock')
+                  : t('unlock.subtitleSetup')
             }}
           </p>
         </div>
 
         <form class="space-y-4" @submit.prevent="submit">
           <div v-if="mode === 'recover'">
-            <label for="recovery-key-input" class="label-text">Clave de recuperación</label>
+            <label for="recovery-key-input" class="label-text">{{ t('unlock.recoveryKey') }}</label>
             <textarea
               id="recovery-key-input"
               v-model="recoveryKeyInput"
@@ -140,7 +150,7 @@ async function submit(): Promise<void> {
 
           <div>
             <label for="master-password" class="label-text">
-              {{ isNewPassword ? 'Nueva contraseña maestra' : 'Contraseña maestra' }}
+              {{ isNewPassword ? t('unlock.newPassword') : t('unlock.password') }}
             </label>
             <div class="relative">
               <input
@@ -156,7 +166,7 @@ async function submit(): Promise<void> {
               <button
                 type="button"
                 class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
-                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                :aria-label="showPassword ? t('unlock.hidePassword') : t('unlock.showPassword')"
                 @click="showPassword = !showPassword"
               >
                 <AppIcon :name="showPassword ? 'eye-off' : 'eye'" :size="15" />
@@ -173,12 +183,16 @@ async function submit(): Promise<void> {
                   :class="i <= strength ? strengthColors[strength] : 'bg-zinc-200 dark:bg-zinc-800'"
                 />
               </div>
-              <p class="mt-1 text-xs text-zinc-400">{{ strengthLabels[strength] }}</p>
+              <p class="mt-1 text-xs text-zinc-400">
+                {{ t(`unlock.strength.${strength}` as MessageKey) }}
+              </p>
             </div>
           </div>
 
           <div v-if="isNewPassword">
-            <label for="confirm-password" class="label-text">Confirmar contraseña</label>
+            <label for="confirm-password" class="label-text">{{
+              t('unlock.confirmPassword')
+            }}</label>
             <input
               id="confirm-password"
               v-model="confirm"
@@ -189,7 +203,7 @@ async function submit(): Promise<void> {
               class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
             />
             <p v-if="confirm.length > 0 && confirm !== password" class="mt-1 text-xs text-red-500">
-              Las contraseñas no coinciden.
+              {{ t('unlock.mismatch') }}
             </p>
           </div>
 
@@ -209,10 +223,10 @@ async function submit(): Promise<void> {
             <AppIcon v-if="busy" name="loader" :size="16" class="animate-spin" />
             {{
               mode === 'recover'
-                ? 'Recuperar acceso'
+                ? t('unlock.submitRecover')
                 : vault.initialized
-                  ? 'Desbloquear'
-                  : 'Crear bóveda'
+                  ? t('unlock.submitUnlock')
+                  : t('unlock.submitSetup')
             }}
           </button>
         </form>
@@ -225,7 +239,7 @@ async function submit(): Promise<void> {
             class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
             @click="switchMode('unlock')"
           >
-            Volver a desbloquear
+            {{ t('unlock.backToUnlock') }}
           </button>
           <button
             v-else-if="vault.recoveryAvailable"
@@ -234,10 +248,10 @@ async function submit(): Promise<void> {
             class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
             @click="switchMode('recover')"
           >
-            ¿Olvidaste tu contraseña? Usa tu clave de recuperación
+            {{ t('unlock.forgot') }}
           </button>
           <p v-else class="text-zinc-400 dark:text-zinc-500">
-            Desbloquea una vez con tu contraseña para generar tu clave de recuperación.
+            {{ t('unlock.needFirstUnlock') }}
           </p>
         </div>
 
@@ -247,14 +261,14 @@ async function submit(): Promise<void> {
         >
           <AppIcon name="alert" :size="15" class="mt-0.5 shrink-0" />
           <span>
-            Al crear la bóveda recibirás una <strong>clave de recuperación</strong>. Guárdala fuera
-            de este equipo: sin la contraseña ni esa clave, los secretos son
-            <strong>irrecuperables</strong> por diseño.
+            {{ t('unlock.warningLead') }} <strong>{{ t('unlock.warningKey') }}</strong
+            >{{ t('unlock.warningMiddle') }} <strong>{{ t('unlock.warningEnd') }}</strong>
+            {{ t('unlock.warningTail') }}
           </span>
         </div>
 
         <p class="mt-6 text-center text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-600">
-          PBKDF2-SHA256 · AES-256-GCM · claves solo en memoria
+          {{ t('unlock.footer') }}
         </p>
       </div>
     </Transition>

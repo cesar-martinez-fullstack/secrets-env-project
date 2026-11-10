@@ -3,7 +3,9 @@
  * Barra superior: marca, buscador global en tiempo real, acciones de tema,
  * auditoría, bloqueo y creación de secretos.
  */
+import { computed } from 'vue';
 import AppIcon from '@/components/AppIcon.vue';
+import { useI18n } from '@/i18n/use-i18n';
 import { useDataStore } from '@/stores/data';
 import { useThemeStore } from '@/stores/theme';
 
@@ -15,6 +17,9 @@ const emit = defineEmits<{
 
 const data = useDataStore();
 const theme = useThemeStore();
+const { t, localeStore } = useI18n();
+
+const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
 </script>
 
 <template>
@@ -46,7 +51,7 @@ const theme = useThemeStore();
         <input
           v-model="data.query"
           type="search"
-          placeholder="Buscar en todos los ambientes…"
+          :placeholder="t('topbar.searchPlaceholder')"
           autocomplete="off"
           spellcheck="false"
           class="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-9 text-sm text-zinc-800 placeholder-zinc-400 transition-colors focus:border-indigo-400 focus:bg-white dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder-zinc-500 dark:focus:bg-zinc-900"
@@ -55,7 +60,7 @@ const theme = useThemeStore();
           v-if="data.query"
           type="button"
           class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-          aria-label="Limpiar búsqueda"
+          :aria-label="t('topbar.clearSearch')"
           @click="data.query = ''"
         >
           <AppIcon name="x" :size="14" />
@@ -67,17 +72,28 @@ const theme = useThemeStore();
         <button
           type="button"
           class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-          :title="theme.isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-          aria-label="Cambiar tema"
+          :title="theme.isDark ? t('common.themeToLight') : t('common.themeToDark')"
+          :aria-label="t('common.theme')"
           @click="theme.toggle()"
         >
           <AppIcon :name="theme.isDark ? 'sun' : 'moon'" />
         </button>
 
+        <button
+          type="button"
+          class="rounded-lg px-2 py-2 text-xs font-semibold uppercase text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          :title="t('common.language')"
+          :aria-label="t('common.language')"
+          data-testid="language-toggle"
+          @click="localeStore.setLocale(nextLocale)"
+        >
+          {{ nextLocale }}
+        </button>
+
         <RouterLink
           to="/audit"
           class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-          title="Historial de auditoría"
+          :title="t('topbar.audit')"
         >
           <AppIcon name="history" />
         </RouterLink>
@@ -85,8 +101,8 @@ const theme = useThemeStore();
         <button
           type="button"
           class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-          title="Seguridad: contraseña y clave de recuperación"
-          aria-label="Seguridad"
+          :title="t('topbar.securityTitle')"
+          :aria-label="t('topbar.security')"
           @click="emit('security')"
         >
           <AppIcon name="shield" />
@@ -95,7 +111,7 @@ const theme = useThemeStore();
         <button
           type="button"
           class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-          title="Bloquear bóveda"
+          :title="t('topbar.lock')"
           @click="emit('lock')"
         >
           <AppIcon name="log-out" />
@@ -107,7 +123,7 @@ const theme = useThemeStore();
           @click="emit('create-secret')"
         >
           <AppIcon name="plus" :size="16" />
-          <span class="hidden sm:inline">Nuevo secreto</span>
+          <span class="hidden sm:inline">{{ t('topbar.newSecret') }}</span>
         </button>
       </div>
     </div>

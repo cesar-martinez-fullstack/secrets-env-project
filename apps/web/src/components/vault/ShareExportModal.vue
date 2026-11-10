@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { saveTextFile } from '@/lib/download';
 import { generateSecretValue } from '@/lib/generate';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import type { ShareTarget } from './share-target';
@@ -17,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>();
 
 const toast = useToastStore();
+const { t, describeError } = useI18n();
 const passphrase = ref('');
 const visible = ref(false);
 const submitting = ref(false);
@@ -24,7 +26,7 @@ const submitting = ref(false);
 const GENERATED_LENGTH = 20;
 const canSubmit = computed(() => passphrase.value.length >= SHARE_MIN_PASSPHRASE);
 const scopeLabel = computed(() =>
-  props.target?.kind === 'projects' ? 'el proyecto completo' : 'este ambiente',
+  props.target?.kind === 'projects' ? t('shareExport.scopeProject') : t('shareExport.scopeEnv'),
 );
 
 watch(
@@ -46,14 +48,10 @@ async function submit(): Promise<void> {
   try {
     const file = await api.exportShare(props.target.kind, props.target.id, passphrase.value);
     saveTextFile(file.filename, file.content);
-    toast.push(
-      'success',
-      'Archivo generado',
-      'Envía la frase de paso a la otra persona por un canal distinto al del archivo.',
-    );
+    toast.push('success', t('shareExport.doneTitle'), t('shareExport.doneBody'));
     emit('close');
   } catch (error) {
-    toast.push('error', 'No se pudo compartir', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('shareExport.failed'), describeError(error));
   } finally {
     submitting.value = false;
   }
@@ -63,18 +61,17 @@ async function submit(): Promise<void> {
 <template>
   <BaseModal
     :open="open"
-    :title="`Compartir «${target?.name ?? ''}»`"
+    :title="t('shareExport.title', { name: target?.name ?? '' })"
     max-width="md"
     @close="emit('close')"
   >
     <form class="space-y-4" data-testid="share-export-form" @submit.prevent="submit">
       <p class="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        Se genera un archivo cifrado con {{ scopeLabel }}, sus ambientes y sus secretos. Quien lo
-        reciba necesita la frase de paso para abrirlo en su SecretVault.
+        {{ t('shareExport.lead', { scope: scopeLabel }) }}
       </p>
 
       <div>
-        <label for="share-passphrase" class="label-text">Frase de paso</label>
+        <label for="share-passphrase" class="label-text">{{ t('shareExport.passphrase') }}</label>
         <div class="flex gap-2">
           <input
             id="share-passphrase"
@@ -88,8 +85,10 @@ async function submit(): Promise<void> {
           <button
             type="button"
             class="rounded-xl border border-zinc-200 px-3 text-zinc-500 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            :title="visible ? 'Ocultar' : 'Mostrar'"
-            :aria-label="visible ? 'Ocultar la frase' : 'Mostrar la frase'"
+            :title="visible ? t('shareExport.hide') : t('shareExport.show')"
+            :aria-label="
+              visible ? t('shareExport.hidePassphrase') : t('shareExport.showPassphrase')
+            "
             @click="visible = !visible"
           >
             <AppIcon :name="visible ? 'eye-off' : 'eye'" :size="16" />
@@ -99,12 +98,11 @@ async function submit(): Promise<void> {
             class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             @click="generate"
           >
-            <AppIcon name="dice" :size="15" /> Generar
+            <AppIcon name="dice" :size="15" /> {{ t('shareExport.generate') }}
           </button>
         </div>
         <p class="mt-1.5 text-xs text-zinc-400">
-          Mínimo {{ SHARE_MIN_PASSPHRASE }} caracteres. SecretVault no la guarda: si se pierde, el
-          archivo no se puede abrir.
+          {{ t('shareExport.hint', { min: SHARE_MIN_PASSPHRASE }) }}
         </p>
       </div>
 
@@ -113,8 +111,7 @@ async function submit(): Promise<void> {
       >
         <AppIcon name="alert" :size="15" class="mt-0.5 shrink-0" />
         <span>
-          Quien tenga el archivo y la frase tendrá acceso a estos secretos y no se puede revocar.
-          Comparte la frase por un canal distinto al del archivo.
+          {{ t('shareExport.warning') }}
         </span>
       </div>
 
@@ -124,14 +121,14 @@ async function submit(): Promise<void> {
           class="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
           @click="emit('close')"
         >
-          Cancelar
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"
           :disabled="!canSubmit || submitting"
           class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50"
         >
-          <AppIcon name="download" :size="15" /> Descargar archivo
+          <AppIcon name="download" :size="15" /> {{ t('shareExport.download') }}
         </button>
       </div>
     </form>

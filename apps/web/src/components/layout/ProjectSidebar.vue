@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import type { EnvironmentDto, ProjectDto } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
 import { useDataStore } from '@/stores/data';
+import { useI18n } from '@/i18n/use-i18n';
 
 const emit = defineEmits<{
   'create-project': [];
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const data = useDataStore();
+const { t } = useI18n();
 const collapsed = ref(new Set<number>());
 
 function toggle(projectId: number): void {
@@ -41,14 +43,14 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
   >
     <div class="flex items-center justify-between px-4 pb-2 pt-4">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-        Proyectos
+        {{ t('sidebar.projects') }}
       </h2>
       <div class="flex items-center gap-0.5">
         <button
           type="button"
           class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-indigo-600 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
-          title="Importar un archivo compartido"
-          aria-label="Importar un archivo compartido"
+          :title="t('sidebar.importShare')"
+          :aria-label="t('sidebar.importShare')"
           @click="emit('import-share')"
         >
           <AppIcon name="upload" :size="16" />
@@ -56,8 +58,8 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
         <button
           type="button"
           class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-indigo-600 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
-          title="Nuevo proyecto"
-          aria-label="Crear proyecto"
+          :title="t('sidebar.newProject')"
+          :aria-label="t('sidebar.createProject')"
           @click="emit('create-project')"
         >
           <AppIcon name="plus" :size="16" />
@@ -67,7 +69,7 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
 
     <nav
       class="flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2"
-      aria-label="Proyectos y ambientes"
+      :aria-label="t('sidebar.navLabel')"
     >
       <section
         v-for="project in data.projects"
@@ -79,7 +81,9 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             type="button"
             class="flex w-full items-center gap-1.5 rounded-xl px-2 py-1.5 text-left text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/70"
             :aria-expanded="!collapsed.has(project.id)"
-            :aria-label="`${project.name}, ${project.environmentCount} ambiente(s)`"
+            :aria-label="
+              t('sidebar.projectSummary', { name: project.name, count: project.environmentCount })
+            "
             @click="toggle(project.id)"
           >
             <AppIcon
@@ -100,8 +104,8 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             <button
               type="button"
               :class="iconButton"
-              :title="`Nuevo ambiente en ${project.name}`"
-              :aria-label="`Nuevo ambiente en ${project.name}`"
+              :title="t('sidebar.newEnvIn', { name: project.name })"
+              :aria-label="t('sidebar.newEnvIn', { name: project.name })"
               @click.stop="emit('create-env', project)"
             >
               <AppIcon name="plus" :size="14" />
@@ -109,8 +113,8 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             <button
               type="button"
               :class="iconButton"
-              :title="`Compartir ${project.name}`"
-              :aria-label="`Compartir proyecto ${project.name}`"
+              :title="t('sidebar.shareTitle', { name: project.name })"
+              :aria-label="t('sidebar.shareProject', { name: project.name })"
               @click.stop="emit('share-project', project)"
             >
               <AppIcon name="share" :size="14" />
@@ -118,8 +122,8 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             <button
               type="button"
               :class="iconButton"
-              :title="`Renombrar ${project.name}`"
-              :aria-label="`Renombrar proyecto ${project.name}`"
+              :title="t('sidebar.renameTitle', { name: project.name })"
+              :aria-label="t('sidebar.renameProject', { name: project.name })"
               @click.stop="emit('rename-project', project)"
             >
               <AppIcon name="pencil" :size="14" />
@@ -127,8 +131,8 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             <button
               type="button"
               class="rounded-md p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
-              :title="`Eliminar ${project.name}`"
-              :aria-label="`Eliminar proyecto ${project.name}`"
+              :title="t('sidebar.deleteTitle', { name: project.name })"
+              :aria-label="t('sidebar.deleteProject', { name: project.name })"
               @click.stop="emit('delete-project', project)"
             >
               <AppIcon name="trash" :size="14" />
@@ -171,8 +175,8 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
               <button
                 type="button"
                 :class="iconButton"
-                :title="`Compartir ${env.name}`"
-                :aria-label="`Compartir ambiente ${env.name}`"
+                :title="t('sidebar.shareTitle', { name: env.name })"
+                :aria-label="t('sidebar.shareEnv', { name: env.name })"
                 @click.stop="emit('share-env', env)"
               >
                 <AppIcon name="share" :size="14" />
@@ -180,7 +184,7 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
               <button
                 type="button"
                 :class="iconButton"
-                :title="`Renombrar ${env.name}`"
+                :title="t('sidebar.renameTitle', { name: env.name })"
                 @click.stop="emit('rename-env', env)"
               >
                 <AppIcon name="pencil" :size="14" />
@@ -188,7 +192,7 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
               <button
                 type="button"
                 class="rounded-md p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
-                :title="`Eliminar ${env.name}`"
+                :title="t('sidebar.deleteTitle', { name: env.name })"
                 @click.stop="emit('delete-env', env)"
               >
                 <AppIcon name="trash" :size="14" />
@@ -200,7 +204,7 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
             v-if="data.environmentsOf(project.id).length === 0"
             class="px-2.5 py-1.5 text-xs text-zinc-400"
           >
-            Sin ambientes.
+            {{ t('sidebar.noEnvs') }}
           </p>
         </div>
       </section>
@@ -209,14 +213,14 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
         v-if="data.projects.length === 0 && !data.loadingEnvs"
         class="px-3 py-4 text-sm text-zinc-400"
       >
-        Sin proyectos todavía.
+        {{ t('sidebar.noProjects') }}
       </p>
     </nav>
 
     <div class="border-t border-zinc-200/80 p-3 dark:border-zinc-800">
       <div class="flex items-center gap-2 px-2 text-xs text-zinc-400 dark:text-zinc-500">
         <AppIcon name="shield" :size="14" class="text-emerald-500" />
-        <span>AES-256-GCM · solo en RAM</span>
+        <span>{{ t('sidebar.footer') }}</span>
       </div>
     </div>
   </aside>

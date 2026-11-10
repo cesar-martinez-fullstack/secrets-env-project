@@ -10,8 +10,10 @@ import { relativeTime, absoluteTime } from '@/lib/time';
 import AppIcon from '@/components/AppIcon.vue';
 import type { IconName } from '@/components/icons';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import { useI18n } from '@/i18n/use-i18n';
 
 const router = useRouter();
+const { t, localeStore } = useI18n();
 
 const events = ref<AuditEventDto[]>([]);
 const total = ref(0);
@@ -72,19 +74,19 @@ onMounted(async () => {
         <button
           type="button"
           class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          title="Volver a la bóveda"
+          :title="t('audit.back')"
           @click="router.push('/vault')"
         >
           <AppIcon name="arrow-left" />
         </button>
         <h1 class="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Historial de auditoría
+          {{ t('audit.title') }}
         </h1>
         <span
           v-if="total > 0"
           class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
         >
-          {{ total }} evento(s)
+          {{ t('audit.total', { count: total }) }}
         </span>
       </div>
     </header>
@@ -97,8 +99,8 @@ onMounted(async () => {
       <div v-else-if="events.length === 0" class="card">
         <EmptyState
           icon="history"
-          title="Sin eventos todavía"
-          description="Aquí se registrarán creaciones, ediciones, borrados, revelados y exportaciones."
+          :title="t('audit.emptyTitle')"
+          :description="t('audit.emptyDescription')"
         />
       </div>
 
@@ -112,8 +114,11 @@ onMounted(async () => {
           </span>
           <div class="min-w-0 flex-1">
             <p class="text-sm leading-snug text-zinc-700 dark:text-zinc-300">{{ event.message }}</p>
-            <p class="mt-0.5 text-xs text-zinc-400" :title="absoluteTime(event.createdAt)">
-              {{ relativeTime(event.createdAt) }} · {{ event.type }}
+            <p
+              class="mt-0.5 text-xs text-zinc-400"
+              :title="absoluteTime(event.createdAt, localeStore.locale)"
+            >
+              {{ relativeTime(event.createdAt, localeStore.locale) }} · {{ event.type }}
             </p>
           </div>
         </div>
@@ -126,7 +131,7 @@ onMounted(async () => {
             @click="loadMore"
           >
             <AppIcon v-if="loadingMore" name="loader" :size="15" class="animate-spin" />
-            Cargar más
+            {{ t('audit.loadMore') }}
           </button>
         </div>
       </div>
