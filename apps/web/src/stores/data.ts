@@ -8,6 +8,7 @@ import type {
   CreateSecretRequestDto,
   EnvironmentDto,
   ImportSecretsResultDto,
+  ShareImportRequestDto,
   ShareImportResultDto,
   ProjectDto,
   SecretDto,
@@ -141,8 +142,8 @@ export const useDataStore = defineStore('data', () => {
     return result;
   }
 
-  async function importShare(content: string, passphrase: string): Promise<ShareImportResultDto> {
-    const result = await api.importShare({ content, passphrase });
+  async function importShare(request: ShareImportRequestDto): Promise<ShareImportResultDto> {
+    const result = await api.importShare(request);
     await refreshEnvironments();
     activeEnvId.value = environmentsOf(result.projectId)[0]?.id ?? activeEnvId.value;
     await refreshSecrets();
