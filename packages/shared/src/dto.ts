@@ -163,3 +163,30 @@ export interface AuditQueryResultDto {
   events: AuditEventDto[];
   total: number;
 }
+
+export interface ShareExportRequestDto {
+  passphrase: string;
+}
+
+export interface ShareContentRequestDto {
+  content: string;
+  passphrase: string;
+}
+
+export interface SharePreviewDto {
+  projectName: string;
+  environments: { name: string; secretCount: number }[];
+  secretCount: number;
+}
+
+export interface ShareImportResultDto {
+  projectId: number;
+  projectName: string;
+  environmentCount: number;
+  secretCount: number;
+}
+
+export interface ShareFileDto {
+  filename: string;
+  content: string;
+}

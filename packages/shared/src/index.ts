@@ -4,3 +4,4 @@ export * from './dto';
 export * from './validation';
 export * from './parse-env';
 export * from './recovery-key';
+export * from './share-package';
