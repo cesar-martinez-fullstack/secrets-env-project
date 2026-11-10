@@ -52,6 +52,7 @@ export const ICONS = {
     '<line x1="8" x2="16" y1="21" y2="21"/>',
     '<line x1="12" x2="12" y1="17" y2="21"/>',
   ],
+  'chevron-down': ['<path d="m6 9 6 6 6-6"/>'],
   trash: [
     '<path d="M3 6h18"/>',
     '<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>',

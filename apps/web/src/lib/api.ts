@@ -6,8 +6,12 @@ import type {
   ApiErrorBody,
   AuditQueryResultDto,
   CreateEnvironmentRequestDto,
+  CreateProjectRequestDto,
+  RenameEnvironmentRequestDto,
+  RenameProjectRequestDto,
   CreateSecretRequestDto,
   EnvironmentDto,
+  ProjectDto,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
@@ -111,19 +115,36 @@ export const api = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
+  // ── Proyectos ─────────────────────────────────────────────────────────
+  listProjects: () => request<ProjectDto[]>('/api/projects'),
+
+  createProject: (name: string) =>
+    request<ProjectDto>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({ name } satisfies CreateProjectRequestDto),
+    }),
+
+  renameProject: (id: number, name: string) =>
+    request<ProjectDto>(`/api/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name } satisfies RenameProjectRequestDto),
+    }),
+
+  deleteProject: (id: number) => request<OkDto>(`/api/projects/${id}`, { method: 'DELETE' }),
+
   // ── Ambientes ─────────────────────────────────────────────────────────
   listEnvironments: () => request<EnvironmentDto[]>('/api/environments'),
 
-  createEnvironment: (name: string) =>
+  createEnvironment: (projectId: number, name: string) =>
     request<EnvironmentDto>('/api/environments', {
       method: 'POST',
-      body: JSON.stringify({ name } satisfies CreateEnvironmentRequestDto),
+      body: JSON.stringify({ projectId, name } satisfies CreateEnvironmentRequestDto),
     }),
 
   renameEnvironment: (id: number, name: string) =>
     request<EnvironmentDto>(`/api/environments/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name } satisfies CreateEnvironmentRequestDto),
+      body: JSON.stringify({ name } satisfies RenameEnvironmentRequestDto),
     }),
 
   deleteEnvironment: (id: number) =>

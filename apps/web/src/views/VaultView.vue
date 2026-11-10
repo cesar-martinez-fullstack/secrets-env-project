@@ -5,17 +5,18 @@
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import type { EnvironmentDto, SecretDto } from '@secretvault/shared';
+import type { EnvironmentDto, ProjectDto, SecretDto } from '@secretvault/shared';
 import { useDataStore } from '@/stores/data';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
 import TopBar from '@/components/layout/TopBar.vue';
-import EnvironmentSidebar from '@/components/layout/EnvironmentSidebar.vue';
+import ProjectSidebar from '@/components/layout/ProjectSidebar.vue';
 import SecretsTable from '@/components/vault/SecretsTable.vue';
 import SecretFormModal from '@/components/vault/SecretFormModal.vue';
 import ImportModal from '@/components/vault/ImportModal.vue';
 import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
+import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
 import SecurityModal from '@/components/vault/SecurityModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
@@ -32,6 +33,10 @@ const secretModalEditing = ref<SecretDto | null>(null);
 
 const envModalOpen = ref(false);
 const envModalEditing = ref<EnvironmentDto | null>(null);
+const envModalProjectId = ref<number | null>(null);
+
+const projectModalOpen = ref(false);
+const projectModalEditing = ref<ProjectDto | null>(null);
 
 const importOpen = ref(false);
 const securityOpen = ref(false);
@@ -88,13 +93,52 @@ function openEditSecret(secret: SecretDto): void {
   secretModalOpen.value = true;
 }
 
-function openCreateEnv(): void {
+function openCreateProject(): void {
+  projectModalEditing.value = null;
+  projectModalOpen.value = true;
+}
+
+function openRenameProject(project: ProjectDto): void {
+  projectModalEditing.value = project;
+  projectModalOpen.value = true;
+}
+
+function askDeleteProject(project: ProjectDto): void {
+  if (project.environmentCount > 0) {
+    toast.push(
+      'info',
+      'El proyecto tiene ambientes',
+      `Elimina primero sus ${project.environmentCount} ambiente(s) para poder borrar «${project.name}».`,
+    );
+    return;
+  }
+  confirmState.value = {
+    open: true,
+    title: 'Eliminar proyecto',
+    message: `¿Eliminar el proyecto vacío «${project.name}»?`,
+    danger: true,
+    confirmText: `Eliminar ${project.name}`,
+    action: async () => {
+      await data.deleteProject(project.id);
+      toast.push('success', 'Proyecto eliminado', `«${project.name}» fue borrado.`);
+    },
+  };
+}
+
+function openCreateEnv(project: ProjectDto): void {
   envModalEditing.value = null;
+  envModalProjectId.value = project.id;
   envModalOpen.value = true;
+}
+
+function openCreateFirstEnv(): void {
+  const first = data.projects[0];
+  if (first) openCreateEnv(first);
 }
 
 function openRenameEnv(env: EnvironmentDto): void {
   envModalEditing.value = env;
+  envModalProjectId.value = env.projectId;
   envModalOpen.value = true;
 }
 
@@ -142,7 +186,10 @@ async function runConfirm(): Promise<void> {
     <TopBar @create-secret="openCreateSecret" @security="securityOpen = true" @lock="handleLock" />
 
     <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
-      <EnvironmentSidebar
+      <ProjectSidebar
+        @create-project="openCreateProject"
+        @rename-project="openRenameProject"
+        @delete-project="askDeleteProject"
         @create-env="openCreateEnv"
         @rename-env="openRenameEnv"
         @delete-env="askDeleteEnv"
@@ -231,7 +278,7 @@ async function runConfirm(): Promise<void> {
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-700"
-              @click="openCreateEnv"
+              @click="openCreateFirstEnv"
             >
               <AppIcon name="plus" :size="16" />
               Crear ambiente
@@ -249,9 +296,15 @@ async function runConfirm(): Promise<void> {
     />
     <ImportModal :open="importOpen" @close="importOpen = false" />
     <SecurityModal :open="securityOpen" @close="securityOpen = false" />
+    <ProjectFormModal
+      :open="projectModalOpen"
+      :editing="projectModalEditing"
+      @close="projectModalOpen = false"
+    />
     <EnvironmentFormModal
       :open="envModalOpen"
       :editing="envModalEditing"
+      :project-id="envModalProjectId"
       @close="envModalOpen = false"
     />
 
