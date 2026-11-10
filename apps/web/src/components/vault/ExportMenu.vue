@@ -23,7 +23,7 @@ const META: Record<
   { icon: 'download' | 'file-text'; label: string; description: string }
 > = {
   env: { icon: 'download', label: 'Archivo .env', description: 'Formato dotenv estándar' },
-  csv: { icon: 'download', label: 'Hoja CSV', description: 'Compatible con Excel / Sheets' },
+  csv: { icon: 'download', label: 'Hoja CSV', description: 'Para Excel / Sheets (ver aviso)' },
   json: {
     icon: 'download',
     label: 'Archivo JSON',
@@ -85,7 +85,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
         <p
           class="border-t border-zinc-100 px-4 py-2 text-[11px] leading-snug text-zinc-400 dark:border-zinc-800"
         >
-          El archivo descargado contiene secretos en texto claro. Manéjalo con cuidado.
+          El archivo descargado contiene secretos en texto claro. Manéjalo con cuidado. En CSV,
+          Excel puede tratar como fórmula un valor que empiece por = + - o @: no lo abras sin
+          revisarlo.
         </p>
       </div>
     </Transition>
