@@ -19,6 +19,7 @@ interface SecretRow {
   created_at: string;
   updated_at: string;
   environment_name?: string;
+  project_name?: string;
 }
 
 function toRecord(row: SecretRow): SecretRecord {
@@ -34,14 +35,19 @@ function toRecord(row: SecretRow): SecretRecord {
 }
 
 function withMeta(row: SecretRow): SecretWithMeta {
-  return { ...toRecord(row), environmentName: row.environment_name ?? '' };
+  return {
+    ...toRecord(row),
+    environmentName: row.environment_name ?? '',
+    projectName: row.project_name ?? '',
+  };
 }
 
 const BASE_SELECT = `
   SELECT s.id, s.environment_id, s.name, s.value_enc, s.note_enc, s.created_at, s.updated_at,
-         e.name AS environment_name
+         e.name AS environment_name, p.name AS project_name
   FROM secrets s
   JOIN environments e ON e.id = s.environment_id
+  JOIN projects p ON p.id = e.project_id
 `;
 
 export class SqliteSecretRepository implements SecretRepository {

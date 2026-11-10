@@ -23,12 +23,14 @@ import {
   mockAuditRepo,
   mockCrypto,
   mockEnvRepo,
+  mockProjectRepo,
   mockSessions,
   mockUnitOfWork,
   mockVaultRepo,
   type MockAuditRepo,
   type MockCrypto,
   type MockEnvRepo,
+  type MockProjectRepo,
   type MockSessions,
   type MockVaultRepo,
 } from '../helpers/mocks';
@@ -39,6 +41,7 @@ const RECOVERY_FORMAT = /^([0-9A-Z]{4}-){12}[0-9A-Z]{4}$/;
 
 describe('VaultService', () => {
   let vault: MockVaultRepo;
+  let projects: MockProjectRepo;
   let envs: MockEnvRepo;
   let crypto: MockCrypto;
   let sessions: MockSessions;
@@ -49,6 +52,7 @@ describe('VaultService', () => {
 
   beforeEach(() => {
     vault = mockVaultRepo();
+    projects = mockProjectRepo();
     envs = mockEnvRepo();
     crypto = mockCrypto({ strict: true });
     sessions = mockSessions();
@@ -62,6 +66,7 @@ describe('VaultService', () => {
       stored = info;
     });
     envs.list.mockResolvedValue([]);
+    projects.findByName.mockResolvedValue({ id: 1, name: 'General' });
     sessions.create.mockImplementation(async (key: Uint8Array) => {
       activeSession = {
         sessionId: 's1',
@@ -77,6 +82,7 @@ describe('VaultService', () => {
 
     service = new VaultService({
       vaultRepo: vault.repo,
+      projects: projects.repo,
       environments: envs.repo,
       crypto: crypto.service,
       sessions: sessions.store,
@@ -160,7 +166,8 @@ describe('VaultService', () => {
       await expect(
         crypto.service.decrypt(session.key, stored!.verifier, AAD_VERIFIER),
       ).resolves.toBe(VERIFIER_PLAINTEXT);
-      expect(envs.create).toHaveBeenCalledWith('Local');
+      expect(projects.findByName).toHaveBeenCalledWith('General');
+      expect(envs.create).toHaveBeenCalledWith(1, 'Local');
       expect(audit.record).toHaveBeenCalledWith('vault.setup', expect.any(String));
       expect(sessions.create).toHaveBeenCalledWith(session.key, 15);
     });
@@ -186,6 +193,16 @@ describe('VaultService', () => {
       );
       expect(persisted).not.toContain(Buffer.from(session.key).toString('hex'));
       expect(persisted).not.toContain(recoveryKey);
+    });
+
+    it('should create the default project when it does not exist yet', async () => {
+      projects.findByName.mockResolvedValue(null);
+      projects.create.mockResolvedValue({ id: 5, name: 'General' });
+
+      await service.setup(PASSWORD);
+
+      expect(projects.create).toHaveBeenCalledWith('General');
+      expect(envs.create).toHaveBeenCalledWith(5, 'Local');
     });
 
     it('should not create the default environment if one already exists', async () => {

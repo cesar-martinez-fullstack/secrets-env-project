@@ -115,21 +115,103 @@ describe('API integration — ciclo de vida completo', () => {
     expect(await json(res)).toMatchObject({ error: { code: 'VAULT_ALREADY_INITIALIZED' } });
   });
 
-  it('GET /api/environments lista el ambiente Local por defecto', async () => {
-    const res = await get('/api/environments');
+  it('GET /api/projects lista el proyecto General con su ambiente Local', async () => {
+    const res = await get('/api/projects');
     expect(res.status).toBe(200);
-    const envs = await json<{ id: number; name: string; secretCount: number }[]>(res);
-    expect(envs).toHaveLength(1);
-    expect(envs[0]).toMatchObject({ name: 'Local', secretCount: 0 });
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const projects = await json<{ id: number; name: string; environmentCount: number }[]>(res);
+    expect(projects).toEqual([
+      expect.objectContaining({ id: 1, name: 'General', environmentCount: 1 }),
+    ]);
   });
 
-  it('POST /api/environments crea ambientes y valida duplicados', async () => {
-    const created = await json<{ id: number }>(await post('/api/environments', { name: 'QA' }));
-    expect(created.id).toBeGreaterThan(1);
+  it('GET /api/environments lista el ambiente Local dentro del proyecto General', async () => {
+    const res = await get('/api/environments');
+    expect(res.status).toBe(200);
+    const envs =
+      await json<{ id: number; projectId: number; name: string; secretCount: number }[]>(res);
+    expect(envs).toHaveLength(1);
+    expect(envs[0]).toMatchObject({ projectId: 1, name: 'Local', secretCount: 0 });
+  });
 
-    const dup = await post('/api/environments', { name: 'qa' });
+  it('POST /api/environments crea ambientes en un proyecto y valida duplicados dentro de él', async () => {
+    const created = await json<{ id: number; projectId: number }>(
+      await post('/api/environments', { projectId: 1, name: 'QA' }),
+    );
+    expect(created.id).toBeGreaterThan(1);
+    expect(created.projectId).toBe(1);
+
+    const dup = await post('/api/environments', { projectId: 1, name: 'qa' });
     expect(dup.status).toBe(409);
     expect(await json(dup)).toMatchObject({ error: { code: 'ENVIRONMENT_NAME_TAKEN' } });
+
+    const noProject = await post('/api/environments', { name: 'Sin proyecto' });
+    expect(noProject.status).toBe(400);
+    const ghost = await post('/api/environments', { projectId: 999, name: 'X' });
+    expect(ghost.status).toBe(404);
+    expect(await json(ghost)).toMatchObject({ error: { code: 'PROJECT_NOT_FOUND' } });
+  });
+
+  it('el mismo nombre de ambiente puede existir en dos proyectos', async () => {
+    const shop = await json<{ id: number }>(await post('/api/projects', { name: 'Tienda' }));
+    const shopLocal = await post('/api/environments', { projectId: shop.id, name: 'Local' });
+    expect(shopLocal.status).toBe(201);
+    const { id: envId } = await json<{ id: number }>(shopLocal);
+
+    const envs = await json<{ projectId: number; name: string }[]>(await get('/api/environments'));
+    expect(
+      envs
+        .filter((e) => e.name === 'Local')
+        .map((e) => e.projectId)
+        .sort(),
+    ).toEqual([1, shop.id]);
+
+    await app.request(`/api/environments/${envId}`, { method: 'DELETE', headers: cookieHeader() });
+    await app.request(`/api/projects/${shop.id}`, { method: 'DELETE', headers: cookieHeader() });
+  });
+
+  it('proyectos: renombrar, nombre duplicado y no se elimina uno con ambientes', async () => {
+    const created = await post('/api/projects', { name: 'Interno' });
+    expect(created.status).toBe(201);
+    const { id } = await json<{ id: number }>(created);
+
+    const dup = await post('/api/projects', { name: 'INTERNO' });
+    expect(dup.status).toBe(409);
+    expect(await json(dup)).toMatchObject({ error: { code: 'PROJECT_NAME_TAKEN' } });
+
+    const renamed = await app.request(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { ...cookieHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Backoffice' }),
+    });
+    expect(renamed.status).toBe(200);
+    expect(await json(renamed)).toMatchObject({ id, name: 'Backoffice' });
+
+    await post('/api/environments', { projectId: id, name: 'Dev' });
+    const refused = await app.request(`/api/projects/${id}`, {
+      method: 'DELETE',
+      headers: cookieHeader(),
+    });
+    expect(refused.status).toBe(409);
+    expect(await json(refused)).toMatchObject({ error: { code: 'PROJECT_NOT_EMPTY' } });
+
+    const envs = await json<{ id: number; name: string }[]>(await get('/api/environments'));
+    const dev = envs.find((e) => e.name === 'Dev')!;
+    await app.request(`/api/environments/${dev.id}`, { method: 'DELETE', headers: cookieHeader() });
+    const ok = await app.request(`/api/projects/${id}`, {
+      method: 'DELETE',
+      headers: cookieHeader(),
+    });
+    expect(ok.status).toBe(200);
+  });
+
+  it('proyectos: nombre vacío es inválido y un id inexistente da 404', async () => {
+    expect((await post('/api/projects', { name: '   ' })).status).toBe(400);
+    const missing = await app.request('/api/projects/999', {
+      method: 'DELETE',
+      headers: cookieHeader(),
+    });
+    expect(missing.status).toBe(404);
   });
 
   it('POST /api/secrets crea y NUNCA devuelve el valor en claro', async () => {
@@ -147,6 +229,7 @@ describe('API integration — ciclo de vida completo', () => {
       maskedValue: '••••••••',
       hasNote: true,
       environmentName: 'Local',
+      projectName: 'General',
     });
   });
 

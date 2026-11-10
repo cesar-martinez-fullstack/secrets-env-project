@@ -8,7 +8,13 @@ import type {
   OkDto,
   RenameEnvironmentRequestDto,
 } from '@secretvault/shared';
-import { jsonResponse, parseIdParam, readJsonBody, requireString } from '../http/helpers';
+import {
+  jsonResponse,
+  parseIdParam,
+  readJsonBody,
+  requireInt,
+  requireString,
+} from '../http/helpers';
 import { requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
 import type { EnvironmentWithCount } from '@secretvault/core';
@@ -19,6 +25,7 @@ export function environmentRoutes(container: Container): Hono<AppEnv> {
 
   const toDto = (env: EnvironmentWithCount): EnvironmentDto => ({
     id: env.id,
+    projectId: env.projectId,
     name: env.name,
     secretCount: env.secretCount,
     createdAt: env.createdAt.toISOString(),
@@ -33,8 +40,10 @@ export function environmentRoutes(container: Container): Hono<AppEnv> {
 
   app.post('/', async (c) => {
     const body = await readJsonBody<CreateEnvironmentRequestDto>(c);
-    const name = requireString(body, 'name');
-    const created = await environmentService.create(name);
+    const created = await environmentService.create(
+      requireInt(body, 'projectId'),
+      requireString(body, 'name'),
+    );
     return jsonResponse<EnvironmentDto>(c, toDto({ ...created, secretCount: 0 }), 201);
   });
 

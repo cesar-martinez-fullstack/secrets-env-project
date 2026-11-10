@@ -6,6 +6,8 @@ import type {
   AuditEvent,
   Environment,
   EnvironmentWithCount,
+  Project,
+  ProjectWithCount,
   SecretRecord,
   SecretWithMeta,
   VaultInfo,
@@ -18,13 +20,24 @@ export interface VaultRepository {
   save(info: VaultInfo): Promise<void>;
 }
 
+export interface ProjectRepository {
+  listWithCounts(): Promise<ProjectWithCount[]>;
+  findById(id: number): Promise<Project | null>;
+  /** Búsqueda case-insensitive del nombre exacto. */
+  findByName(name: string): Promise<Project | null>;
+  create(name: string): Promise<Project>;
+  rename(id: number, name: string): Promise<void>;
+  delete(id: number): Promise<void>;
+  countEnvironments(id: number): Promise<number>;
+}
+
 export interface EnvironmentRepository {
   list(): Promise<Environment[]>;
   listWithCounts(): Promise<EnvironmentWithCount[]>;
   findById(id: number): Promise<Environment | null>;
-  /** Búsqueda case-insensitive del nombre exacto. */
-  findByName(name: string): Promise<Environment | null>;
-  create(name: string): Promise<Environment>;
+  /** Búsqueda case-insensitive del nombre exacto dentro de un proyecto. */
+  findByName(projectId: number, name: string): Promise<Environment | null>;
+  create(projectId: number, name: string): Promise<Environment>;
   rename(id: number, name: string): Promise<void>;
   delete(id: number): Promise<void>;
 }

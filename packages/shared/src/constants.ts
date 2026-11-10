@@ -22,6 +22,10 @@ export const MASTER_PASSWORD_MAX = 128;
 export const MAX_SECRET_VALUE_LENGTH = 100_000;
 export const MAX_SECRET_NOTE_LENGTH = 2_000;
 export const MAX_ENVIRONMENT_NAME_LENGTH = 40;
+export const MAX_PROJECT_NAME_LENGTH = 40;
+
+/** Proyecto que agrupa los ambientes cuando no se elige otro. */
+export const DEFAULT_PROJECT_NAME = 'General' as const;
 export const MAX_SECRET_NAME_LENGTH = 100;
 
 /** Nombres de variables de entorno: LETRA/_ inicial, luego letras, dígitos, _ . - */
@@ -49,6 +53,9 @@ export type AuditEventType =
   | 'vault.recovered'
   | 'vault.recovery_failed'
   | 'vault.recovery_key_regenerated'
+  | 'project.created'
+  | 'project.renamed'
+  | 'project.deleted'
   | 'env.created'
   | 'env.renamed'
   | 'env.deleted'
@@ -69,6 +76,9 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.recovered',
   'vault.recovery_failed',
   'vault.recovery_key_regenerated',
+  'project.created',
+  'project.renamed',
+  'project.deleted',
   'env.created',
   'env.renamed',
   'env.deleted',

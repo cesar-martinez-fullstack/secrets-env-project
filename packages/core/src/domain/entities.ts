@@ -26,8 +26,20 @@ export interface VaultInfo {
   recoveryWrappedDek: Uint8Array | null;
 }
 
+export interface Project {
+  id: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProjectWithCount extends Project {
+  environmentCount: number;
+}
+
 export interface Environment {
   id: number;
+  projectId: number;
   name: string;
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +62,7 @@ export interface SecretRecord {
 
 export interface SecretWithMeta extends SecretRecord {
   environmentName: string;
+  projectName: string;
 }
 
 /** Modelo de lectura para listados: valor SIEMPRE enmascarado. */
@@ -57,6 +70,7 @@ export interface SecretSummary {
   id: number;
   environmentId: number;
   environmentName: string;
+  projectName: string;
   name: string;
   maskedValue: string;
   hasNote: boolean;

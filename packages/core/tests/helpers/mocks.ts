@@ -6,6 +6,7 @@ import { jest } from 'bun:test';
 import type {
   AuditRepository,
   EnvironmentRepository,
+  ProjectRepository,
   SecretRepository,
   VaultRepository,
 } from '../../src/ports/repositories';
@@ -23,6 +24,45 @@ export function mockVaultRepo(): MockVaultRepo {
   const get = jest.fn();
   const save = jest.fn();
   return { repo: { get, save }, get, save };
+}
+
+export interface MockProjectRepo {
+  repo: ProjectRepository;
+  listWithCounts: ReturnType<typeof jest.fn>;
+  findById: ReturnType<typeof jest.fn>;
+  findByName: ReturnType<typeof jest.fn>;
+  create: ReturnType<typeof jest.fn>;
+  rename: ReturnType<typeof jest.fn>;
+  delete: ReturnType<typeof jest.fn>;
+  countEnvironments: ReturnType<typeof jest.fn>;
+}
+
+export function mockProjectRepo(): MockProjectRepo {
+  const listWithCounts = jest.fn();
+  const findById = jest.fn();
+  const findByName = jest.fn();
+  const create = jest.fn();
+  const rename = jest.fn();
+  const remove = jest.fn();
+  const countEnvironments = jest.fn();
+  return {
+    repo: {
+      listWithCounts,
+      findById,
+      findByName,
+      create,
+      rename,
+      delete: remove,
+      countEnvironments,
+    },
+    listWithCounts,
+    findById,
+    findByName,
+    create,
+    rename,
+    delete: remove,
+    countEnvironments,
+  };
 }
 
 export interface MockEnvRepo {
