@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Menú de exportación del ambiente activo: .env, CSV y PDF estilizado.
+ * Menú de exportación del ambiente activo: .env, CSV, JSON y PDF estilizado.
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { EXPORT_FORMATS } from '@secretvault/shared';
@@ -18,6 +18,11 @@ const META: Record<
 > = {
   env: { icon: 'download', label: 'Archivo .env', description: 'Formato dotenv estándar' },
   csv: { icon: 'download', label: 'Hoja CSV', description: 'Compatible con Excel / Sheets' },
+  json: {
+    icon: 'download',
+    label: 'Archivo JSON',
+    description: 'Estructurado, ideal para scripts',
+  },
   pdf: { icon: 'file-text', label: 'Reporte PDF', description: 'Estilizado, apto para imprimir' },
 };
 

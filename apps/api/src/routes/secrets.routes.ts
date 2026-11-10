@@ -3,10 +3,8 @@
  * y exportación multiformato (.env / CSV / PDF).
  */
 import { Hono } from 'hono';
-import { stringifyEnv } from '@secretvault/shared';
 import type {
   CreateSecretRequestDto,
-  ExportFormat,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
@@ -17,6 +15,7 @@ import type {
 import type { SecretSummary } from '@secretvault/core';
 import {
   jsonResponse,
+  parseExportFormat,
   parseIdParam,
   readJsonBody,
   requireInt,
@@ -24,8 +23,7 @@ import {
 } from '../http/helpers';
 import { requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
-import { buildCsvExport } from '../export/csv';
-import { buildPdfExport } from '../export/pdf';
+import { EXPORT_FORMATTERS, exportFilename } from '../export/formatters';
 
 export function secretRoutes(container: Container): Hono<AppEnv> {
   const { secretService, config } = container;
@@ -112,67 +110,27 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     return jsonResponse(c, dto);
   });
 
-  // Exportación multiformato.
   app.get('/export', async (c) => {
-    const envParam = c.req.query('environmentId');
-    const format = (c.req.query('format') ?? 'env') as ExportFormat;
-    if (!['env', 'csv', 'pdf'].includes(format)) {
-      const { ValidationFailedError } = await import('@secretvault/core');
-      throw new ValidationFailedError([{ field: 'format', message: 'Formato inválido.' }]);
-    }
-    const environmentId = parseIdParam(envParam ?? '');
-
+    const format = parseExportFormat(c.req.query('format') ?? 'env');
+    const environmentId = parseIdParam(c.req.query('environmentId') ?? '');
     const { entries, environmentName } = await secretService.exportEntries(
       c.get('session').key,
       environmentId,
       format,
     );
 
-    const dateTag = new Date().toISOString().slice(0, 10);
-    const slug =
-      environmentName
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') || 'ambiente';
-    const filename = `secretvault-${slug}-${dateTag}.${format}`;
-
-    if (format === 'env') {
-      const header = [
-        `SecretVault — Ambiente: ${environmentName}`,
-        `Generado: ${new Date().toISOString()}`,
-        'ADVERTENCIA: este archivo contiene secretos en texto claro.',
-      ].join('\n');
-      const content = stringifyEnv(entries, { header });
-      return new Response(content, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    }
-
-    if (format === 'csv') {
-      return new Response(buildCsvExport(entries), {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    }
-
-    const pdf = buildPdfExport({
+    const generatedAt = new Date();
+    const formatter = EXPORT_FORMATTERS[format];
+    const body = formatter.build({
       environmentName,
-      generatedAt: new Date(),
+      generatedAt,
       entries,
       iterations: config.iterations,
     });
-    return new Response(pdf, {
+    const filename = exportFilename(environmentName, generatedAt, format);
+    return new Response(body, {
       headers: {
-        'Content-Type': 'application/pdf',
+        'Content-Type': formatter.contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-store',
       },

@@ -18,14 +18,15 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Secretos y ambientes
 
-| ID    | Funcionalidad                                                             | Estado | Versión |
-| ----- | ------------------------------------------------------------------------- | ------ | ------- |
-| F-010 | Ambientes: crear, renombrar, eliminar (con conteo de secretos)            | Hecho  | 0.1.0   |
-| F-011 | Secretos: crear, editar, eliminar; listado enmascarado; revelado auditado | Hecho  | 0.1.0   |
-| F-012 | Búsqueda global por nombre, en vivo y entre todos los ambientes           | Hecho  | 0.1.0   |
-| F-013 | Importar desde `.env` pegado, con vista previa                            | Hecho  | 0.1.0   |
-| F-014 | Exportar un ambiente a `.env`, CSV o PDF                                  | Hecho  | 0.1.0   |
-| F-015 | Generador de valores aleatorios                                           | Hecho  | 0.1.0   |
+| ID    | Funcionalidad                                                                         | Estado      | Versión |
+| ----- | ------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-010 | Ambientes: crear, renombrar, eliminar (con conteo de secretos)                        | Hecho       | 0.1.0   |
+| F-011 | Secretos: crear, editar, eliminar; listado enmascarado; revelado auditado             | Hecho       | 0.1.0   |
+| F-012 | Búsqueda global por nombre, en vivo y entre todos los ambientes                       | Hecho       | 0.1.0   |
+| F-013 | Importar desde `.env` pegado, con vista previa                                        | Hecho       | 0.1.0   |
+| F-014 | Exportar un ambiente a `.env`, CSV o PDF                                              | Hecho       | 0.1.0   |
+| F-016 | Exportar un ambiente a JSON (documento versionado con ambiente, nombre, valor y nota) | En revisión | 0.2.0   |
+| F-015 | Generador de valores aleatorios                                                       | Hecho       | 0.1.0   |
 
 ## Auditoría y experiencia
 
@@ -49,6 +50,9 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 | F-101 | Bóvedas múltiples · 2: archivar una bóveda perdida (se mueve el archivo, no se destruye)          | Planeado | 0.2.0   |
 | F-102 | Bóvedas múltiples · 3: renombrar una bóveda                                                       | Planeado | 0.2.0   |
 | F-103 | Bóvedas múltiples · 4: cambiar de bóveda sin reiniciar                                            | Planeado | 0.2.0   |
+| F-110 | Importar desde archivo: `.env`/TXT, CSV y JSON (mismo formato que se exporta), con vista previa   | Planeado | 0.2.0   |
+| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | Planeado | 0.2.0   |
+| F-112 | Paginación por offset del listado de secretos (`limit` y `offset`, con total)                     | Planeado | 0.2.0   |
 
 El resto del backlog (backup y restauración, borrado automático del portapapeles, E2E en CI, etc.) está en
 [TODO.md](TODO.md) y entra aquí cuando se corta como rebanada.
