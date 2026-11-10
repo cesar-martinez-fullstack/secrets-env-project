@@ -160,6 +160,14 @@ async function copySecret(secret: SecretDto): Promise<void> {
             >
               {{ secret.name }}
             </span>
+            <span
+              v-if="secret.importedAt"
+              :title="`Recibido por un archivo compartido el ${absoluteTime(secret.importedAt)}`"
+              class="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+              data-testid="imported-badge"
+            >
+              Importado
+            </span>
             <span v-if="secret.hasNote" title="Tiene nota" class="text-amber-500/80">
               <AppIcon name="sticky" :size="13" />
             </span>

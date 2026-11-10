@@ -185,6 +185,37 @@ describe('SqliteSecretRepository', () => {
     expect(await secrets.findById(s.id)).toBeNull();
     closeDatabase(db);
   });
+
+  it('should store, read and clear the imported mark', async () => {
+    const db = openInMemoryDatabase();
+    const { environments, secrets } = createRepositories(db);
+    const env = await environments.create(1, 'Local');
+    const importedAt = new Date('2024-03-05T10:00:00.000Z');
+
+    const plain = await secrets.create({
+      environmentId: env.id,
+      name: 'OWN_KEY',
+      valueEnc: VALUE_A,
+      noteEnc: null,
+    });
+    const received = await secrets.create({
+      environmentId: env.id,
+      name: 'RECEIVED_KEY',
+      valueEnc: VALUE_A,
+      noteEnc: null,
+      importedAt,
+    });
+
+    expect(plain.importedAt).toBeNull();
+    expect((await secrets.findById(received.id))?.importedAt).toEqual(importedAt);
+    expect((await secrets.findByName(env.id, 'received_key'))?.importedAt).toEqual(importedAt);
+
+    const edited = await secrets.update(received.id, { valueEnc: VALUE_B, importedAt: null });
+    expect(edited.importedAt).toBeNull();
+
+    const untouched = await secrets.update(received.id, { valueEnc: VALUE_A });
+    expect(untouched.importedAt).toBeNull();
+  });
 });
 
 describe('SqliteAuditRepository', () => {

@@ -253,11 +253,32 @@ describe('SecretService', () => {
         name: 'RENAMED_KEY',
         valueEnc: expect.any(Uint8Array),
         noteEnc: undefined,
+        importedAt: null,
       });
       expect(audit.record).toHaveBeenCalledWith(
         'secret.updated',
         expect.stringContaining('RENAMED_KEY'),
       );
+    });
+
+    it('should drop the imported mark when the value is edited', async () => {
+      secrets.findById.mockResolvedValue(secretWithMeta({ importedAt: new Date('2024-02-01') }));
+
+      await service.update(KEY, 1, { value: 'mio' });
+
+      expect(secrets.update).toHaveBeenCalledWith(1, expect.objectContaining({ importedAt: null }));
+    });
+
+    it('should keep the imported mark when only the note or the name changes', async () => {
+      secrets.findById.mockResolvedValue(secretWithMeta({ importedAt: new Date('2024-02-01') }));
+      secrets.findByName.mockResolvedValue(null);
+
+      await service.update(KEY, 1, { note: 'una nota' });
+      await service.update(KEY, 1, { name: 'OTHER_KEY' });
+
+      for (const call of secrets.update.mock.calls) {
+        expect((call[1] as { importedAt?: Date | null }).importedAt).toBeUndefined();
+      }
     });
 
     it('should clear the note when null is sent', async () => {

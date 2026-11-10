@@ -34,6 +34,14 @@ Reutiliza solo las primitivas del puerto `VaultCryptoService`, sin dependencias 
   de la frase que se elija.
 - Importar crea un proyecto nuevo (si el nombre existe, se añade un sufijo) dentro de una `UnitOfWork`.
 
+## Destino de la importación
+
+Se puede importar como proyecto nuevo o dentro de uno existente. Al mezclar, los ambientes se emparejan por
+nombre (sin distinguir mayúsculas): por cada uno se elige mezclar con el existente o crear otro aparte
+(`Local (2)`). Las variables repetidas se omiten salvo que se pida sobrescribir; el servidor nunca pisa un
+valor sin esa petición explícita. Todo lo recibido queda marcado con `secrets.imported_at` (migración 4,
+nula por defecto); la marca se quita cuando se edita el valor, porque desde ese momento el valor es propio.
+
 ## Alternativas consideradas
 
 - **Clave pública por instalación** — más elegante, pero exige gestionar pares de claves y su intercambio; se

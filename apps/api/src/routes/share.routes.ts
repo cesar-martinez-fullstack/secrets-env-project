@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { SHARE_FILE_EXTENSION } from '@secretvault/shared';
 import type {
-  ShareContentRequestDto,
+  ShareImportRequestDto,
+  SharePreviewRequestDto,
   ShareExportRequestDto,
   ShareFileDto,
   ShareImportResultDto,
@@ -10,10 +11,13 @@ import type {
 import type { ShareFile } from '@secretvault/core';
 import {
   jsonResponse,
+  optionalInt,
   parseIdParam,
   rateLimited,
   readJsonBody,
+  requireBoolean,
   requireString,
+  requireStringList,
 } from '../http/helpers';
 import { clientIp, requireUnlocked, type AppEnv } from '../middleware/auth';
 import { fileSlug } from '../export/formatters';
@@ -62,10 +66,11 @@ export function shareRoutes(container: Container): Hono<AppEnv> {
 
   app.post('/preview', async (c) => {
     const key = guardAttempts(clientIp(c, config.trustProxy));
-    const body = await readJsonBody<ShareContentRequestDto>(c);
+    const body = await readJsonBody<SharePreviewRequestDto>(c);
     const preview = await shareService.preview(
       requireString(body, 'content'),
       requireString(body, 'passphrase'),
+      optionalInt(body, 'projectId'),
     );
     container.rateLimiters.share.reset(key);
     return jsonResponse<SharePreviewDto>(c, preview);
@@ -73,11 +78,16 @@ export function shareRoutes(container: Container): Hono<AppEnv> {
 
   app.post('/import', async (c) => {
     const key = guardAttempts(clientIp(c, config.trustProxy));
-    const body = await readJsonBody<ShareContentRequestDto>(c);
-    const result = await shareService.importAsNewProject(
+    const body = await readJsonBody<ShareImportRequestDto>(c);
+    const result = await shareService.importPackage(
       c.get('session').key,
       requireString(body, 'content'),
-      requireString(body, 'passphrase'),
+      {
+        passphrase: requireString(body, 'passphrase'),
+        projectId: optionalInt(body, 'projectId'),
+        separateEnvironments: requireStringList(body, 'separateEnvironments'),
+        overwrite: requireBoolean(body, 'overwrite'),
+      },
     );
     container.rateLimiters.share.reset(key);
     return jsonResponse<ShareImportResultDto>(c, result, 201);

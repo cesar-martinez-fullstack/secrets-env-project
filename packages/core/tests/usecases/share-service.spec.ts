@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { serializeShareEnvelope } from '@secretvault/shared';
 import { secretNoteAad, secretValueAad, shareAad } from '../../src/ports/crypto';
+import type { ShareImportPlan } from '../../src/domain/entities';
 import {
   EnvironmentNotFoundError,
   ProjectNotFoundError,
@@ -33,6 +34,14 @@ const environment = (id: number, name: string) => ({
   name,
   createdAt: new Date(0),
   updatedAt: new Date(0),
+});
+
+const plan = (overrides: Partial<ShareImportPlan> = {}): ShareImportPlan => ({
+  passphrase: PASSPHRASE,
+  projectId: null,
+  separateEnvironments: [],
+  overwrite: false,
+  ...overrides,
 });
 
 describe('ShareService', () => {
@@ -100,7 +109,9 @@ describe('ShareService', () => {
       const preview = await service.preview(file.content, PASSPHRASE);
 
       expect(file.environmentName).toBe('Local');
-      expect(preview.environments).toEqual([{ name: 'Local', secretCount: 1 }]);
+      expect(preview.environments).toEqual([
+        { name: 'Local', secretCount: 1, exists: false, conflicts: [] },
+      ]);
     });
 
     it('should audit counts but never values or the passphrase', async () => {
@@ -138,8 +149,8 @@ describe('ShareService', () => {
       expect(preview).toEqual({
         projectName: 'Checkout',
         environments: [
-          { name: 'Local', secretCount: 1 },
-          { name: 'QA', secretCount: 0 },
+          { name: 'Local', secretCount: 1, exists: false, conflicts: [] },
+          { name: 'QA', secretCount: 0, exists: false, conflicts: [] },
         ],
         secretCount: 1,
       });
@@ -174,7 +185,7 @@ describe('ShareService', () => {
     });
   });
 
-  describe('importAsNewProject', () => {
+  describe('importPackage into a new project', () => {
     let content: string;
 
     beforeEach(async () => {
@@ -190,13 +201,15 @@ describe('ShareService', () => {
     });
 
     it('should create the project, its environments and re-encrypt secrets with the new row', async () => {
-      const result = await service.importAsNewProject(KEY, content, PASSPHRASE);
+      const result = await service.importPackage(KEY, content, plan());
 
       expect(result).toEqual({
         projectId: 7,
         projectName: 'Checkout',
         environmentCount: 2,
-        secretCount: 1,
+        importedCount: 1,
+        updatedCount: 0,
+        skippedCount: 0,
       });
       const input = secrets.create.mock.calls[0]?.[0] as {
         environmentId: number;
@@ -218,24 +231,24 @@ describe('ShareService', () => {
         name === 'Checkout' || name === 'Checkout (2)' ? project : null,
       );
 
-      const result = await service.importAsNewProject(KEY, content, PASSPHRASE);
+      const result = await service.importPackage(KEY, content, plan());
 
       expect(result.projectName).toBe('Checkout (3)');
     });
 
     it('should audit only counts', async () => {
-      await service.importAsNewProject(KEY, content, PASSPHRASE);
+      await service.importPackage(KEY, content, plan());
 
       const [type, message] = audit.record.mock.calls[0] as [string, string];
       expect(type).toBe('share.imported');
-      expect(message).toContain('2 ambiente(s), 1 secreto(s)');
+      expect(message).toContain('2 ambiente(s), 1 nuevo(s), 0 actualizado(s), 0 omitido(s)');
       expect(message).not.toContain(SECRET_VALUE);
     });
 
     it('should write nothing when the passphrase is wrong', async () => {
-      await expect(service.importAsNewProject(KEY, content, 'not the one')).rejects.toThrow(
-        SharePackageInvalidError,
-      );
+      await expect(
+        service.importPackage(KEY, content, plan({ passphrase: 'not the one' })),
+      ).rejects.toThrow(SharePackageInvalidError);
       expect(projects.create).not.toHaveBeenCalled();
       expect(secrets.create).not.toHaveBeenCalled();
     });
@@ -278,11 +291,135 @@ describe('ShareService', () => {
         );
         const file = serializeShareEnvelope({ iterations: 600_000, salt, data });
 
-        await expect(service.importAsNewProject(KEY, file, PASSPHRASE)).rejects.toThrow(
+        await expect(service.importPackage(KEY, file, plan())).rejects.toThrow(
           SharePackageInvalidError,
         );
       }
       expect(projects.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('importPackage into an existing project', () => {
+    const target = { ...project, id: 5, name: 'Tienda' };
+    const localOfTarget = { ...environment(30, 'Local'), projectId: 5 };
+    let content: string;
+
+    beforeEach(async () => {
+      content = (await service.exportProject(KEY, 1, PASSPHRASE)).content;
+      projects.findById.mockResolvedValue(target);
+      envs.findByName.mockImplementation(async (projectId: number, name: string) =>
+        projectId === 5 && name === 'Local' ? localOfTarget : null,
+      );
+      envs.create.mockImplementation(async (projectId: number, name: string) => ({
+        ...environment(31, name),
+        projectId,
+      }));
+      secrets.findByName.mockResolvedValue(null);
+      secrets.create.mockResolvedValue({ id: 99 });
+      secrets.update.mockResolvedValue({ id: 1 });
+      audit.record.mockClear();
+    });
+
+    it('should merge into the environment with the same name and create the missing one', async () => {
+      const result = await service.importPackage(KEY, content, plan({ projectId: 5 }));
+
+      expect(result).toEqual({
+        projectId: 5,
+        projectName: 'Tienda',
+        environmentCount: 2,
+        importedCount: 1,
+        updatedCount: 0,
+        skippedCount: 0,
+      });
+      expect(projects.create).not.toHaveBeenCalled();
+      expect(envs.create).toHaveBeenCalledTimes(1);
+      expect(envs.create).toHaveBeenCalledWith(5, 'QA');
+      const input = secrets.create.mock.calls[0]?.[0] as {
+        environmentId: number;
+        name: string;
+        valueEnc: Uint8Array;
+        importedAt: Date;
+      };
+      expect(input.environmentId).toBe(30);
+      expect(input.importedAt).toBeInstanceOf(Date);
+      expect(
+        await crypto.service.decrypt(KEY, input.valueEnc, secretValueAad(30, input.name)),
+      ).toBe(SECRET_VALUE);
+    });
+
+    it('should mark every imported secret, also in a brand new project', async () => {
+      projects.findByName.mockResolvedValue(null);
+      projects.create.mockResolvedValue({ ...project, id: 8 });
+
+      await service.importPackage(KEY, content, plan());
+
+      const input = secrets.create.mock.calls[0]?.[0] as { importedAt: Date };
+      expect(input.importedAt).toBeInstanceOf(Date);
+    });
+
+    it('should preview which environments exist and which variables would collide', async () => {
+      secrets.findByName.mockResolvedValue({ id: 1, name: 'DATABASE_URL' });
+
+      const preview = await service.preview(content, PASSPHRASE, 5);
+
+      expect(preview.environments).toEqual([
+        { name: 'Local', secretCount: 1, exists: true, conflicts: ['DATABASE_URL'] },
+        { name: 'QA', secretCount: 0, exists: false, conflicts: [] },
+      ]);
+    });
+
+    it('should skip variables that already exist unless told to overwrite', async () => {
+      secrets.findByName.mockResolvedValue({ id: 1, name: 'DATABASE_URL' });
+
+      const result = await service.importPackage(KEY, content, plan({ projectId: 5 }));
+
+      expect(result).toMatchObject({ importedCount: 0, updatedCount: 0, skippedCount: 1 });
+      expect(secrets.create).not.toHaveBeenCalled();
+      expect(secrets.update).not.toHaveBeenCalled();
+    });
+
+    it('should overwrite with the stored name as AAD and mark the secret as imported', async () => {
+      secrets.findByName.mockResolvedValue({ id: 1, name: 'database_url' });
+
+      const result = await service.importPackage(
+        KEY,
+        content,
+        plan({ projectId: 5, overwrite: true }),
+      );
+
+      expect(result).toMatchObject({ importedCount: 0, updatedCount: 1, skippedCount: 0 });
+      const [id, patch] = secrets.update.mock.calls[0] as [
+        number,
+        { valueEnc: Uint8Array; importedAt: Date },
+      ];
+      expect(id).toBe(1);
+      expect(patch.importedAt).toBeInstanceOf(Date);
+      expect(
+        await crypto.service.decrypt(KEY, patch.valueEnc, secretValueAad(30, 'database_url')),
+      ).toBe(SECRET_VALUE);
+    });
+
+    it('should create a separate environment when asked', async () => {
+      const result = await service.importPackage(
+        KEY,
+        content,
+        plan({ projectId: 5, separateEnvironments: ['local'] }),
+      );
+
+      expect(envs.create).toHaveBeenCalledWith(5, 'Local (2)');
+      expect(result.importedCount).toBe(1);
+      const input = secrets.create.mock.calls[0]?.[0] as { environmentId: number };
+      expect(input.environmentId).toBe(31);
+    });
+
+    it('should fail without writing when the target project does not exist', async () => {
+      projects.findById.mockResolvedValue(null);
+
+      await expect(service.importPackage(KEY, content, plan({ projectId: 99 }))).rejects.toThrow(
+        ProjectNotFoundError,
+      );
+      expect(envs.create).not.toHaveBeenCalled();
+      expect(secrets.create).not.toHaveBeenCalled();
     });
   });
 });

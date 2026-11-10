@@ -61,7 +61,8 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    acceso y no hay revocación. Un archivo hostil no puede forzar un coste de KDF arbitrario
    (iteraciones acotadas) ni colar nombres inválidos o repetidos (se revalidan al importar). Frase
    incorrecta y archivo alterado dan el mismo error. Importar y previsualizar tienen límite de intentos
-   por IP.
+   por IP. Al mezclar en un proyecto existente, sobrescribir exige una petición explícita (por defecto se
+   omite) y los secretos recibidos quedan marcados como importados hasta que se edite su valor.
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 

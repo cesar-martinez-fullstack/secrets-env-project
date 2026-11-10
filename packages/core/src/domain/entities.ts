@@ -56,6 +56,7 @@ export interface SecretRecord {
   name: string;
   valueEnc: Uint8Array;
   noteEnc: Uint8Array | null;
+  importedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,6 +75,7 @@ export interface SecretSummary {
   name: string;
   maskedValue: string;
   hasNote: boolean;
+  importedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -125,15 +127,31 @@ export interface ShareFile {
   environmentName: string | null;
 }
 
+export interface SharePreviewEnvironment {
+  name: string;
+  secretCount: number;
+  exists: boolean;
+  conflicts: string[];
+}
+
 export interface SharePreview {
   projectName: string;
-  environments: { name: string; secretCount: number }[];
+  environments: SharePreviewEnvironment[];
   secretCount: number;
+}
+
+export interface ShareImportPlan {
+  passphrase: string;
+  projectId: number | null;
+  separateEnvironments: string[];
+  overwrite: boolean;
 }
 
 export interface ShareImportResult {
   projectId: number;
   projectName: string;
   environmentCount: number;
-  secretCount: number;
+  importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
 }

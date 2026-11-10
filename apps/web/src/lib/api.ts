@@ -17,11 +17,12 @@ import type {
   OkDto,
   RecoverVaultResponseDto,
   RecoveryKeyDto,
-  ShareContentRequestDto,
   ShareExportRequestDto,
   ShareFileDto,
+  ShareImportRequestDto,
   ShareImportResultDto,
   SharePreviewDto,
+  SharePreviewRequestDto,
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
@@ -189,13 +190,13 @@ export const api = {
       body: JSON.stringify({ passphrase } satisfies ShareExportRequestDto),
     }),
 
-  previewShare: (payload: ShareContentRequestDto) =>
+  previewShare: (payload: SharePreviewRequestDto) =>
     request<SharePreviewDto>('/api/share/preview', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  importShare: (payload: ShareContentRequestDto) =>
+  importShare: (payload: ShareImportRequestDto) =>
     request<ShareImportResultDto>('/api/share/import', {
       method: 'POST',
       body: JSON.stringify(payload),

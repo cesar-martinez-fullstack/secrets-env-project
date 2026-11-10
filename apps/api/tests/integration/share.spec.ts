@@ -81,6 +81,8 @@ interface SharedFile {
   content: string;
 }
 
+const NEW_PROJECT = { projectId: null, separateEnvironments: [], overwrite: false };
+
 async function exportFile(passphrase = PASSPHRASE): Promise<SharedFile> {
   const res = await sender.request('POST', `/api/share/projects/${projectId}/export`, {
     passphrase,
@@ -119,6 +121,7 @@ describe('compartir un proyecto entre dos bóvedas', () => {
     const res = await receiver.request('POST', '/api/share/import', {
       content,
       passphrase: PASSPHRASE,
+      ...NEW_PROJECT,
     });
     expect(res.status).toBe(201);
     const imported = (await res.json()) as { projectId: number };
@@ -159,6 +162,125 @@ describe('compartir un proyecto entre dos bóvedas', () => {
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: { code: 'SHARE_PACKAGE_INVALID' } });
     }
+  });
+
+  describe('into a project that already exists', () => {
+    interface SecretRow {
+      id: number;
+      name: string;
+      importedAt: string | null;
+    }
+    let targetProjectId: number;
+    let targetEnvId: number;
+
+    const secretsOfTarget = (): Promise<SecretRow[]> =>
+      receiver.json<SecretRow[]>('GET', `/api/secrets?environmentId=${targetEnvId}`);
+    const reveal = async (id: number): Promise<string> =>
+      (await receiver.json<{ value: string }>('POST', `/api/secrets/${id}/reveal`)).value;
+
+    beforeAll(async () => {
+      const project = await receiver.json<{ id: number }>('POST', '/api/projects', {
+        name: 'Mio',
+      });
+      targetProjectId = project.id;
+      const env = await receiver.json<{ id: number }>('POST', '/api/environments', {
+        projectId: targetProjectId,
+        name: 'local',
+      });
+      targetEnvId = env.id;
+      for (const [name, value] of [
+        ['MY_OWN', 'mine'],
+        ['DATABASE_URL', 'keep-me'],
+      ]) {
+        await receiver.request('POST', '/api/secrets', { environmentId: targetEnvId, name, value });
+      }
+    });
+
+    it('should tell which environments exist and which variables collide', async () => {
+      const content = await exportPackage();
+
+      const preview = await receiver.json<{
+        environments: { name: string; secretCount: number; exists: boolean; conflicts: string[] }[];
+      }>('POST', '/api/share/preview', {
+        content,
+        passphrase: PASSPHRASE,
+        projectId: targetProjectId,
+      });
+
+      expect(preview.environments).toEqual([
+        { name: 'Local', secretCount: 1, exists: true, conflicts: ['DATABASE_URL'] },
+      ]);
+    });
+
+    it('should keep what already exists by default and tell it was skipped', async () => {
+      const res = await receiver.request('POST', '/api/share/import', {
+        content: await exportPackage(),
+        passphrase: PASSPHRASE,
+        projectId: targetProjectId,
+        separateEnvironments: [],
+        overwrite: false,
+      });
+
+      expect(res.status).toBe(201);
+      expect(await res.json()).toMatchObject({
+        projectName: 'Mio',
+        importedCount: 0,
+        skippedCount: 1,
+      });
+      const rows = await secretsOfTarget();
+      expect(rows.every((row) => row.importedAt === null)).toBe(true);
+      expect(await reveal(rows.find((row) => row.name === 'DATABASE_URL')!.id)).toBe('keep-me');
+    });
+
+    it('should overwrite when asked, mark the secret as imported and unmark it when edited', async () => {
+      await receiver.request('POST', '/api/share/import', {
+        content: await exportPackage(),
+        passphrase: PASSPHRASE,
+        projectId: targetProjectId,
+        separateEnvironments: [],
+        overwrite: true,
+      });
+
+      const marked = (await secretsOfTarget()).find((row) => row.name === 'DATABASE_URL')!;
+      expect(marked.importedAt).not.toBeNull();
+      expect(await reveal(marked.id)).toBe(SECRET_VALUE);
+      const own = (await secretsOfTarget()).find((row) => row.name === 'MY_OWN')!;
+      expect(own.importedAt).toBeNull();
+
+      await receiver.request('PATCH', `/api/secrets/${marked.id}`, { value: 'now-mine' });
+      const edited = (await secretsOfTarget()).find((row) => row.name === 'DATABASE_URL')!;
+      expect(edited.importedAt).toBeNull();
+    });
+
+    it('should create a separate environment when asked to keep them apart', async () => {
+      const res = await receiver.request('POST', '/api/share/import', {
+        content: await exportPackage(),
+        passphrase: PASSPHRASE,
+        projectId: targetProjectId,
+        separateEnvironments: ['Local'],
+        overwrite: false,
+      });
+
+      expect(await res.json()).toMatchObject({ environmentCount: 1, importedCount: 1 });
+      const envs = await receiver.json<{ projectId: number; name: string }[]>(
+        'GET',
+        '/api/environments',
+      );
+      expect(
+        envs.filter((env) => env.projectId === targetProjectId).map((env) => env.name),
+      ).toEqual(expect.arrayContaining(['local', 'Local (2)']));
+    });
+
+    it('should reject a project that does not exist', async () => {
+      const res = await receiver.request('POST', '/api/share/import', {
+        content: await exportPackage(),
+        passphrase: PASSPHRASE,
+        projectId: 9999,
+        separateEnvironments: [],
+        overwrite: false,
+      });
+      expect(res.status).toBe(404);
+    });
   });
 
   it('should refuse to export with a short passphrase', async () => {
