@@ -52,9 +52,9 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
 5. **CSRF**: mitigado por `SameSite=Lax` + JSON-only API. Para dureza extra detrás de
    proxy, validar `Origin` en el proxy inverso.
 
-6. **CSV (riesgo aceptado, a decidir)**: el export CSV no neutraliza valores que empiezan por
-   `=`, `+`, `-`, `@` (inyección de fórmulas al abrirlo en Excel). Prefijar con una comilla simple
-   corrompería contraseñas legítimas; ver TODO.
+6. **CSV (riesgo aceptado)**: el export CSV no neutraliza valores que empiezan por `=`, `+`, `-`, `@`
+   (inyección de fórmulas al abrirlo en Excel). Prefijar con una comilla simple corrompería
+   contraseñas legítimas, así que el menú de exportación avisa en la propia interfaz (ISS-013).
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 
