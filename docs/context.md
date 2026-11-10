@@ -106,32 +106,39 @@ Si agregas algo que rompe esto, el test te lo dirá — es intencional.
 
 ## 5. Diseño criptográfico (leer antes de tocar auth)
 
+Cifrado de envoltura (ADR-0006):
+
 ```
-Contraseña maestra ──PBKDF2-HMAC-SHA256(iter≥100k, salt 16B)──► Clave AES-256 (32B)
-                                                                  │
-        SessionStore (Map en RAM) ◄── solo aquí vive la clave ────┘
-              │ lock / inactividad / cierre → zeroKey(key.fill(0))
+Contraseña ──PBKDF2(≥100k, sal 16B)──► KEK_pw ──┐
+                                                 ├─ AES-GCM envuelven ──► DEK (256 bits aleatoria)
+Clave de recuperación ──HKDF-SHA256──► KEK_rec ──┘                          │
+                                                                              ▼
+        SessionStore (Map en RAM): solo aquí vive la DEK      AES-256-GCM(secretos, notas, verificador)
+              │ lock / inactividad / cierre → zeroKey(dek.fill(0))
               ▼
-AES-256-GCM: blob = [IV 12B][AuthTag 16B][Ciphertext], AAD por contexto:
-              AAD_SECRET_VALUE · AAD_SECRET_NOTE · AAD_VERIFIER  (en core/ports/crypto.ts)
-              ▼
-   secrets.db — solo blobs cifrados + nombres de variables (metadata de búsqueda)
+   secrets.db — blobs cifrados + DEK envuelta ×2 + nombres de variables (metadata de búsqueda)
 ```
+
+Blob AES-GCM: `[IV 12B][AuthTag 16B][Ciphertext]`; AAD por contexto (`core/ports/crypto.ts`):
+`AAD_SECRET_VALUE/NOTE` (+ ambiente y nombre) · `AAD_VERIFIER` · `AAD_DEK_MASTER` · `AAD_DEK_RECOVERY`.
 
 Decisiones y por qué:
 
-- **Verificador**: al hacer setup se cifra el texto constante `VERIFIER_PLAINTEXT`
-  con la clave derivada. Unlock = derivar + descifrar + **comparar el texto** (además
-  del fallo GCM). ⚠️ `changeMasterPassword` debe hacer la MISMA doble verificación —
-  se descubrió con tests que faltaba y se corrigió. No la quites.
+- **Verificador**: el texto constante `VERIFIER_PLAINTEXT` cifrado con la DEK. Abrir la bóveda =
+  derivar la KEK, desenvolver la DEK (el tag GCM autentica) y **comparar el texto** del verificador.
+  Hay UN solo punto de verificación (`VaultService.openWithPassword`); no lo dupliques.
+- **Clave de recuperación**: 256 bits aleatorios, texto Crockford base32 (`shared/recovery-key.ts`),
+  se muestra UNA vez y no se guarda. Usarla (`recover`) la **reemplaza** por otra nueva. Regenerarla
+  (`regenerateRecoveryKey`) exige la contraseña actual e invalida la anterior.
+- **Cambio de contraseña**: solo re-envuelve la DEK con una KEK nueva (nueva sal); la DEK y los
+  secretos no cambian. Una fila + auditoría en un `UnitOfWork`.
+- **Bóvedas de formato 1**: la clave derivada ES la DEK. Al desbloquear se actualizan a formato 2
+  (nueva sal, DEK envuelta, clave de recuperación) sin re-cifrar secretos; el cliente recibe la clave
+  nueva en la respuesta de `unlock` (única vez). `formatVersion` vive en `vault_meta`.
 - **AAD por campo Y por fila**: `secretValueAad(environmentId, name)` /
-  `secretNoteAad(...)` (`core/ports/crypto.ts`). Un blob no puede reinyectarse como
-  nota, como verificador ni en OTRA fila (el tag GCM falla). Consecuencia: renombrar
-  un secreto lo re-cifra. Campo nuevo sensible → AAD propio + tests de AAD cruzado.
-- **Rotación de contraseña** (atómica, en `UnitOfWork`): nueva sal + nueva clave →
-  re-encripta TODOS los secretos (valores y notas) → guarda nuevo verificador y
-  auditoría → (tras el commit) `sessions.rotateKey`. Un fallo hace rollback completo.
-  La contraseña vieja deja de funcionar; los datos descifran igual (testado).
+  `secretNoteAad(...)`. Un blob no puede reinyectarse como nota, como verificador ni en OTRA fila
+  (el tag GCM falla). Consecuencia: renombrar un secreto lo re-cifra. Campo nuevo sensible → AAD
+  propio + tests de AAD cruzado.
 - **PBKDF2**: default 600k (OWASP); `deriveKey` rechaza < 100k (anti-downgrade).
 - **Honestidad**: JS no garantiza borrado criptográfico de RAM; zeroKey reduce la
   ventana. Documentado en SECURITY.md — no prometer más de eso.
@@ -156,7 +163,10 @@ audit_log(id, type, message, created_at)  -- podado a 1000 eventos (AUDIT_MAX_EV
 ## 7. Modelo de sesiones / auth
 
 - `POST /api/vault/setup` (solo si no existe bóveda) → crea ambiente `Local` + cookie.
-- `POST /api/vault/unlock` → deriva clave, valida verificador, crea sesión.
+- `POST /api/vault/unlock` → deriva la KEK, desenvuelve la DEK, valida verificador, crea sesión
+  (y, si la bóveda era de formato 1, la actualiza y devuelve su clave de recuperación).
+- `POST /api/vault/recover` (pública, rate limit 10/15 min) → clave de recuperación + contraseña nueva.
+- `POST /api/vault/recovery-key` (sesión + contraseña actual) → regenera la clave de recuperación.
 - Cookie `sv_session`: HttpOnly, SameSite=Lax, Path=/, `Secure` si `SV_COOKIE_SECURE=true`.
 - Cada request autenticado hace `touch` (ventana deslizante) y renueva la cookie.
 - **Auto-lock**: TTL por inactividad (15 min default); sweeper cada 30s en index.ts.

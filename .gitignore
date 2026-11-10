@@ -26,3 +26,6 @@ Thumbs.db
 # Configuración local de Claude / agentes
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Artefactos de Playwright CLI
+.playwright-cli/

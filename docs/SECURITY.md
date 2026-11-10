@@ -39,7 +39,10 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
 
 1. **RAM no es borrado criptográfico garantizado**: la clave se sobrescribe con ceros
    al destruir la sesión (reduce la ventana), pero el GC de JS puede retener copias.
-2. **La contraseña maestra es irrecuperable por diseño**: no hay backdoor ni reset.
+2. **Sin contraseña ni clave de recuperación no hay acceso**: no hay backdoor, reset por correo ni
+   custodia en servidor. La **clave de recuperación** (256 bits, se muestra una vez) permite fijar una
+   contraseña nueva; es un segundo secreto que la persona debe guardar fuera del equipo. Quien la tenga
+   abre la bóveda. Ver ADR-0006.
    Perderla = perder los secretos. Es la consecuencia de que nadie (ni el propio
    servidor) pueda descifrar sin ella.
 3. **Nombres de variables en claro**: son metadata necesaria para búsqueda SQL

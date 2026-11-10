@@ -113,34 +113,111 @@ export interface MockCrypto {
   deriveKey: ReturnType<typeof jest.fn>;
   encrypt: ReturnType<typeof jest.fn>;
   decrypt: ReturnType<typeof jest.fn>;
+  generateKey: ReturnType<typeof jest.fn>;
+  deriveRecoveryKek: ReturnType<typeof jest.fn>;
+  wrapKey: ReturnType<typeof jest.fn>;
+  unwrapKey: ReturnType<typeof jest.fn>;
   randomToken: ReturnType<typeof jest.fn>;
 }
 
-/** Crypto simulado: cifrado reversible simple para observar llamadas sin node:crypto. */
-export function mockCrypto(): MockCrypto {
-  const generateSalt = jest.fn().mockReturnValue(new Uint8Array(16).fill(7));
-  const defaultIterations = jest.fn().mockReturnValue(310_000);
+const hex = (bytes: Uint8Array): string => Buffer.from(bytes).toString('hex');
+const unhex = (text: string): Uint8Array => new Uint8Array(Buffer.from(text, 'hex'));
+const enc = (text: string): Uint8Array => new TextEncoder().encode(text);
+const dec = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
+
+/** Clave de 32 bytes determinista a partir de un texto (simula un KDF: misma entrada → misma clave). */
+function fakeKey(seed: string): Uint8Array {
+  const out = new Uint8Array(32);
+  let h = 2166136261;
+  for (let i = 0; i < 32; i++) {
+    for (const ch of `${seed}|${i}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    out[i] = h & 255;
+  }
+  return out;
+}
+
+/**
+ * Crypto simulado.
+ *
+ * - Modo por defecto (legado): `enc:<texto>`, ignora clave y AAD. Suficiente para probar la
+ *   orquestación de los servicios de secretos.
+ * - `strict: true`: simula la AUTENTICACIÓN de GCM. El blob guarda la clave y el AAD con que se
+ *   cifró y `decrypt`/`unwrapKey` lanzan si no coinciden. Así los tests de la bóveda comprueban de
+ *   verdad que una contraseña o clave de recuperación equivocadas no abren nada.
+ */
+export function mockCrypto(options: { strict?: boolean } = {}): MockCrypto {
+  const strict = options.strict ?? false;
+  let counter = 0;
+  const next = (label: string): Uint8Array => fakeKey(`${label}#${++counter}`);
+
+  const generateSalt = jest.fn().mockImplementation(() => next('salt').slice(0, 16));
+  const defaultIterations = jest.fn().mockReturnValue(600_000);
   const deriveKey = jest
     .fn()
-    .mockImplementation(async (_password: string, salt: Uint8Array) => Uint8Array.from(salt));
+    .mockImplementation(async (password: string, salt: Uint8Array) =>
+      fakeKey(`pw:${password}:${hex(salt)}`),
+    );
+  const deriveRecoveryKek = jest
+    .fn()
+    .mockImplementation(async (recoveryKey: Uint8Array, salt: Uint8Array) =>
+      fakeKey(`rk:${hex(recoveryKey)}:${hex(salt)}`),
+    );
+  const generateKey = jest.fn().mockImplementation(() => next('key'));
+
+  const seal = (key: Uint8Array, payload: string, aad: string): Uint8Array =>
+    enc(`sealed|${hex(key)}|${aad}|${payload}`);
+  const open = (key: Uint8Array, blob: Uint8Array, aad: string): string => {
+    const [tag, keyHex, blobAad, ...rest] = dec(blob).split('|');
+    if (tag !== 'sealed' || keyHex !== hex(key) || blobAad !== aad) {
+      throw new Error('Fallo de desencriptado (clave incorrecta o datos alterados).');
+    }
+    return rest.join('|');
+  };
+
   const encrypt = jest
     .fn()
-    .mockImplementation(async (_key: Uint8Array, plaintext: string) =>
-      new TextEncoder().encode(`enc:${plaintext}`),
+    .mockImplementation(async (key: Uint8Array, plaintext: string, aad: string) =>
+      strict ? seal(key, plaintext, aad) : enc(`enc:${plaintext}`),
     );
   const decrypt = jest
     .fn()
-    .mockImplementation(async (_key: Uint8Array, blob: Uint8Array) =>
-      new TextDecoder().decode(blob).replace(/^enc:/, ''),
+    .mockImplementation(async (key: Uint8Array, blob: Uint8Array, aad: string) =>
+      strict ? open(key, blob, aad) : dec(blob).replace(/^enc:/, ''),
+    );
+  const wrapKey = jest
+    .fn()
+    .mockImplementation(async (kek: Uint8Array, key: Uint8Array, aad: string) =>
+      seal(kek, hex(key), aad),
+    );
+  const unwrapKey = jest
+    .fn()
+    .mockImplementation(async (kek: Uint8Array, wrapped: Uint8Array, aad: string) =>
+      unhex(open(kek, wrapped, aad)),
     );
   const randomToken = jest.fn().mockReturnValue('token-abc123');
+
   return {
-    service: { generateSalt, defaultIterations, deriveKey, encrypt, decrypt, randomToken },
+    service: {
+      generateSalt,
+      defaultIterations,
+      deriveKey,
+      encrypt,
+      decrypt,
+      generateKey,
+      deriveRecoveryKek,
+      wrapKey,
+      unwrapKey,
+      randomToken,
+    },
     generateSalt,
     defaultIterations,
     deriveKey,
     encrypt,
     decrypt,
+    generateKey,
+    deriveRecoveryKek,
+    wrapKey,
+    unwrapKey,
     randomToken,
   };
 }
@@ -151,7 +228,6 @@ export interface MockSessions {
   get: ReturnType<typeof jest.fn>;
   touch: ReturnType<typeof jest.fn>;
   remove: ReturnType<typeof jest.fn>;
-  rotateKey: ReturnType<typeof jest.fn>;
   purgeExpired: ReturnType<typeof jest.fn>;
   clear: ReturnType<typeof jest.fn>;
   count: ReturnType<typeof jest.fn>;
@@ -162,17 +238,15 @@ export function mockSessions(): MockSessions {
   const get = jest.fn();
   const touch = jest.fn();
   const remove = jest.fn();
-  const rotateKey = jest.fn();
   const purgeExpired = jest.fn().mockResolvedValue(0);
   const clear = jest.fn().mockResolvedValue(undefined);
   const count = jest.fn().mockResolvedValue(0);
   return {
-    store: { create, get, touch, remove, rotateKey, purgeExpired, clear, count },
+    store: { create, get, touch, remove, purgeExpired, clear, count },
     create,
     get,
     touch,
     remove,
-    rotateKey,
     purgeExpired,
     clear,
     count,

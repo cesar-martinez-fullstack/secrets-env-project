@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Pantalla de entrada: configura la contraseña maestra (primer uso) o
- * desbloquea la bóveda. La clave deriva en el servidor vía PBKDF2 y jamás
+ * Pantalla de entrada: configura la contraseña maestra (primer uso), desbloquea la bóveda o
+ * recupera el acceso con la clave de recuperación. La clave deriva en el servidor y jamás
  * se persiste.
  */
 import { computed, onMounted, ref } from 'vue';
@@ -21,6 +21,8 @@ const busy = ref(false);
 const showPassword = ref(false);
 const error = ref<string | null>(null);
 const ready = ref(false);
+const mode = ref<'unlock' | 'recover'>('unlock');
+const recoveryKeyInput = ref('');
 
 const strength = computed(() => passwordStrength(password.value));
 const strengthLabels = ['Muy débil', 'Débil', 'Aceptable', 'Fuerte', 'Excelente'];
@@ -32,10 +34,24 @@ const strengthColors = [
   'bg-emerald-500',
 ];
 
+/** Setup y recuperación fijan una contraseña NUEVA (con confirmación y medidor de fuerza). */
+const isNewPassword = computed(() => !vault.initialized || mode.value === 'recover');
+
 const canSubmit = computed(() => {
-  if (vault.initialized) return password.value.length > 0;
-  return password.value.length >= 10 && password.value === confirm.value;
+  if (!isNewPassword.value) return password.value.length > 0;
+  const validPassword = password.value.length >= 10 && password.value === confirm.value;
+  return mode.value === 'recover'
+    ? validPassword && recoveryKeyInput.value.trim().length > 0
+    : validPassword;
 });
+
+function switchMode(next: 'unlock' | 'recover'): void {
+  mode.value = next;
+  password.value = '';
+  confirm.value = '';
+  recoveryKeyInput.value = '';
+  error.value = null;
+}
 
 onMounted(async () => {
   await vault.refreshStatus().catch(() => null);
@@ -50,7 +66,10 @@ async function submit(): Promise<void> {
   busy.value = true;
   error.value = null;
   try {
-    if (vault.initialized) {
+    if (mode.value === 'recover') {
+      await vault.recover(recoveryKeyInput.value, password.value);
+      toast.push('success', 'Acceso recuperado', 'Tu contraseña maestra fue reemplazada.');
+    } else if (vault.initialized) {
       await vault.unlock(password.value);
       toast.push(
         'success',
@@ -95,17 +114,33 @@ async function submit(): Promise<void> {
           </h1>
           <p class="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
             {{
-              vault.initialized
-                ? 'Tu bóveda está bloqueada. Ingresa tu contraseña maestra.'
-                : 'Crea la contraseña maestra que protegerá todos tus secretos.'
+              mode === 'recover'
+                ? 'Ingresa tu clave de recuperación y elige una contraseña maestra nueva.'
+                : vault.initialized
+                  ? 'Tu bóveda está bloqueada. Ingresa tu contraseña maestra.'
+                  : 'Crea la contraseña maestra que protegerá todos tus secretos.'
             }}
           </p>
         </div>
 
         <form class="space-y-4" @submit.prevent="submit">
+          <div v-if="mode === 'recover'">
+            <label for="recovery-key-input" class="label-text">Clave de recuperación</label>
+            <textarea
+              id="recovery-key-input"
+              v-model="recoveryKeyInput"
+              rows="3"
+              required
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="ABCD-EFGH-JKMN-PQRS-…"
+              class="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2.5 font-mono text-sm tracking-wide dark:border-zinc-700 dark:bg-zinc-950"
+            />
+          </div>
+
           <div>
             <label for="master-password" class="label-text">
-              {{ vault.initialized ? 'Contraseña maestra' : 'Nueva contraseña maestra' }}
+              {{ isNewPassword ? 'Nueva contraseña maestra' : 'Contraseña maestra' }}
             </label>
             <div class="relative">
               <input
@@ -113,8 +148,8 @@ async function submit(): Promise<void> {
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 required
-                autofocus
-                autocomplete="current-password"
+                :autofocus="mode === 'unlock'"
+                :autocomplete="isNewPassword ? 'new-password' : 'current-password'"
                 placeholder="••••••••••"
                 class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 pr-10 text-sm dark:border-zinc-700 dark:bg-zinc-950"
               />
@@ -129,7 +164,7 @@ async function submit(): Promise<void> {
             </div>
 
             <!-- Medidor de fuerza (solo en setup) -->
-            <div v-if="!vault.initialized && password.length > 0" class="mt-2">
+            <div v-if="isNewPassword && password.length > 0" class="mt-2">
               <div class="flex gap-1">
                 <div
                   v-for="i in 4"
@@ -142,7 +177,7 @@ async function submit(): Promise<void> {
             </div>
           </div>
 
-          <div v-if="!vault.initialized">
+          <div v-if="isNewPassword">
             <label for="confirm-password" class="label-text">Confirmar contraseña</label>
             <input
               id="confirm-password"
@@ -172,9 +207,39 @@ async function submit(): Promise<void> {
             class="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-600/25 transition-all hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <AppIcon v-if="busy" name="loader" :size="16" class="animate-spin" />
-            {{ vault.initialized ? 'Desbloquear' : 'Crear bóveda' }}
+            {{
+              mode === 'recover'
+                ? 'Recuperar acceso'
+                : vault.initialized
+                  ? 'Desbloquear'
+                  : 'Crear bóveda'
+            }}
           </button>
         </form>
+
+        <div v-if="vault.initialized" class="mt-4 text-center text-xs">
+          <button
+            v-if="mode === 'recover'"
+            id="back-to-unlock"
+            type="button"
+            class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+            @click="switchMode('unlock')"
+          >
+            Volver a desbloquear
+          </button>
+          <button
+            v-else-if="vault.recoveryAvailable"
+            id="forgot-password"
+            type="button"
+            class="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+            @click="switchMode('recover')"
+          >
+            ¿Olvidaste tu contraseña? Usa tu clave de recuperación
+          </button>
+          <p v-else class="text-zinc-400 dark:text-zinc-500">
+            Desbloquea una vez con tu contraseña para generar tu clave de recuperación.
+          </p>
+        </div>
 
         <div
           v-if="!vault.initialized"
@@ -182,13 +247,14 @@ async function submit(): Promise<void> {
         >
           <AppIcon name="alert" :size="15" class="mt-0.5 shrink-0" />
           <span>
-            Sin recuperación: si olvidas esta contraseña los secretos cifrados son
-            <strong>irrecuperables</strong> por diseño. La clave solo existe en RAM.
+            Al crear la bóveda recibirás una <strong>clave de recuperación</strong>. Guárdala fuera
+            de este equipo: sin la contraseña ni esa clave, los secretos son
+            <strong>irrecuperables</strong> por diseño.
           </span>
         </div>
 
         <p class="mt-6 text-center text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-600">
-          PBKDF2-SHA256 · AES-256-GCM · clave nunca persistida
+          PBKDF2-SHA256 · AES-256-GCM · claves solo en memoria
         </p>
       </div>
     </Transition>

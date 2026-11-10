@@ -16,6 +16,7 @@ import SecretFormModal from '@/components/vault/SecretFormModal.vue';
 import ImportModal from '@/components/vault/ImportModal.vue';
 import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
+import SecurityModal from '@/components/vault/SecurityModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -33,6 +34,7 @@ const envModalOpen = ref(false);
 const envModalEditing = ref<EnvironmentDto | null>(null);
 
 const importOpen = ref(false);
+const securityOpen = ref(false);
 
 const confirmState = ref<{
   open: boolean;
@@ -137,7 +139,7 @@ async function runConfirm(): Promise<void> {
 
 <template>
   <div class="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-    <TopBar @create-secret="openCreateSecret" @lock="handleLock" />
+    <TopBar @create-secret="openCreateSecret" @security="securityOpen = true" @lock="handleLock" />
 
     <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
       <EnvironmentSidebar
@@ -246,6 +248,7 @@ async function runConfirm(): Promise<void> {
       @close="secretModalOpen = false"
     />
     <ImportModal :open="importOpen" @close="importOpen = false" />
+    <SecurityModal :open="securityOpen" @close="securityOpen = false" />
     <EnvironmentFormModal
       :open="envModalOpen"
       :editing="envModalEditing"

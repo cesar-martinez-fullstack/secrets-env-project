@@ -9,6 +9,7 @@ import { useThemeStore } from '@/stores/theme';
 
 const emit = defineEmits<{
   'create-secret': [];
+  security: [];
   lock: [];
 }>();
 
@@ -80,6 +81,16 @@ const theme = useThemeStore();
         >
           <AppIcon name="history" />
         </RouterLink>
+
+        <button
+          type="button"
+          class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          title="Seguridad: contraseña y clave de recuperación"
+          aria-label="Seguridad"
+          @click="emit('security')"
+        >
+          <AppIcon name="shield" />
+        </button>
 
         <button
           type="button"

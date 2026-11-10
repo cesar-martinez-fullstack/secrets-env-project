@@ -5,8 +5,14 @@ import { Hono } from 'hono';
 import type {
   ChangeMasterPasswordRequestDto,
   OkDto,
+  RecoverVaultRequestDto,
+  RecoverVaultResponseDto,
+  RecoveryKeyDto,
+  RegenerateRecoveryKeyRequestDto,
   SetupVaultRequestDto,
+  SetupVaultResponseDto,
   UnlockVaultRequestDto,
+  UnlockVaultResponseDto,
   VaultStatusDto,
 } from '@secretvault/shared';
 import { DomainError } from '@secretvault/core';
@@ -43,10 +49,10 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
     const body = await readJsonBody<SetupVaultRequestDto>(c);
     const masterPassword = requireString(body, 'masterPassword');
 
-    const session = await vaultService.setup(masterPassword);
+    const { session, recoveryKey } = await vaultService.setup(masterPassword);
     container.rateLimiters.setup.reset(`setup:${ip}`);
     setSessionCookie(c, session.sessionId, config);
-    return jsonResponse<OkDto>(c, { ok: true }, 201);
+    return jsonResponse<SetupVaultResponseDto>(c, { ok: true, recoveryKey }, 201);
   });
 
   app.post('/unlock', async (c) => {
@@ -59,10 +65,14 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
     const masterPassword = requireString(body, 'masterPassword');
 
     // InvalidMasterPasswordError se propaga al onError; el contador ya quedó incrementado.
-    const session = await vaultService.unlock(masterPassword);
+    const { session, recoveryKey } = await vaultService.unlock(masterPassword);
     unlockLimiter.reset(key);
     setSessionCookie(c, session.sessionId, config);
-    return jsonResponse<OkDto>(c, { ok: true });
+    // recoveryKey solo viene al actualizar una bóveda anterior: se muestra UNA vez.
+    return jsonResponse<UnlockVaultResponseDto>(
+      c,
+      recoveryKey ? { ok: true, recoveryKey } : { ok: true },
+    );
   });
 
   app.post('/lock', async (c) => {
@@ -70,6 +80,39 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
     await vaultService.lock(sessionId);
     clearSessionCookie(c);
     return jsonResponse<OkDto>(c, { ok: true });
+  });
+
+  // Pública (no hay sesión que exigir: el usuario olvidó la contraseña). Protegida por la clave de
+  // recuperación de 256 bits y por rate limit; ver ROUTE_MANIFEST en protected-routes.spec.ts.
+  app.post('/recover', async (c) => {
+    const ip = clientIp(c, config.trustProxy);
+    const key = `recover:${ip}`;
+    const attempt = container.rateLimiters.recover.hit(key);
+    if (!attempt.allowed) throw rateLimited(attempt.retryAfterSeconds);
+
+    const body = await readJsonBody<RecoverVaultRequestDto>(c);
+    const { session, recoveryKey } = await vaultService.recover(
+      requireString(body, 'recoveryKey'),
+      requireString(body, 'newPassword'),
+    );
+    container.rateLimiters.recover.reset(key);
+    setSessionCookie(c, session.sessionId, config);
+    return jsonResponse<RecoverVaultResponseDto>(c, { ok: true, recoveryKey });
+  });
+
+  app.post('/recovery-key', requireUnlocked(container), async (c) => {
+    const ip = clientIp(c, config.trustProxy);
+    const key = `change:${ip}`;
+    const attempt = container.rateLimiters.changePassword.hit(key);
+    if (!attempt.allowed) throw rateLimited(attempt.retryAfterSeconds);
+
+    const body = await readJsonBody<RegenerateRecoveryKeyRequestDto>(c);
+    const recoveryKey = await vaultService.regenerateRecoveryKey(
+      c.get('session').sessionId,
+      requireString(body, 'currentPassword'),
+    );
+    container.rateLimiters.changePassword.reset(key);
+    return jsonResponse<RecoveryKeyDto>(c, { recoveryKey });
   });
 
   app.post('/change-password', requireUnlocked(container), async (c) => {

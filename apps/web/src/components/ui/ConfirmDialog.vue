@@ -2,7 +2,9 @@
 /**
  * Diálogo de confirmación con variante peligrosa (rojo) para acciones destructivas.
  */
-const props = defineProps<{
+import BaseModal from '@/components/ui/BaseModal.vue';
+
+defineProps<{
   open: boolean;
   title: string;
   message: string;

@@ -11,6 +11,8 @@ export interface ApiErrorBody {
 
 export interface VaultStatusDto {
   initialized: boolean;
+  /** `true` si la bóveda admite recuperación con clave de recuperación. */
+  recoveryAvailable: boolean;
   unlocked: boolean;
   autoLockMinutes: number;
   pbkdf2Iterations: number;
@@ -31,6 +33,40 @@ export interface ChangeMasterPasswordRequestDto {
 
 export interface OkDto {
   ok: true;
+}
+
+/**
+ * La clave de recuperación se muestra UNA sola vez (setup, recuperación, actualización de una
+ * bóveda anterior o regeneración): el servidor no la guarda y no puede volver a mostrarla.
+ */
+export interface SetupVaultResponseDto {
+  ok: true;
+  recoveryKey: string;
+}
+
+export interface UnlockVaultResponseDto {
+  ok: true;
+  /** Solo presente cuando una bóveda anterior se actualizó al formato con clave de recuperación. */
+  recoveryKey?: string;
+}
+
+export interface RecoverVaultRequestDto {
+  recoveryKey: string;
+  newPassword: string;
+}
+
+/** Tras recuperar el acceso la clave usada se reemplaza: esta es la NUEVA clave de recuperación. */
+export interface RecoverVaultResponseDto {
+  ok: true;
+  recoveryKey: string;
+}
+
+export interface RegenerateRecoveryKeyRequestDto {
+  currentPassword: string;
+}
+
+export interface RecoveryKeyDto {
+  recoveryKey: string;
 }
 
 export interface EnvironmentDto {

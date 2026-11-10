@@ -8,10 +8,16 @@ import { api } from '@/lib/api';
 
 export const useVaultStore = defineStore('vault', () => {
   const status = ref<VaultStatusDto | null>(null);
+  /**
+   * Clave de recuperación recién emitida, pendiente de que la persona confirme haberla
+   * guardado. Vive solo en memoria del navegador y se descarta al confirmar.
+   */
+  const pendingRecoveryKey = ref<string | null>(null);
 
   const initialized = computed(() => status.value?.initialized ?? false);
   const unlocked = computed(() => status.value?.unlocked ?? false);
   const autoLockMinutes = computed(() => status.value?.autoLockMinutes ?? 15);
+  const recoveryAvailable = computed(() => status.value?.recoveryAvailable ?? false);
 
   async function refreshStatus(): Promise<VaultStatusDto | null> {
     status.value = await api.getVaultStatus();
@@ -19,13 +25,31 @@ export const useVaultStore = defineStore('vault', () => {
   }
 
   async function setup(masterPassword: string): Promise<void> {
-    await api.setupVault(masterPassword);
+    const result = await api.setupVault(masterPassword);
+    pendingRecoveryKey.value = result.recoveryKey;
     await refreshStatus();
   }
 
   async function unlock(masterPassword: string): Promise<void> {
-    await api.unlockVault(masterPassword);
+    const result = await api.unlockVault(masterPassword);
+    // Solo viene al actualizar una bóveda anterior: se muestra una vez.
+    if (result.recoveryKey) pendingRecoveryKey.value = result.recoveryKey;
     await refreshStatus();
+  }
+
+  async function recover(recoveryKey: string, newPassword: string): Promise<void> {
+    const result = await api.recoverVault(recoveryKey, newPassword);
+    pendingRecoveryKey.value = result.recoveryKey; // la usada se reemplazó por esta
+    await refreshStatus();
+  }
+
+  async function regenerateRecoveryKey(currentPassword: string): Promise<void> {
+    const result = await api.regenerateRecoveryKey(currentPassword);
+    pendingRecoveryKey.value = result.recoveryKey;
+  }
+
+  function acknowledgeRecoveryKey(): void {
+    pendingRecoveryKey.value = null;
   }
 
   async function lock(): Promise<void> {
@@ -42,9 +66,14 @@ export const useVaultStore = defineStore('vault', () => {
     initialized,
     unlocked,
     autoLockMinutes,
+    recoveryAvailable,
+    pendingRecoveryKey,
     refreshStatus,
     setup,
     unlock,
+    recover,
+    regenerateRecoveryKey,
+    acknowledgeRecoveryKey,
     lock,
     changeMasterPassword,
   };

@@ -17,6 +17,8 @@ let rootDir: string;
 let container: Container;
 let app: ReturnType<typeof createApp>;
 let sessionId: string | null = null;
+let recoveryKey = '';
+const RECOVERY_FORMAT = /^([0-9A-Z]{4}-){12}[0-9A-Z]{4}$/;
 
 function cookieHeader(): Record<string, string> {
   return sessionId ? { Cookie: `sv_session=${sessionId}` } : {};
@@ -90,7 +92,10 @@ describe('API integration — ciclo de vida completo', () => {
   it('POST /api/vault/setup crea la bóveda, el ambiente Local y la cookie de sesión', async () => {
     const res = await post('/api/vault/setup', { masterPassword: PASSWORD }, false);
     expect(res.status).toBe(201);
-    expect(await json(res)).toEqual({ ok: true });
+    const body = await json<{ ok: boolean; recoveryKey: string }>(res);
+    expect(body.ok).toBe(true);
+    expect(body.recoveryKey).toMatch(RECOVERY_FORMAT); // se muestra UNA sola vez
+    recoveryKey = body.recoveryKey;
 
     const setCookie = res.headers.get('set-cookie') ?? '';
     sessionId = extractSession(res);
@@ -264,7 +269,7 @@ describe('API integration — ciclo de vida completo', () => {
     expect(reveal.value).toBe('postgres://v2'); // los datos sobreviven al ciclo lock/unlock
   });
 
-  it('POST /api/vault/change-password re-encripta todo y la clave vieja deja de funcionar', async () => {
+  it('POST /api/vault/change-password cambia la contraseña sin tocar los datos y la vieja deja de funcionar', async () => {
     const wrongCurrent = await post('/api/vault/change-password', {
       currentPassword: 'Incorrecta99!',
       newPassword: 'RotadaFuerte2026!',
@@ -277,7 +282,7 @@ describe('API integration — ciclo de vida completo', () => {
     });
     expect(ok.status).toBe(200);
 
-    // La sesión activa sigue funcionando (clave rotada en RAM).
+    // La sesión activa sigue funcionando: la clave de datos no cambia, solo se re-envolvió.
     const reveal = await json<{ value: string }>(await post('/api/secrets/1/reveal', {}));
     expect(reveal.value).toBe('postgres://v2');
 
@@ -288,6 +293,112 @@ describe('API integration — ciclo de vida completo', () => {
     const fresh = await post('/api/vault/unlock', { masterPassword: 'RotadaFuerte2026!' }, false);
     expect(fresh.status).toBe(200);
     sessionId = extractSession(fresh);
+  });
+
+  it('GET /api/vault/status indica que la recuperación está disponible', async () => {
+    const status = await json<{ recoveryAvailable: boolean }>(await get('/api/vault/status'));
+    expect(status.recoveryAvailable).toBe(true);
+  });
+
+  it('POST /api/vault/recovery-key exige la contraseña actual e invalida la clave anterior', async () => {
+    const wrong = await post('/api/vault/recovery-key', { currentPassword: 'Incorrecta99!' });
+    expect(wrong.status).toBe(401);
+
+    const ok = await post('/api/vault/recovery-key', { currentPassword: 'RotadaFuerte2026!' });
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('cache-control')).toBe('no-store');
+    const body = await json<{ recoveryKey: string }>(ok);
+    expect(body.recoveryKey).toMatch(RECOVERY_FORMAT);
+    expect(body.recoveryKey).not.toBe(recoveryKey);
+
+    // La clave que se mostró en el setup ya no sirve.
+    const stale = await post(
+      '/api/vault/recover',
+      { recoveryKey, newPassword: 'NoDeberiaEntrar2026!' },
+      false,
+    );
+    expect(stale.status).toBe(401);
+    recoveryKey = body.recoveryKey;
+  });
+
+  it('POST /api/vault/recover rechaza claves inválidas sin crear sesión ni cookie', async () => {
+    const wellFormedButWrong = 'ABCD-EFGH-JKMN-PQRS-TVWX-YZ01-2345-6789-ABCD-EFGH-JKMN-PQRS-TVWX';
+    for (const bad of ['', 'no-es-una-clave', wellFormedButWrong]) {
+      const res = await post(
+        '/api/vault/recover',
+        { recoveryKey: bad, newPassword: 'NoDeberiaEntrar2026!' },
+        false,
+      );
+      expect(res.status).toBe(401);
+      expect(await json(res)).toMatchObject({ error: { code: 'INVALID_RECOVERY_KEY' } });
+      expect(res.headers.get('set-cookie')).toBeNull();
+    }
+  });
+
+  it('POST /api/vault/recover exige una contraseña nueva fuerte y campos de texto', async () => {
+    const weak = await post('/api/vault/recover', { recoveryKey, newPassword: 'corta' }, false);
+    expect(weak.status).toBe(400);
+    const missing = await post(
+      '/api/vault/recover',
+      { newPassword: 'RecuperadaSegura2026!' },
+      false,
+    );
+    expect(missing.status).toBe(400);
+  });
+
+  it('POST /api/vault/recover devuelve el acceso, cambia la contraseña y rota la clave de recuperación', async () => {
+    const res = await post(
+      '/api/vault/recover',
+      {
+        recoveryKey: recoveryKey.toLowerCase().replaceAll('-', ' '),
+        newPassword: 'RecuperadaSegura2026!',
+      },
+      false,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const body = await json<{ ok: boolean; recoveryKey: string }>(res);
+    expect(body.recoveryKey).toMatch(RECOVERY_FORMAT);
+    expect(body.recoveryKey).not.toBe(recoveryKey);
+    expect(res.headers.get('set-cookie')).toContain('HttpOnly');
+    const usedKey = recoveryKey;
+    recoveryKey = body.recoveryKey;
+    sessionId = extractSession(res);
+
+    // Los datos siguen ahí: la clave de datos no cambió.
+    const reveal = await json<{ value: string }>(await post('/api/secrets/1/reveal', {}));
+    expect(reveal.value).toBe('postgres://v2');
+
+    // La contraseña anterior ya no entra; la nueva sí; la clave usada ya no sirve.
+    expect(
+      (await post('/api/vault/unlock', { masterPassword: 'RotadaFuerte2026!' }, false)).status,
+    ).toBe(401);
+    const fresh = await post(
+      '/api/vault/unlock',
+      { masterPassword: 'RecuperadaSegura2026!' },
+      false,
+    );
+    expect(fresh.status).toBe(200);
+    sessionId = extractSession(fresh);
+    const reused = await post(
+      '/api/vault/recover',
+      { recoveryKey: usedKey, newPassword: 'OtraMasSegura2026!' },
+      false,
+    );
+    expect(reused.status).toBe(401);
+  });
+
+  it('el audit log registra la recuperación y NO contiene claves ni contraseñas', async () => {
+    const audit = await json<{ events: { type: string; message: string }[] }>(
+      await get('/api/audit?limit=100'),
+    );
+    const types = audit.events.map((e) => e.type);
+    expect(types).toContain('vault.recovered');
+    expect(types).toContain('vault.recovery_failed');
+    expect(types).toContain('vault.recovery_key_regenerated');
+    const everything = JSON.stringify(audit);
+    expect(everything).not.toContain(recoveryKey);
+    expect(everything).not.toContain('RecuperadaSegura2026!');
   });
 
   it('DELETE /api/environments/:id elimina el ambiente con sus secretos en cascada', async () => {

@@ -18,6 +18,7 @@ Actualízala en el mismo cambio que cierre un ítem.
 | Tooling      | Error de lint corregido (0 errores); `makeTestConfig()` para tests                                                                              |
 | Claude       | `CLAUDE.md`, `.claude/` (4 hooks probados, 4 reglas, 8 skills, 2 agentes)                                                                       |
 | Tests        | +40 tests: perímetro, ACID/migraciones, AAD cruzado, rollback de rotación, sesión absoluta                                                      |
+| Recuperación | Cifrado de envoltura (DEK) + clave de recuperación, panel Seguridad, upgrade de bóvedas v1 (ADR-0006)                                           |
 
 ## 🔜 Siguiente (prioridad alta → baja)
 
@@ -37,6 +38,11 @@ Actualízala en el mismo cambio que cierre un ítem.
       _(Decidir: la regla actual es "cero dependencias" en `shared`.)_
 
 ### Seguridad
+
+- [ ] **E2E con Playwright en CI** (hoy verificado a mano con Playwright CLI: setup, recuperación, regeneración,
+      cambio de contraseña y upgrade v1). Convertir esa verificación en una suite repetible.
+- [ ] Imprimir/guardar la clave de recuperación como PDF o QR desde el diálogo.
+- [ ] Recordatorio periódico para comprobar que la clave de recuperación sigue guardada.
 
 - [ ] 🤔 **CSV: inyección de fórmulas** (`=`, `+`, `-`, `@`). Prefijar corrompe contraseñas válidas.
       Opciones: advertencia en UI al exportar CSV · opción "seguro para Excel" desactivada por defecto.

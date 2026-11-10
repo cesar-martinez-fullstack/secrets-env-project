@@ -21,6 +21,10 @@ describe('SqliteVaultRepository', () => {
       verifier: new Uint8Array(48).fill(2),
       createdAt: new Date('2024-01-01T00:00:00Z'),
       updatedAt: new Date('2024-01-01T00:00:00Z'),
+      formatVersion: 2 as const,
+      wrappedDek: new Uint8Array(60).fill(3),
+      recoverySalt: new Uint8Array(16).fill(4),
+      recoveryWrappedDek: new Uint8Array(60).fill(5),
     };
     await vault.save(info);
 
@@ -29,6 +33,11 @@ describe('SqliteVaultRepository', () => {
     expect(Buffer.from(loaded!.salt).equals(Buffer.from(info.salt))).toBe(true);
     expect(Buffer.from(loaded!.verifier).equals(Buffer.from(info.verifier))).toBe(true);
     expect(loaded?.createdAt.toISOString()).toBe('2024-01-01T00:00:00.000Z');
+    expect(loaded?.formatVersion).toBe(2);
+    expect(Buffer.from(loaded!.wrappedDek!).equals(Buffer.from(info.wrappedDek))).toBe(true);
+    expect(
+      Buffer.from(loaded!.recoveryWrappedDek!).equals(Buffer.from(info.recoveryWrappedDek)),
+    ).toBe(true);
 
     // Upsert: sobrescribe la fila única
     await vault.save({ ...info, iterations: 500_000 });

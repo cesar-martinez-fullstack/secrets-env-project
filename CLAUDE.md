@@ -65,7 +65,10 @@ web ──HTTP──► api ──► core ──► shared
 
 - **Solo este equipo:** `HOST` por defecto `127.0.0.1`; compose publica `127.0.0.1:3000`; middleware
   `hostGuard` (anti DNS-rebinding) y `originGuard` (anti CSRF). Nunca `0.0.0.0` en el host.
-- La clave de cifrado **solo vive en RAM** (`InMemorySessionStore`); nunca se persiste ni se loguea.
+- La clave de datos (DEK) y las KEK **solo viven en RAM** (`InMemorySessionStore`); en disco solo quedan
+  versiones envueltas. Nunca se persisten ni se loguean, tampoco la clave de recuperación (se muestra una vez).
+- Un solo punto de verificación de contraseña (`VaultService.openWithPassword`) y uno de recuperación
+  (`openWithRecovery`); no dupliques esa lógica. Cualquier cambio de formato cifrado → ADR + migración.
 - Todo blob cifrado lleva **AAD ligado a su fila** (`secretValueAad`/`secretNoteAad`). Campo sensible
   nuevo → AAD propio + tests de round-trip y de AAD cruzado.
 - Rutas nuevas: protegidas por `requireUnlocked`; públicas solo si se añaden al `ROUTE_MANIFEST`

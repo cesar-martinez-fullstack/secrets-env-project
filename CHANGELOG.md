@@ -27,14 +27,20 @@ First public release.
 - Export per environment as `.env`, CSV or a printable PDF.
 - Local audit log of setup, unlock, failed unlock, lock, reveal, export, import and password
   rotation events — never including secret values.
-- Master password rotation that re-encrypts every secret atomically.
+- Recovery key: a 256-bit key shown once at setup (and again when regenerated) lets you regain access
+  if you forget the master password. Using it sets a new password and issues a new recovery key; you
+  can also regenerate it from the new Security panel, where you can change the master password too.
+- Vaults created by earlier development builds are upgraded automatically on their next unlock and
+  receive their recovery key at that moment; no secret is re-encrypted.
 - Random secret generator, light/dark/system theme.
 - Single-container Docker deployment with a persistent volume, and a self-contained binary build.
 
 ### Security
 
-- Secrets encrypted with AES-256-GCM; key derived with PBKDF2-HMAC-SHA256 (600,000 iterations by
-  default). The key lives only in memory and is zeroed when the vault locks.
+- Secrets encrypted with AES-256-GCM under a random data key that is wrapped twice (by the master
+  password via PBKDF2-HMAC-SHA256 with 600,000 iterations, and by the recovery key via HKDF). The data
+  key lives only in memory and is zeroed when the vault locks. Changing the password only re-wraps it.
+- The recovery endpoint is rate limited, audited and never logs or stores the key.
 - Each ciphertext is bound to its environment and secret name, so it cannot be moved between
   secrets without detection.
 - Reachable from the local machine only: listens on `127.0.0.1`, Docker publishes the port on
