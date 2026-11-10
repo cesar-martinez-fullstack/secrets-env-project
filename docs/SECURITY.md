@@ -55,6 +55,13 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
 6. **CSV (riesgo aceptado)**: el export CSV no neutraliza valores que empiezan por `=`, `+`, `-`, `@`
    (inyección de fórmulas al abrirlo en Excel). Prefijar con una comilla simple corrompería
    contraseñas legítimas, así que el menú de exportación avisa en la propia interfaz (ISS-013).
+7. **Paquete para compartir (ADR-0009)**: el archivo `.svshare` va cifrado con una clave derivada de
+   la frase de paso (PBKDF2-SHA256, AES-256-GCM); su confidencialidad es exactamente la de esa frase,
+   que exige 12 caracteres y que SecretVault nunca guarda. Quien tenga archivo y frase conserva el
+   acceso y no hay revocación. Un archivo hostil no puede forzar un coste de KDF arbitrario
+   (iteraciones acotadas) ni colar nombres inválidos o repetidos (se revalidan al importar). Frase
+   incorrecta y archivo alterado dan el mismo error. Importar y previsualizar tienen límite de intentos
+   por IP.
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 
