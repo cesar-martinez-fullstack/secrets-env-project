@@ -69,6 +69,9 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
    JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
    archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
+   Lo mismo vale para el nombre, el acento y el tema por defecto (F-131): `GET /api/settings` los devuelve sin
+   sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
+   control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 

@@ -10,12 +10,14 @@ import { passwordStrength } from '@secretvault/shared';
 import { useVaultStore } from '@/stores/vault';
 import type { MessageKey } from '@/i18n/catalogs';
 import { useToastStore } from '@/stores/toast';
+import { useSettingsStore } from '@/stores/settings';
 import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
 
 const router = useRouter();
 const vault = useVaultStore();
+const settings = useSettingsStore();
 const toast = useToastStore();
 const { t, describeError, localeStore } = useI18n();
 
@@ -117,7 +119,7 @@ async function submit(): Promise<void> {
         <div class="mb-8 flex flex-col items-center text-center">
           <BrandMark :icon="vault.initialized ? 'unlock' : 'lock'" large class="mb-4" />
           <h1 class="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            SecretVault
+            {{ settings.current.appName }}
           </h1>
           <p class="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
             {{

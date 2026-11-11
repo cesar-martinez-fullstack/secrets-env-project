@@ -2,13 +2,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LOGO_MAX_BYTES, encodeBase64 } from '@secretvault/shared';
+import { DEFAULT_APPEARANCE, LOGO_MAX_BYTES, encodeBase64 } from '@secretvault/shared';
 import type { AuditQueryResultDto, SettingsDto } from '@secretvault/shared';
 import { createApp } from '../../src/app';
 import { createContainer, disposeContainer, type Container } from '../../src/container';
 import { makeTestConfig } from '../helpers/test-config';
 
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+
+const APPEARANCE = { appName: 'Mi Bóveda', accent: 'violet', defaultTheme: 'dark' } as const;
 
 let root: string;
 let container: Container;
@@ -46,7 +48,11 @@ describe('settings API', () => {
     const res = await request('GET', '/api/settings', undefined, false);
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ hasLogo: false, logoVersion: null } satisfies SettingsDto);
+    expect(await res.json()).toEqual({
+      hasLogo: false,
+      logoVersion: null,
+      ...DEFAULT_APPEARANCE,
+    } satisfies SettingsDto);
   });
 
   it('should answer 404 for the logo while none is set', async () => {
@@ -113,6 +119,36 @@ describe('settings API', () => {
     const changed = events.find((event) => event.type === 'settings.logo_changed');
     expect(changed).toBeDefined();
     expect(changed?.message).not.toContain(encodeBase64(PNG));
+  });
+
+  it('should require an unlocked vault to change the appearance', async () => {
+    const res = await request('PUT', '/api/settings/appearance', APPEARANCE, false);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('should reject an invalid appearance', async () => {
+    for (const body of [
+      { ...APPEARANCE, appName: '' },
+      { ...APPEARANCE, accent: 'red; background: url(x)' },
+      { ...APPEARANCE, defaultTheme: 'sepia' },
+      {},
+    ]) {
+      expect((await request('PUT', '/api/settings/appearance', body)).status).toBe(400);
+    }
+  });
+
+  it('should store the appearance, expose it without a session and keep it after a restart', async () => {
+    const saved = await request('PUT', '/api/settings/appearance', APPEARANCE);
+    expect(saved.status).toBe(200);
+
+    const reopened = createContainer(makeTestConfig(root));
+    try {
+      const res = await createApp(reopened).request('/api/settings');
+      expect(await res.json()).toMatchObject(APPEARANCE);
+    } finally {
+      disposeContainer(reopened);
+    }
   });
 
   it('should remove the logo', async () => {

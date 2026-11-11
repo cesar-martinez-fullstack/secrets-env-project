@@ -1,16 +1,20 @@
 /**
- * Store de tema. Sin preferencia guardada sigue al sistema operativo; al alternar se guarda la elección.
+ * Store de tema. La elección de la persona (guardada en el navegador) manda; sin ella se usa el
+ * tema por defecto de la instancia, y "system" sigue al sistema operativo.
  */
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect } from 'vue';
+import { isThemeMode } from '@secretvault/shared';
+import type { ThemeMode } from '@secretvault/shared';
+import { useSettingsStore } from '@/stores/settings';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type { ThemeMode };
 
 const STORAGE_KEY = 'sv-theme';
 
-function readStoredMode(): ThemeMode {
+function readStoredMode(): ThemeMode | null {
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === 'light' || stored === 'dark' ? stored : 'system';
+  return isThemeMode(stored) ? stored : null;
 }
 
 function detectSystemDark(): boolean {
@@ -18,8 +22,11 @@ function detectSystemDark(): boolean {
 }
 
 export const useThemeStore = defineStore('theme', () => {
-  const mode = ref<ThemeMode>(readStoredMode());
+  const settings = useSettingsStore();
+  const chosen = ref<ThemeMode | null>(readStoredMode());
   const systemDark = ref(detectSystemDark());
+
+  const mode = computed<ThemeMode>(() => chosen.value ?? settings.current.defaultTheme);
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
     systemDark.value = event.matches;
@@ -34,7 +41,7 @@ export const useThemeStore = defineStore('theme', () => {
   });
 
   function setMode(next: ThemeMode): void {
-    mode.value = next;
+    chosen.value = next;
     localStorage.setItem(STORAGE_KEY, next);
   }
 

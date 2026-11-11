@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from 'bun:test';
-import { LOGO_MAX_BYTES } from '@secretvault/shared';
+import { DEFAULT_APPEARANCE, LOGO_MAX_BYTES } from '@secretvault/shared';
 import { SettingsService } from '../../src/usecases/settings-service';
-import { LogoInvalidError } from '../../src/domain/errors';
+import { LogoInvalidError, ValidationFailedError } from '../../src/domain/errors';
 import type { InstanceSettings } from '../../src/domain/entities';
 import type { SettingsRepository } from '../../src/ports/repositories';
 import { mockAuditRepo } from '../helpers/mocks';
@@ -17,7 +17,7 @@ describe('SettingsService', () => {
   let service: SettingsService;
 
   beforeEach(() => {
-    stored = { logo: null };
+    stored = { logo: null, appearance: DEFAULT_APPEARANCE };
     save = jest.fn(async (next: InstanceSettings) => {
       stored = next;
     });
@@ -73,7 +73,10 @@ describe('SettingsService', () => {
 
   describe('removeLogo', () => {
     it('should clear the logo and audit it', async () => {
-      stored = { logo: { mimeType: 'image/png', data: PNG, updatedAt: NOW } };
+      stored = {
+        logo: { mimeType: 'image/png', data: PNG, updatedAt: NOW },
+        appearance: DEFAULT_APPEARANCE,
+      };
 
       await service.removeLogo();
 
@@ -89,9 +92,50 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('updateAppearance', () => {
+    const valid = { appName: '  Mi Bóveda  ', accent: 'teal', defaultTheme: 'dark' } as const;
+
+    it('should store the trimmed name, accent and default theme and audit it', async () => {
+      await service.updateAppearance(valid);
+
+      expect(stored.appearance).toEqual({
+        appName: 'Mi Bóveda',
+        accent: 'teal',
+        defaultTheme: 'dark',
+      });
+      expect(audit.record).toHaveBeenCalledWith('settings.appearance_changed', expect.any(String));
+    });
+
+    it('should keep the logo when the appearance changes', async () => {
+      stored = { ...stored, logo: { mimeType: 'image/png', data: PNG, updatedAt: NOW } };
+
+      await service.updateAppearance(valid);
+
+      expect(stored.logo?.mimeType).toBe('image/png');
+    });
+
+    it.each([
+      ['an empty name', { ...valid, appName: '   ' }],
+      ['a name over the limit', { ...valid, appName: 'x'.repeat(41) }],
+      ['a name with a line break', { ...valid, appName: 'a\nb' }],
+      ['an unknown accent', { ...valid, accent: 'red; background: url(x)' }],
+      ['an unknown theme', { ...valid, defaultTheme: 'sepia' }],
+    ])('should reject %s', async (_label, input) => {
+      await expect(
+        service.updateAppearance(
+          input as unknown as Parameters<typeof service.updateAppearance>[0],
+        ),
+      ).rejects.toThrow(ValidationFailedError);
+      expect(save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('get', () => {
     it('should return the stored settings', async () => {
-      stored = { logo: { mimeType: 'image/png', data: PNG, updatedAt: NOW } };
+      stored = {
+        logo: { mimeType: 'image/png', data: PNG, updatedAt: NOW },
+        appearance: DEFAULT_APPEARANCE,
+      };
 
       expect((await service.get()).logo?.mimeType).toBe('image/png');
     });

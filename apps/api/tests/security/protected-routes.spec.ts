@@ -65,6 +65,7 @@ export const ROUTE_MANIFEST: string[] = [
   'GET /api/audit',
   'GET /api/settings',
   'GET /api/settings/logo',
+  'PUT /api/settings/appearance',
   'PUT /api/settings/logo',
   'DELETE /api/settings/logo',
 ];

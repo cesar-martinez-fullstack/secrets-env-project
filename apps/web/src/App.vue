@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
+import { useThemeStore } from '@/stores/theme';
 import ToastHost from '@/components/ui/ToastHost.vue';
 import RecoveryKeyDialog from '@/components/vault/RecoveryKeyDialog.vue';
 
 const settings = useSettingsStore();
+useThemeStore();
 onMounted(() => void settings.load());
 </script>
 

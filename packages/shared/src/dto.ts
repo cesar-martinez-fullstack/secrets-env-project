@@ -3,6 +3,7 @@
  * Los valores de secretos NUNCA viajan en estos DTOs salvo en la respuesta
  * explícita de "reveal" (y en los archivos de exportación, bajo demanda).
  */
+import type { Appearance } from './appearance';
 import type { AuditEventType, ExportFormat } from './constants';
 
 export interface ApiErrorBody {
@@ -205,10 +206,12 @@ export interface ShareImportResultDto {
   skippedCount: number;
 }
 
-export interface SettingsDto {
+export interface SettingsDto extends Appearance {
   hasLogo: boolean;
   logoVersion: number | null;
 }
+
+export type UpdateAppearanceRequestDto = Appearance;
 
 export interface SetLogoRequestDto {
   data: string;

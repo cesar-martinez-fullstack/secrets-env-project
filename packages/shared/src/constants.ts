@@ -72,7 +72,8 @@ export type AuditEventType =
   | 'share.exported'
   | 'share.imported'
   | 'settings.logo_changed'
-  | 'settings.logo_removed';
+  | 'settings.logo_removed'
+  | 'settings.appearance_changed';
 
 export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.setup',
@@ -100,6 +101,7 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'share.imported',
   'settings.logo_changed',
   'settings.logo_removed',
+  'settings.appearance_changed',
 ];
 
 /** Máximo de eventos de auditoría retenidos en la base de datos (se podan los más antiguos). */

@@ -8,6 +8,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
 import { useI18n } from '@/i18n/use-i18n';
 import { useDataStore } from '@/stores/data';
+import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 
 const emit = defineEmits<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 
 const data = useDataStore();
 const theme = useThemeStore();
+const settings = useSettingsStore();
 const { t, localeStore } = useI18n();
 
 const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
@@ -30,12 +32,12 @@ const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
   >
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
       <!-- Marca -->
-      <RouterLink to="/vault" class="flex items-center gap-2.5" title="SecretVault">
+      <RouterLink to="/vault" class="flex items-center gap-2.5" :title="settings.current.appName">
         <BrandMark />
         <span
           class="hidden text-[15px] font-semibold tracking-tight text-zinc-900 sm:block dark:text-zinc-100"
         >
-          SecretVault
+          {{ settings.current.appName }}
         </span>
       </RouterLink>
 
