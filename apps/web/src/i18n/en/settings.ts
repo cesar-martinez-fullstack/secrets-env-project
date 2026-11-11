@@ -1,0 +1,18 @@
+import type { settings as base } from '../es/settings';
+
+export const settings: Record<keyof typeof base, string> = {
+  'topbar.settings': 'Settings',
+  'settings.title': 'Settings',
+  'settings.logo': 'Logo',
+  'settings.logoHint':
+    'Shown on the entry screen and in the top bar. PNG, JPEG or WebP of up to 256 KB.',
+  'settings.logoPublic':
+    'It is stored outside the vault: anyone who opens the app on this computer will see it even while it is locked.',
+  'settings.logoAlt': 'Application logo',
+  'settings.choose': 'Choose image',
+  'settings.replace': 'Change image',
+  'settings.remove': 'Remove logo',
+  'settings.logoSaved': 'Logo updated',
+  'settings.logoRemoved': 'Logo removed',
+  'settings.logoFailed': 'Could not save the logo',
+};

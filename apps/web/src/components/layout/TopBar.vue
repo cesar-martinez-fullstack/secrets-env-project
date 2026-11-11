@@ -5,6 +5,7 @@
  */
 import { computed } from 'vue';
 import AppIcon from '@/components/AppIcon.vue';
+import BrandMark from '@/components/ui/BrandMark.vue';
 import { useI18n } from '@/i18n/use-i18n';
 import { useDataStore } from '@/stores/data';
 import { useThemeStore } from '@/stores/theme';
@@ -12,6 +13,7 @@ import { useThemeStore } from '@/stores/theme';
 const emit = defineEmits<{
   'create-secret': [];
   security: [];
+  settings: [];
   lock: [];
 }>();
 
@@ -29,11 +31,7 @@ const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
       <!-- Marca -->
       <RouterLink to="/vault" class="flex items-center gap-2.5" title="SecretVault">
-        <span
-          class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
-        >
-          <AppIcon name="lock" :size="18" />
-        </span>
+        <BrandMark />
         <span
           class="hidden text-[15px] font-semibold tracking-tight text-zinc-900 sm:block dark:text-zinc-100"
         >
@@ -97,6 +95,17 @@ const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
         >
           <AppIcon name="history" />
         </RouterLink>
+
+        <button
+          type="button"
+          class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          :title="t('topbar.settings')"
+          :aria-label="t('topbar.settings')"
+          data-testid="open-settings"
+          @click="emit('settings')"
+        >
+          <AppIcon name="settings" />
+        </button>
 
         <button
           type="button"

@@ -34,6 +34,7 @@ export const common = {
   'error.SECRET_VALUE_REQUIRED': 'El valor del secreto es obligatorio.',
   'error.SHARE_PACKAGE_INVALID':
     'No se pudo abrir el archivo: la frase de paso es incorrecta o el archivo no es válido.',
+  'error.LOGO_INVALID': 'El logo debe ser una imagen PNG, JPEG o WebP de hasta 256 KB.',
   'error.VALIDATION_FAILED': 'Algún dato no es válido.',
   'error.RATE_LIMITED': 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
   'error.NOT_FOUND': 'No se encontró lo que buscabas.',

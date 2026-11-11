@@ -36,6 +36,7 @@ export const common: Record<keyof typeof base, string> = {
   'error.SECRET_VALUE_REQUIRED': 'The secret value is required.',
   'error.SHARE_PACKAGE_INVALID':
     'The file could not be opened: the passphrase is wrong or the file is not valid.',
+  'error.LOGO_INVALID': 'The logo must be a PNG, JPEG or WebP image of up to 256 KB.',
   'error.VALIDATION_FAILED': 'Some data is not valid.',
   'error.RATE_LIMITED': 'Too many attempts. Wait a moment and try again.',
   'error.NOT_FOUND': 'What you were looking for was not found.',
