@@ -33,6 +33,10 @@ Cuatro piezas independientes, para que cada una cambie sin arrastrar a las demá
   con claves tipadas. El catálogo inglés es `Record<MessageKey, string>`, así que el typecheck falla si falta una
   clave, y un test comprueba que ambos idiomas usan los mismos marcadores `{nombre}`. Los códigos de error del
   API se traducen en el cliente (`error.<CODIGO>`); si el idioma es el base se muestra el mensaje del servidor.
+- **Ajustes de instancia (F-130):** `settings.json` en la carpeta de datos, versionado (`version: 1`), con escritura
+  atómica (archivo temporal y renombrado, modo 0600). El puerto `SettingsRepository` está en `core` y el adaptador
+  de archivo en `database`. Las lecturas son públicas y los cambios exigen la bóveda abierta. Un archivo ilegible
+  vuelve a los valores por defecto en vez de impedir el arranque.
 - **Dónde se guarda el idioma:** por ahora en el navegador (`localStorage`), como el tema. Pasará a los ajustes de
   instancia cuando exista el puerto de ajustes (F-130).
 

@@ -64,6 +64,12 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    por IP. Al mezclar en un proyecto existente, sobrescribir exige una petición explícita (por defecto se
    omite) y los secretos recibidos quedan marcados como importados hasta que se edite su valor.
 
+8. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
+   la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
+   `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
+   JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
+   archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
+
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 
 1. ¿Nueva ruta? → actualizar `ROUTE_MANIFEST` + decidir si es pública (revisión).
