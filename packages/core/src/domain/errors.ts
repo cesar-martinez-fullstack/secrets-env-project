@@ -153,6 +153,12 @@ export class ValidationFailedError extends DomainError {
   }
 }
 
+export class LogoInvalidError extends DomainError {
+  constructor() {
+    super('LOGO_INVALID', 'El logo debe ser una imagen PNG, JPEG o WebP de hasta 256 KB.', 400);
+  }
+}
+
 export class SharePackageInvalidError extends DomainError {
   constructor() {
     super(

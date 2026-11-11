@@ -6,6 +6,7 @@ import type {
   AuditEvent,
   Environment,
   EnvironmentWithCount,
+  InstanceSettings,
   Project,
   ProjectWithCount,
   SecretRecord,
@@ -77,4 +78,11 @@ export interface AuditRepository {
   count(): Promise<number>;
   /** Podar eventos antiguos más allá del máximo retenido. */
   prune(max: number): Promise<void>;
+}
+
+/** Ajustes de la instancia: viven fuera de la bóveda y se leen antes de desbloquearla. */
+export interface SettingsRepository {
+  /** Devuelve los valores por defecto si todavía no hay nada guardado. */
+  load(): Promise<InstanceSettings>;
+  save(settings: InstanceSettings): Promise<void>;
 }
