@@ -34,4 +34,10 @@ export const settings: Record<keyof typeof base, string> = {
   'settings.saveAppearance': 'Save appearance',
   'settings.appearanceSaved': 'Appearance updated',
   'settings.appearanceFailed': 'Could not save the appearance',
+  'settings.preview.title': 'Preview',
+  'settings.preview.hint':
+    'This is how the interface will look with your choices; it applies when you save.',
+  'settings.preview.project': 'Project',
+  'settings.preview.reveal': 'Show',
+  'settings.preview.newSecret': 'New secret',
 };

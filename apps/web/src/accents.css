@@ -1,6 +1,20 @@
 /* Acentos: la interfaz usa la paleta indigo; cada acento la reasigna a otra paleta de Tailwind. */
 
-:root[data-accent='blue'] {
+[data-accent='indigo'] {
+  --color-indigo-50: oklch(96.2% 0.018 272.314);
+  --color-indigo-100: oklch(93% 0.034 272.788);
+  --color-indigo-200: oklch(87% 0.065 274.039);
+  --color-indigo-300: oklch(78.5% 0.115 274.713);
+  --color-indigo-400: oklch(67.3% 0.182 276.935);
+  --color-indigo-500: oklch(58.5% 0.233 277.117);
+  --color-indigo-600: oklch(51.1% 0.262 276.966);
+  --color-indigo-700: oklch(45.7% 0.24 277.023);
+  --color-indigo-800: oklch(39.8% 0.195 277.366);
+  --color-indigo-900: oklch(35.9% 0.144 278.697);
+  --color-indigo-950: oklch(25.7% 0.09 281.288);
+}
+
+[data-accent='blue'] {
   --color-indigo-50: oklch(97% 0.014 254.604);
   --color-indigo-100: oklch(93.2% 0.032 255.585);
   --color-indigo-200: oklch(88.2% 0.059 254.128);
@@ -14,7 +28,7 @@
   --color-indigo-950: oklch(28.2% 0.091 267.935);
 }
 
-:root[data-accent='teal'] {
+[data-accent='teal'] {
   --color-indigo-50: oklch(98.4% 0.014 180.72);
   --color-indigo-100: oklch(95.3% 0.051 180.801);
   --color-indigo-200: oklch(91% 0.096 180.426);
@@ -28,7 +42,7 @@
   --color-indigo-950: oklch(27.7% 0.046 192.524);
 }
 
-:root[data-accent='emerald'] {
+[data-accent='emerald'] {
   --color-indigo-50: oklch(97.9% 0.021 166.113);
   --color-indigo-100: oklch(95% 0.052 163.051);
   --color-indigo-200: oklch(90.5% 0.093 164.15);
@@ -42,7 +56,7 @@
   --color-indigo-950: oklch(26.2% 0.051 172.552);
 }
 
-:root[data-accent='violet'] {
+[data-accent='violet'] {
   --color-indigo-50: oklch(96.9% 0.016 293.756);
   --color-indigo-100: oklch(94.3% 0.029 294.588);
   --color-indigo-200: oklch(89.4% 0.057 293.283);
@@ -56,7 +70,7 @@
   --color-indigo-950: oklch(28.3% 0.141 291.089);
 }
 
-:root[data-accent='rose'] {
+[data-accent='rose'] {
   --color-indigo-50: oklch(96.9% 0.015 12.422);
   --color-indigo-100: oklch(94.1% 0.03 12.58);
   --color-indigo-200: oklch(89.2% 0.058 10.001);
@@ -70,7 +84,7 @@
   --color-indigo-950: oklch(27.1% 0.105 12.094);
 }
 
-:root[data-accent='orange'] {
+[data-accent='orange'] {
   --color-indigo-50: oklch(98% 0.016 73.684);
   --color-indigo-100: oklch(95.4% 0.038 75.164);
   --color-indigo-200: oklch(90.1% 0.076 70.697);

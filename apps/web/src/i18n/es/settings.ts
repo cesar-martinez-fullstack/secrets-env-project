@@ -32,4 +32,9 @@ export const settings = {
   'settings.saveAppearance': 'Guardar apariencia',
   'settings.appearanceSaved': 'Apariencia actualizada',
   'settings.appearanceFailed': 'No se pudo guardar la apariencia',
+  'settings.preview.title': 'Vista previa',
+  'settings.preview.hint': 'Así se verá la interfaz con lo que has elegido; se aplica al guardar.',
+  'settings.preview.project': 'Proyecto',
+  'settings.preview.reveal': 'Ver',
+  'settings.preview.newSecret': 'Nuevo secreto',
 } as const;
