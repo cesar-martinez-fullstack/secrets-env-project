@@ -5,12 +5,13 @@
 import { Hono } from 'hono';
 import { ValidationFailedError, type InstanceSettings } from '@secretvault/core';
 import { decodeBase64 } from '@secretvault/shared';
-import type { SettingsDto } from '@secretvault/shared';
+import type { SettingsDto, UpdateAppearanceRequestDto } from '@secretvault/shared';
 import { jsonResponse, readJsonBody, requireString } from '../http/helpers';
 import { requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
 
-const toDto = ({ logo }: InstanceSettings): SettingsDto => ({
+const toDto = ({ logo, appearance }: InstanceSettings): SettingsDto => ({
+  ...appearance,
   hasLogo: logo !== null,
   logoVersion: logo ? logo.updatedAt.getTime() : null,
 });
@@ -37,6 +38,16 @@ export function settingsRoutes(container: Container): Hono<AppEnv> {
         'Cross-Origin-Resource-Policy': 'same-origin',
       },
     });
+  });
+
+  app.put('/appearance', requireUnlocked(container), async (c) => {
+    const body = await readJsonBody<Partial<UpdateAppearanceRequestDto>>(c);
+    await settingsService.updateAppearance({
+      appName: body.appName as string,
+      accent: body.accent as UpdateAppearanceRequestDto['accent'],
+      defaultTheme: body.defaultTheme as UpdateAppearanceRequestDto['defaultTheme'],
+    });
+    return jsonResponse(c, toDto(await settingsService.get()));
   });
 
   app.put('/logo', requireUnlocked(container), async (c) => {
