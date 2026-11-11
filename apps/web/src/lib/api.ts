@@ -28,6 +28,7 @@ import type {
   UpdateSecretRequestDto,
   SetLogoRequestDto,
   SettingsDto,
+  UpdateAppearanceRequestDto,
   SetupVaultResponseDto,
   UnlockVaultResponseDto,
   ValidationIssue,
@@ -192,6 +193,12 @@ export const api = {
     request<SettingsDto>('/api/settings/logo', {
       method: 'PUT',
       body: JSON.stringify({ data } satisfies SetLogoRequestDto),
+    }),
+
+  updateAppearance: (appearance: UpdateAppearanceRequestDto) =>
+    request<SettingsDto>('/api/settings/appearance', {
+      method: 'PUT',
+      body: JSON.stringify(appearance),
     }),
 
   removeLogo: () => request<SettingsDto>('/api/settings/logo', { method: 'DELETE' }),
