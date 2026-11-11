@@ -6,3 +6,4 @@ export * from './parse-env';
 export * from './recovery-key';
 export * from './share-package';
 export * from './logo';
+export * from './appearance';

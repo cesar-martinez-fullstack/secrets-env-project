@@ -2,22 +2,27 @@ import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { InstanceSettings, SettingsRepository, StoredLogo } from '@secretvault/core';
 import {
+  DEFAULT_APPEARANCE,
   LOGO_MAX_BYTES,
   LOGO_MIME_TYPES,
   decodeBase64,
   detectLogoType,
   encodeBase64,
+  isAccent,
+  isThemeMode,
+  isValidAppName,
 } from '@secretvault/shared';
-import type { LogoMimeType } from '@secretvault/shared';
+import type { Appearance, LogoMimeType } from '@secretvault/shared';
 
 const SETTINGS_FILE = 'settings.json';
 const FORMAT_VERSION = 1;
 
-const DEFAULTS: InstanceSettings = { logo: null };
+const DEFAULTS: InstanceSettings = { logo: null, appearance: DEFAULT_APPEARANCE };
 
 interface StoredDocument {
   version: number;
   logo: { mimeType: string; data: string; updatedAt: string } | null;
+  appearance?: Partial<Appearance>;
 }
 
 const isLogoMimeType = (value: unknown): value is LogoMimeType =>
@@ -53,6 +58,19 @@ function parseLogo(raw: unknown): StoredLogo | null {
   return { mimeType: fields.mimeType, data: bytes, updatedAt };
 }
 
+/** Cada campo inválido o ausente vuelve a su valor por defecto: el archivo es editable a mano. */
+function parseAppearance(raw: Partial<Appearance> | undefined): Appearance {
+  const { appName, accent, defaultTheme } = raw ?? {};
+  return {
+    appName:
+      typeof appName === 'string' && isValidAppName(appName)
+        ? appName.trim()
+        : DEFAULT_APPEARANCE.appName,
+    accent: isAccent(accent) ? accent : DEFAULT_APPEARANCE.accent,
+    defaultTheme: isThemeMode(defaultTheme) ? defaultTheme : DEFAULT_APPEARANCE.defaultTheme,
+  };
+}
+
 export class FileSettingsRepository implements SettingsRepository {
   private readonly path: string;
 
@@ -69,7 +87,7 @@ export class FileSettingsRepository implements SettingsRepository {
     }
     try {
       const parsed = JSON.parse(text) as Partial<StoredDocument>;
-      return { logo: parseLogo(parsed.logo) };
+      return { logo: parseLogo(parsed.logo), appearance: parseAppearance(parsed.appearance) };
     } catch {
       return DEFAULTS;
     }
@@ -78,6 +96,7 @@ export class FileSettingsRepository implements SettingsRepository {
   async save(settings: InstanceSettings): Promise<void> {
     const document: StoredDocument = {
       version: FORMAT_VERSION,
+      appearance: settings.appearance,
       logo: settings.logo && {
         mimeType: settings.logo.mimeType,
         data: encodeBase64(settings.logo.data),

@@ -2,7 +2,7 @@
  * Entidades de dominio de SecretVault.
  * Este paquete NO conoce HTTP, Bun, Vue ni SQLite: solo reglas de negocio puras.
  */
-import type { AuditEventType, LogoMimeType } from '@secretvault/shared';
+import type { Appearance, AuditEventType, LogoMimeType } from '@secretvault/shared';
 
 /** Registro único de la bóveda (fila id=1 en la base de datos). */
 export interface VaultInfo {
@@ -164,4 +164,5 @@ export interface StoredLogo {
 
 export interface InstanceSettings {
   logo: StoredLogo | null;
+  appearance: Appearance;
 }

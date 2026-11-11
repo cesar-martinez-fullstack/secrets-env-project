@@ -1,7 +1,8 @@
-import { LOGO_MAX_BYTES, detectLogoType } from '@secretvault/shared';
+import { LOGO_MAX_BYTES, detectLogoType, validateAppearance } from '@secretvault/shared';
+import type { Appearance } from '@secretvault/shared';
 import type { AuditRepository, SettingsRepository } from '../ports/repositories';
 import type { InstanceSettings } from '../domain/entities';
-import { LogoInvalidError } from '../domain/errors';
+import { LogoInvalidError, ValidationFailedError } from '../domain/errors';
 
 export interface SettingsServiceDeps {
   settings: SettingsRepository;
@@ -18,6 +19,21 @@ export class SettingsService {
 
   get(): Promise<InstanceSettings> {
     return this.deps.settings.load();
+  }
+
+  async updateAppearance(appearance: Appearance): Promise<void> {
+    const issues = validateAppearance(appearance);
+    if (issues.length > 0) throw new ValidationFailedError(issues);
+
+    const current = await this.deps.settings.load();
+    await this.deps.settings.save({
+      ...current,
+      appearance: { ...appearance, appName: appearance.appName.trim() },
+    });
+    await this.deps.audit.record(
+      'settings.appearance_changed',
+      'Apariencia de la aplicación actualizada.',
+    );
   }
 
   async setLogo(data: Uint8Array): Promise<void> {
