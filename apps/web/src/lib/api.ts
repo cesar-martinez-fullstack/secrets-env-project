@@ -26,6 +26,8 @@ import type {
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
+  SetLogoRequestDto,
+  SettingsDto,
   SetupVaultResponseDto,
   UnlockVaultResponseDto,
   ValidationIssue,
@@ -182,6 +184,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  // ── Ajustes ───────────────────────────────────────────────────────────
+  getSettings: () => request<SettingsDto>('/api/settings'),
+
+  setLogo: (data: string) =>
+    request<SettingsDto>('/api/settings/logo', {
+      method: 'PUT',
+      body: JSON.stringify({ data } satisfies SetLogoRequestDto),
+    }),
+
+  removeLogo: () => request<SettingsDto>('/api/settings/logo', { method: 'DELETE' }),
 
   // ── Compartir ─────────────────────────────────────────────────────────
   exportShare: (target: 'projects' | 'environments', id: number, passphrase: string) =>

@@ -8,6 +8,7 @@ import {
   EnvironmentService,
   ProjectService,
   SecretService,
+  SettingsService,
   ShareService,
   VaultService,
   type SessionStore,
@@ -16,6 +17,7 @@ import { NodeCryptoService } from '@secretvault/crypto';
 import {
   closeDatabase,
   createRepositories,
+  FileSettingsRepository,
   openDatabase,
   SqliteUnitOfWork,
   type SqliteDatabase,
@@ -33,6 +35,7 @@ export interface Container {
   environmentService: EnvironmentService;
   secretService: SecretService;
   shareService: ShareService;
+  settingsService: SettingsService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
@@ -90,6 +93,11 @@ export function createContainer(config: ApiConfig): Container {
     unitOfWork,
   });
 
+  const settingsService = new SettingsService({
+    settings: new FileSettingsRepository(config.dataDir),
+    audit: repositories.audit,
+  });
+
   const auditService = new AuditService({ audit: repositories.audit });
 
   return {
@@ -101,6 +109,7 @@ export function createContainer(config: ApiConfig): Container {
     environmentService,
     secretService,
     shareService,
+    settingsService,
     auditService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).

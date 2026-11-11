@@ -22,6 +22,7 @@ import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
 import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
 import SecurityModal from '@/components/vault/SecurityModal.vue';
+import SettingsModal from '@/components/vault/SettingsModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -47,6 +48,7 @@ const importOpen = ref(false);
 const shareTarget = ref<ShareTarget | null>(null);
 const shareImportOpen = ref(false);
 const securityOpen = ref(false);
+const settingsOpen = ref(false);
 
 const confirmState = ref<{
   open: boolean;
@@ -198,7 +200,12 @@ async function runConfirm(): Promise<void> {
 
 <template>
   <div class="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-    <TopBar @create-secret="openCreateSecret" @security="securityOpen = true" @lock="handleLock" />
+    <TopBar
+      @create-secret="openCreateSecret"
+      @security="securityOpen = true"
+      @settings="settingsOpen = true"
+      @lock="handleLock"
+    />
 
     <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
       <ProjectSidebar
@@ -322,6 +329,7 @@ async function runConfirm(): Promise<void> {
     />
     <ShareImportModal :open="shareImportOpen" @close="shareImportOpen = false" />
     <SecurityModal :open="securityOpen" @close="securityOpen = false" />
+    <SettingsModal :open="settingsOpen" @close="settingsOpen = false" />
     <ProjectFormModal
       :open="projectModalOpen"
       :editing="projectModalEditing"

@@ -12,6 +12,7 @@ import type { MessageKey } from '@/i18n/catalogs';
 import { useToastStore } from '@/stores/toast';
 import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
+import BrandMark from '@/components/ui/BrandMark.vue';
 
 const router = useRouter();
 const vault = useVaultStore();
@@ -114,11 +115,7 @@ async function submit(): Promise<void> {
       <div v-if="ready" class="card w-full max-w-sm p-8">
         <!-- Logo -->
         <div class="mb-8 flex flex-col items-center text-center">
-          <div
-            class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-          >
-            <AppIcon :name="vault.initialized ? 'unlock' : 'lock'" :size="26" />
-          </div>
+          <BrandMark :icon="vault.initialized ? 'unlock' : 'lock'" large class="mb-4" />
           <h1 class="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             SecretVault
           </h1>

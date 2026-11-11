@@ -205,6 +205,15 @@ export interface ShareImportResultDto {
   skippedCount: number;
 }
 
+export interface SettingsDto {
+  hasLogo: boolean;
+  logoVersion: number | null;
+}
+
+export interface SetLogoRequestDto {
+  data: string;
+}
+
 export interface ShareFileDto {
   filename: string;
   content: string;
