@@ -21,6 +21,10 @@ import { createContainer, disposeContainer, type Container } from '../../src/con
 export const PUBLIC_ROUTES = new Set<string>([
   'GET /api/health',
   'GET /api/vault/status',
+  // Marca visible antes de desbloquear (logo): solo lectura, sin datos de la bóveda; servido como
+  // imagen validada por firma con nosniff y CSP sandbox.
+  'GET /api/settings',
+  'GET /api/settings/logo',
   'POST /api/vault/setup',
   'POST /api/vault/unlock',
   'POST /api/vault/lock', // idempotente por diseño (bloquea si hay sesión)
@@ -59,6 +63,10 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/share/import',
   'GET /api/secrets/export',
   'GET /api/audit',
+  'GET /api/settings',
+  'GET /api/settings/logo',
+  'PUT /api/settings/logo',
+  'DELETE /api/settings/logo',
 ];
 
 const SRC_ROUTES = join(import.meta.dir, '..', '..', 'src', 'routes');
@@ -67,7 +75,7 @@ function scanRouteFiles(): string[] {
   const found: string[] = [];
   // app.ts registra /api/health fuera del directorio routes/ — se escanea también.
   const appTs = readFileSync(join(import.meta.dir, '..', '..', 'src', 'app.ts'), 'utf8');
-  for (const match of appTs.matchAll(/app\.(get|post|patch|delete)\(\s*'([^']*)'/g)) {
+  for (const match of appTs.matchAll(/app\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
     if (match[2] === '*') continue; // catch-all del SPA, no es una ruta del API
     found.push(`${match[1]!.toUpperCase()} ${match[2]!}`);
   }
@@ -78,9 +86,10 @@ function scanRouteFiles(): string[] {
     'secrets.routes.ts',
     'share.routes.ts',
     'audit.routes.ts',
+    'settings.routes.ts',
   ]) {
     const source = readFileSync(join(SRC_ROUTES, file), 'utf8');
-    for (const match of source.matchAll(/app\.(get|post|patch|delete)\(\s*'([^']*)'/g)) {
+    for (const match of source.matchAll(/app\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
       const prefix =
         file === 'vault.routes.ts'
           ? '/api/vault'
@@ -92,7 +101,9 @@ function scanRouteFiles(): string[] {
                 ? '/api/share'
                 : file === 'secrets.routes.ts'
                   ? '/api/secrets'
-                  : '/api/audit';
+                  : file === 'settings.routes.ts'
+                    ? '/api/settings'
+                    : '/api/audit';
       const sub = match[2] === '/' ? '' : match[2]!;
       found.push(`${match[1]!.toUpperCase()} ${prefix}${sub}`);
     }
