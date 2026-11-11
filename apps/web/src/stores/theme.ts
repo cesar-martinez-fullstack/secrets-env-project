@@ -49,5 +49,5 @@ export const useThemeStore = defineStore('theme', () => {
     setMode(isDark.value ? 'light' : 'dark');
   }
 
-  return { mode, isDark, setMode, toggle };
+  return { mode, isDark, systemDark, setMode, toggle };
 });

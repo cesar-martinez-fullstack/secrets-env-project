@@ -11,7 +11,7 @@ const props = withDefaults(
   defineProps<{
     open: boolean;
     title: string;
-    maxWidth?: 'sm' | 'md' | 'lg';
+    maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
     /** `false` = no se cierra con Escape, clic externo ni botón (diálogos que exigen una acción). */
     dismissible?: boolean;
   }>(),
@@ -28,6 +28,7 @@ const maxClass = {
   sm: 'max-w-md',
   md: 'max-w-xl',
   lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
 } as const;
 
 function requestClose() {

@@ -6,6 +6,7 @@ import { useI18n } from '@/i18n/use-i18n';
 import { useSettingsStore } from '@/stores/settings';
 import { useToastStore } from '@/stores/toast';
 import BaseModal from '@/components/ui/BaseModal.vue';
+import AppearancePreview from '@/components/vault/AppearancePreview.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
 
 const props = defineProps<{ open: boolean }>();
@@ -68,112 +69,129 @@ const fieldLabel = 'block text-xs font-medium text-zinc-600 dark:text-zinc-400';
 </script>
 
 <template>
-  <BaseModal :open="open" :title="t('settings.title')" max-width="md" @close="emit('close')">
-    <div class="space-y-8">
-      <section class="space-y-3" data-testid="settings-logo">
-        <h3 :class="heading">{{ t('settings.logo') }}</h3>
-        <div class="flex items-center gap-4">
-          <BrandMark large />
-          <div class="flex flex-wrap gap-2">
-            <button type="button" :disabled="busy" :class="secondaryButton" @click="input?.click()">
-              {{ settings.current.hasLogo ? t('settings.replace') : t('settings.choose') }}
-            </button>
-            <button
-              v-if="settings.current.hasLogo"
-              type="button"
-              :disabled="busy"
-              :class="secondaryButton"
-              @click="
-                run(
-                  () => settings.removeLogo(),
-                  t('settings.logoRemoved'),
-                  t('settings.logoFailed'),
-                )
-              "
-            >
-              {{ t('settings.remove') }}
-            </button>
+  <BaseModal :open="open" :title="t('settings.title')" max-width="xl" @close="emit('close')">
+    <div class="grid gap-8 md:grid-cols-[1fr_18rem]">
+      <div class="space-y-8">
+        <section class="space-y-3" data-testid="settings-logo">
+          <h3 :class="heading">{{ t('settings.logo') }}</h3>
+          <div class="flex items-center gap-4">
+            <BrandMark large />
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                :disabled="busy"
+                :class="secondaryButton"
+                @click="input?.click()"
+              >
+                {{ settings.current.hasLogo ? t('settings.replace') : t('settings.choose') }}
+              </button>
+              <button
+                v-if="settings.current.hasLogo"
+                type="button"
+                :disabled="busy"
+                :class="secondaryButton"
+                @click="
+                  run(
+                    () => settings.removeLogo(),
+                    t('settings.logoRemoved'),
+                    t('settings.logoFailed'),
+                  )
+                "
+              >
+                {{ t('settings.remove') }}
+              </button>
+            </div>
           </div>
-        </div>
-        <input
-          ref="input"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          class="hidden"
-          data-testid="logo-input"
-          @change="onFile"
-        />
-        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ t('settings.logoHint') }}</p>
-        <p class="text-xs text-zinc-400">{{ t('settings.logoPublic') }}</p>
-      </section>
-
-      <form class="space-y-4" data-testid="settings-appearance" @submit.prevent="saveAppearance">
-        <h3 :class="heading">{{ t('settings.appearance') }}</h3>
-
-        <div class="space-y-1.5">
-          <label for="settings-app-name" :class="fieldLabel">{{ t('settings.appName') }}</label>
           <input
-            id="settings-app-name"
-            v-model="draft.appName"
-            type="text"
-            :maxlength="APP_NAME_MAX_LENGTH"
-            class="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            data-testid="app-name-input"
+            ref="input"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            class="hidden"
+            data-testid="logo-input"
+            @change="onFile"
           />
-        </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ t('settings.logoHint') }}</p>
+          <p class="text-xs text-zinc-400">{{ t('settings.logoPublic') }}</p>
+        </section>
 
-        <fieldset class="space-y-1.5">
-          <legend :class="fieldLabel">{{ t('settings.accent') }}</legend>
-          <div class="flex flex-wrap gap-2">
-            <label
-              v-for="accent in ACCENTS"
-              :key="accent"
-              class="cursor-pointer"
-              :title="t(`settings.accent.${accent}`)"
-            >
-              <input
-                v-model="draft.accent"
-                type="radio"
-                name="accent"
-                :value="accent"
-                class="peer sr-only"
-                :aria-label="t(`settings.accent.${accent}`)"
-                :data-testid="`accent-${accent}`"
-              />
-              <span
-                class="block h-8 w-8 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-white peer-checked:ring-zinc-900 peer-focus-visible:ring-zinc-500 dark:ring-offset-zinc-900 dark:peer-checked:ring-zinc-100"
-                :class="`accent-swatch-${accent}`"
-              />
-            </label>
+        <form class="space-y-4" data-testid="settings-appearance" @submit.prevent="saveAppearance">
+          <h3 :class="heading">{{ t('settings.appearance') }}</h3>
+
+          <div class="space-y-1.5">
+            <label for="settings-app-name" :class="fieldLabel">{{ t('settings.appName') }}</label>
+            <input
+              id="settings-app-name"
+              v-model="draft.appName"
+              type="text"
+              :maxlength="APP_NAME_MAX_LENGTH"
+              class="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              data-testid="app-name-input"
+            />
           </div>
-        </fieldset>
 
-        <div class="space-y-1.5">
-          <label for="settings-default-theme" :class="fieldLabel">
-            {{ t('settings.defaultTheme') }}
-          </label>
-          <select
-            id="settings-default-theme"
-            v-model="draft.defaultTheme"
-            class="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            data-testid="default-theme-select"
+          <fieldset class="space-y-1.5">
+            <legend :class="fieldLabel">{{ t('settings.accent') }}</legend>
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="accent in ACCENTS"
+                :key="accent"
+                class="cursor-pointer"
+                :title="t(`settings.accent.${accent}`)"
+              >
+                <input
+                  v-model="draft.accent"
+                  type="radio"
+                  name="accent"
+                  :value="accent"
+                  class="peer sr-only"
+                  :aria-label="t(`settings.accent.${accent}`)"
+                  :data-testid="`accent-${accent}`"
+                />
+                <span
+                  class="block h-8 w-8 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-white peer-checked:ring-zinc-900 peer-focus-visible:ring-zinc-500 dark:ring-offset-zinc-900 dark:peer-checked:ring-zinc-100"
+                  :class="`accent-swatch-${accent}`"
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="space-y-1.5">
+            <label for="settings-default-theme" :class="fieldLabel">
+              {{ t('settings.defaultTheme') }}
+            </label>
+            <select
+              id="settings-default-theme"
+              v-model="draft.defaultTheme"
+              class="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              data-testid="default-theme-select"
+            >
+              <option v-for="mode in THEME_MODES" :key="mode" :value="mode">
+                {{ t(`settings.theme.${mode}`) }}
+              </option>
+            </select>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ t('settings.themeHint') }}</p>
+          </div>
+
+          <button
+            type="submit"
+            :disabled="busy"
+            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            data-testid="save-appearance"
           >
-            <option v-for="mode in THEME_MODES" :key="mode" :value="mode">
-              {{ t(`settings.theme.${mode}`) }}
-            </option>
-          </select>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ t('settings.themeHint') }}</p>
-        </div>
+            {{ t('settings.saveAppearance') }}
+          </button>
+        </form>
+      </div>
 
-        <button
-          type="submit"
-          :disabled="busy"
-          class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-          data-testid="save-appearance"
-        >
-          {{ t('settings.saveAppearance') }}
-        </button>
-      </form>
+      <aside class="space-y-2 md:sticky md:top-0 md:self-start">
+        <h3 :class="heading">{{ t('settings.preview.title') }}</h3>
+        <AppearancePreview
+          :app-name="draft.appName"
+          :accent="draft.accent"
+          :theme="draft.defaultTheme"
+        />
+        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ t('settings.preview.hint') }}</p>
+      </aside>
     </div>
   </BaseModal>
 </template>
