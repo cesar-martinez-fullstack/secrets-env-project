@@ -12,6 +12,7 @@ import type { MessageKey } from '@/i18n/catalogs';
 import { useToastStore } from '@/stores/toast';
 import { useSettingsStore } from '@/stores/settings';
 import { useFirstRunStore } from '@/stores/first-run';
+import { useTourStore } from '@/stores/tour';
 import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
@@ -21,6 +22,7 @@ const router = useRouter();
 const vault = useVaultStore();
 const settings = useSettingsStore();
 const firstRun = useFirstRunStore();
+const tour = useTourStore();
 const toast = useToastStore();
 const { t, describeError, localeStore } = useI18n();
 
@@ -100,6 +102,7 @@ async function submit(): Promise<void> {
       await vault.setup(password.value);
       toast.push('success', t('unlock.toastCreatedTitle'), t('unlock.toastCreatedBody'));
       await applyWizardChoices();
+      tour.request();
     }
     await router.replace('/vault');
   } catch (err) {

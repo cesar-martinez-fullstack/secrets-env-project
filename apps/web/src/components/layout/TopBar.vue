@@ -42,7 +42,7 @@ const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
       </RouterLink>
 
       <!-- Buscador global -->
-      <div class="relative mx-auto w-full max-w-md">
+      <div class="relative mx-auto w-full max-w-md" data-tour="search">
         <AppIcon
           name="search"
           :size="16"
@@ -114,6 +114,7 @@ const nextLocale = computed(() => (localeStore.locale === 'es' ? 'en' : 'es'));
           class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
           :title="t('topbar.securityTitle')"
           :aria-label="t('topbar.security')"
+          data-tour="security"
           @click="emit('security')"
         >
           <AppIcon name="shield" />

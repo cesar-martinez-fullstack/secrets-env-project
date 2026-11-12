@@ -7,6 +7,7 @@ import { secrets as secretsEs } from './es/secrets';
 import { table as tableEs } from './es/table';
 import { vault as vaultEs } from './es/vault';
 import { wizard as wizardEs } from './es/wizard';
+import { tour as tourEs } from './es/tour';
 import { common as commonEn } from './en/common';
 import { security as securityEn } from './en/security';
 import { settings as settingsEn } from './en/settings';
@@ -16,6 +17,7 @@ import { secrets as secretsEn } from './en/secrets';
 import { table as tableEn } from './en/table';
 import { vault as vaultEn } from './en/vault';
 import { wizard as wizardEn } from './en/wizard';
+import { tour as tourEn } from './en/tour';
 import type { Locale } from './translate';
 
 export const es = {
@@ -28,6 +30,7 @@ export const es = {
   ...settingsEs,
   ...ioEs,
   ...wizardEs,
+  ...tourEs,
 };
 export type MessageKey = keyof typeof es;
 
@@ -41,6 +44,7 @@ export const en: Record<MessageKey, string> = {
   ...settingsEn,
   ...ioEn,
   ...wizardEn,
+  ...tourEn,
 };
 
 export const catalogs: Record<Locale, Record<string, string>> = { es, en };

@@ -49,7 +49,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
 </script>
 
 <template>
-  <div ref="root" class="relative">
+  <div ref="root" class="relative" data-tour="export">
     <button
       type="button"
       class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:disabled:hover:bg-zinc-900"

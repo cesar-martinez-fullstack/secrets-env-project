@@ -3,12 +3,13 @@
  * Vista principal: barra superior, sidebar de ambientes y tabla de secretos
  * con todos los modales (CRUD, importar, exportar, confirmaciones).
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { EnvironmentDto, ProjectDto, SecretDto } from '@secretvault/shared';
 import { useDataStore } from '@/stores/data';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
+import { useTourStore } from '@/stores/tour';
 import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue';
@@ -23,6 +24,7 @@ import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
 import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
 import SecurityModal from '@/components/vault/SecurityModal.vue';
 import SettingsModal from '@/components/vault/SettingsModal.vue';
+import TourOverlay from '@/components/ui/TourOverlay.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -31,6 +33,7 @@ const router = useRouter();
 const data = useDataStore();
 const vault = useVaultStore();
 const toast = useToastStore();
+const tour = useTourStore();
 const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
@@ -65,6 +68,16 @@ const confirmState = ref<{
   confirmText: '',
   action: null,
 });
+
+watch(
+  () => vault.pendingRecoveryKey,
+  async (key) => {
+    if (key !== null) return;
+    await nextTick();
+    tour.startIfRequested();
+  },
+  { immediate: true },
+);
 
 // ── Auto-lock informativo en la UI ─────────────────────────────────────
 const minutesLeft = ref(0);
@@ -258,6 +271,7 @@ async function runConfirm(): Promise<void> {
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               :disabled="data.activeEnvId === null"
+              data-tour="import"
               @click="importOpen = true"
             >
               <AppIcon name="upload" :size="15" />
@@ -267,6 +281,7 @@ async function runConfirm(): Promise<void> {
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-600/25 transition-all hover:bg-indigo-700 active:scale-[0.98]"
+              data-tour="new-secret"
               @click="openCreateSecret"
             >
               <AppIcon name="plus" :size="15" />
@@ -341,6 +356,8 @@ async function runConfirm(): Promise<void> {
       :project-id="envModalProjectId"
       @close="envModalOpen = false"
     />
+
+    <TourOverlay />
 
     <ConfirmDialog
       :open="confirmState.open"
