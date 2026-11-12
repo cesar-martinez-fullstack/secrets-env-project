@@ -16,7 +16,8 @@ Cuatro piezas independientes, para que cada una cambie sin arrastrar a las demá
 1. **Ajustes por instancia, fuera de la bóveda.** Un documento versionado con valores por defecto y
    validación (nombre, logo, tema, idioma, seguridad), guardado en la carpeta de datos con escritura atómica.
    El núcleo lo ve a través de un puerto; el adaptador de archivos vive en infraestructura. Se lee antes de
-   desbloquear y solo se escribe con la bóveda abierta (salvo el asistente, mientras la bóveda no existe).
+   desbloquear y solo se escribe con la bóveda abierta. El asistente de primer arranque no es una excepción: guarda
+   sus elecciones en memoria y las aplica justo después de crear la bóveda, cuando ya hay sesión.
 2. **Tokens de diseño.** Los colores son variables CSS semánticas (acento, superficie, borde, texto) y cada
    tema es un conjunto de valores aplicado con un atributo en `<html>`. Los componentes usan clases
    semánticas y **nunca** colores concretos. Las paletas son datos, y un test falla si el contraste de texto
