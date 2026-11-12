@@ -7,6 +7,7 @@
  */
 import {
   MASKED_VALUE,
+  MAX_BULK_SECRETS,
   parseEnvContent,
   validateSecretName,
   validateSecretNote,
@@ -45,6 +46,14 @@ export interface SecretServiceDeps {
   crypto: VaultCryptoService;
   audit: AuditRepository;
   unitOfWork: UnitOfWork;
+}
+
+const AUDIT_LISTED_NAMES = 10;
+
+function describeBulkDeletion(names: readonly string[]): string {
+  const listed = names.slice(0, AUDIT_LISTED_NAMES).map((name) => `«${name}»`);
+  const rest = names.length - listed.length;
+  return `${names.length} secretos eliminados: ${listed.join(', ')}${rest > 0 ? ` y ${rest} más` : ''}.`;
 }
 
 export class SecretService {
@@ -173,6 +182,28 @@ export class SecretService {
       'secret.deleted',
       `Secreto «${secret.name}» eliminado del ambiente «${secret.environmentName}».`,
     );
+  }
+
+  /** Elimina varios secretos de forma atómica: si alguno no existe, no se borra ninguno. */
+  async removeMany(ids: readonly number[]): Promise<number> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0 || unique.length > MAX_BULK_SECRETS) {
+      throw new ValidationFailedError([
+        { field: 'ids', message: `Indica entre 1 y ${MAX_BULK_SECRETS} secretos.` },
+      ]);
+    }
+    const names = await this.deps.unitOfWork.run(async () => {
+      const removed: string[] = [];
+      for (const id of unique) {
+        const secret = await this.deps.secrets.findById(id);
+        if (!secret) throw new SecretNotFoundError(id);
+        await this.deps.secrets.delete(id);
+        removed.push(secret.name);
+      }
+      return removed;
+    });
+    await this.deps.audit.record('secret.deleted', describeBulkDeletion(names));
+    return names.length;
   }
 
   /** Importación masiva desde contenido .env. Atómica: o entra todo, o nada. */

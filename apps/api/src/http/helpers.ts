@@ -96,6 +96,17 @@ export function requireStringList(body: object, field: string): string[] {
   return value;
 }
 
+/** Exige una lista de enteros positivos en el body. */
+export function requireIdList(body: object, field: string): number[] {
+  const value = (body as Record<string, unknown>)[field];
+  const valid =
+    Array.isArray(value) && value.every((item) => Number.isInteger(item) && (item as number) > 0);
+  if (!valid) {
+    throw new ValidationFailedError([{ field, message: 'Debe ser una lista de identificadores.' }]);
+  }
+  return value as number[];
+}
+
 /** Convierte y valida un :id de ruta. */
 export function parseIdParam(raw: string): number {
   const id = Number.parseInt(raw, 10);

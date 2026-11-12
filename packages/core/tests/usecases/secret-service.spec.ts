@@ -10,6 +10,7 @@ import {
   SecretNameTakenError,
   SecretNotFoundError,
   SecretValueRequiredError,
+  ValidationFailedError,
 } from '../../src/domain/errors';
 import { SecretService } from '../../src/usecases/secret-service';
 import {
@@ -321,6 +322,55 @@ describe('SecretService', () => {
     it('should throw SecretNotFoundError when the id does not exist', async () => {
       secrets.findById.mockResolvedValue(null);
       await expect(service.remove(404)).rejects.toThrow(SecretNotFoundError);
+      expect(secrets.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeMany', () => {
+    it('should delete every secret once and audit a single event with the names', async () => {
+      secrets.findById.mockImplementation(async (id: number) =>
+        secretWithMeta({ id, name: `KEY_${id}` }),
+      );
+
+      const deleted = await service.removeMany([1, 2, 2, 3]);
+
+      expect(deleted).toBe(3);
+      expect(secrets.delete).toHaveBeenCalledTimes(3);
+      expect(audit.record).toHaveBeenCalledTimes(1);
+      expect(audit.record).toHaveBeenCalledWith(
+        'secret.deleted',
+        '3 secretos eliminados: «KEY_1», «KEY_2», «KEY_3».',
+      );
+    });
+
+    it('should cap the names listed in the audit message', async () => {
+      secrets.findById.mockImplementation(async (id: number) =>
+        secretWithMeta({ id, name: `KEY_${id}` }),
+      );
+      const ids = Array.from({ length: 12 }, (_, index) => index + 1);
+
+      await service.removeMany(ids);
+
+      expect(audit.record).toHaveBeenCalledWith(
+        'secret.deleted',
+        expect.stringContaining('y 2 más'),
+      );
+    });
+
+    it('should throw SecretNotFoundError and audit nothing when one id is missing', async () => {
+      secrets.findById.mockImplementation(async (id: number) =>
+        id === 2 ? null : secretWithMeta({ id }),
+      );
+
+      await expect(service.removeMany([1, 2])).rejects.toThrow(SecretNotFoundError);
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('should reject an empty list and a list above the limit', async () => {
+      const tooMany = Array.from({ length: 201 }, (_, index) => index + 1);
+
+      await expect(service.removeMany([])).rejects.toThrow(ValidationFailedError);
+      await expect(service.removeMany(tooMany)).rejects.toThrow(ValidationFailedError);
       expect(secrets.delete).not.toHaveBeenCalled();
     });
   });

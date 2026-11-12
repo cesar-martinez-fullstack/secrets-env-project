@@ -532,6 +532,27 @@ describe('API integration — ciclo de vida completo', () => {
     expect(gone).toEqual([]);
   });
 
+  it('POST /api/secrets/bulk-delete elimina varios secretos de forma atómica', async () => {
+    const created = await Promise.all(
+      ['LOTE_UNO', 'LOTE_DOS'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'x' })),
+      ),
+    );
+    const ids = created.map((secret) => secret.id);
+
+    const partial = await post('/api/secrets/bulk-delete', { ids: [...ids, 999_999] });
+    expect(partial.status).toBe(404);
+    expect(await json<unknown[]>(await get('/api/secrets?q=lote_'))).toHaveLength(2);
+
+    const ok = await post('/api/secrets/bulk-delete', { ids });
+    expect(ok.status).toBe(200);
+    expect(await json(ok)).toEqual({ deleted: 2 });
+    expect(await json<unknown[]>(await get('/api/secrets?q=lote_'))).toEqual([]);
+
+    const invalid = await post('/api/secrets/bulk-delete', { ids: 'no-es-lista' });
+    expect(invalid.status).toBe(400);
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);

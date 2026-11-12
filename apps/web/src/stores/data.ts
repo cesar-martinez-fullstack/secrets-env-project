@@ -132,6 +132,12 @@ export const useDataStore = defineStore('data', () => {
     await Promise.all([refreshEnvironments(), refreshSecrets()]);
   }
 
+  async function removeSecrets(ids: number[]): Promise<number> {
+    const { deleted } = await api.deleteSecrets(ids);
+    await Promise.all([refreshEnvironments(), refreshSecrets()]);
+    return deleted;
+  }
+
   async function importSecrets(
     environmentId: number,
     content: string,
@@ -178,6 +184,7 @@ export const useDataStore = defineStore('data', () => {
     addSecret,
     updateSecret,
     removeSecret,
+    removeSecrets,
     importSecrets,
     importShare,
     init,

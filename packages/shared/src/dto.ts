@@ -136,6 +136,14 @@ export interface RevealSecretDto {
   note: string | null;
 }
 
+export interface DeleteSecretsRequestDto {
+  ids: number[];
+}
+
+export interface DeleteSecretsResultDto {
+  deleted: number;
+}
+
 export interface ImportSecretsRequestDto {
   environmentId: number;
   content: string;

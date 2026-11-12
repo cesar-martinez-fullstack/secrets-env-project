@@ -10,6 +10,8 @@ import { useDataStore } from '@/stores/data';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
 import { useTourStore } from '@/stores/tour';
+import { useSelectionStore } from '@/stores/selection';
+import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
 import ProjectSidebar from '@/components/layout/ProjectSidebar.vue';
@@ -34,6 +36,7 @@ const data = useDataStore();
 const vault = useVaultStore();
 const toast = useToastStore();
 const tour = useTourStore();
+const selection = useSelectionStore();
 const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
@@ -77,6 +80,11 @@ watch(
     tour.startIfRequested();
   },
   { immediate: true },
+);
+
+watch(
+  () => data.secrets,
+  (secrets) => selection.prune(secrets.map((secret) => secret.id)),
 );
 
 // ── Auto-lock informativo en la UI ─────────────────────────────────────
@@ -200,6 +208,27 @@ function askDeleteSecret(secret: SecretDto): void {
   };
 }
 
+function askDeleteSelected(): void {
+  const chosen = data.secrets.filter((secret) => selection.ids.has(secret.id));
+  const names = chosen.map((secret) =>
+    data.isSearching ? `${secret.name} (${secret.environmentName})` : secret.name,
+  );
+  confirmState.value = {
+    open: true,
+    title: t('vault.bulkDeleteTitle'),
+    message: t('vault.bulkDeleteMessage', {
+      count: chosen.length,
+      names: summarizeNames(names, (count) => t('vault.bulkDeleteMore', { count })),
+    }),
+    danger: true,
+    confirmText: t('vault.bulkDeleteConfirm', { count: chosen.length }),
+    action: async () => {
+      const deleted = await data.removeSecrets(chosen.map((secret) => secret.id));
+      toast.push('success', t('vault.bulkDeleted'), t('vault.bulkDeletedBody', { count: deleted }));
+    },
+  };
+}
+
 async function runConfirm(): Promise<void> {
   try {
     await confirmState.value.action?.();
@@ -301,8 +330,13 @@ async function runConfirm(): Promise<void> {
           <SecretsTable
             :secrets="data.secrets"
             :loading="data.loadingSecrets"
+            :selected="selection.ids"
             @edit="openEditSecret"
             @remove="askDeleteSecret"
+            @toggle="selection.toggle"
+            @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
+            @clear-selection="selection.clear()"
+            @remove-selected="askDeleteSelected"
             @create-first="openCreateSecret"
           />
         </div>

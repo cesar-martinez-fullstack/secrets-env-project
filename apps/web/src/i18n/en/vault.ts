@@ -19,6 +19,12 @@ export const vault: Record<keyof typeof base, string> = {
   'vault.deleteSecretMessage':
     'Delete the secret «{name}» from the environment «{env}»? This cannot be undone.',
   'vault.delete': 'Delete',
+  'vault.bulkDeleteTitle': 'Delete secrets',
+  'vault.bulkDeleteMessage': '{count} secret(s) will be deleted: {names}. This cannot be undone.',
+  'vault.bulkDeleteMore': 'and {count} more',
+  'vault.bulkDeleteConfirm': 'Delete {count} secret(s)',
+  'vault.bulkDeleted': 'Secrets deleted',
+  'vault.bulkDeletedBody': '{count} secret(s) deleted.',
   'vault.secretDeleted': 'Secret deleted',
   'vault.secretDeletedBody': '«{name}» was deleted.',
   'vault.error': 'Error',

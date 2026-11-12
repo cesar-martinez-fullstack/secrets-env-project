@@ -79,7 +79,7 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 
 | ID    | Rebanada                                                                                                                                                | Estado      | Versión |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-125 | Selección múltiple y borrado en lote, con confirmación que cuenta y lista los nombres (atómico)                                                         | Planeado    | 0.2.0   |
+| F-125 | Selección múltiple y borrado en lote, con confirmación que cuenta y lista los nombres (atómico)                                                         | En revisión | 0.2.0   |
 | F-126 | Orden alfabético A→Z / Z→A, con la preferencia guardada                                                                                                 | Planeado    | 0.2.0   |
 | F-127 | Orden manual por ambiente: arrastrar y soltar, con botones subir y bajar (solo en modo Manual)                                                          | Planeado    | 0.2.0   |
 | F-130 | Ajustes · 1: cambiar el logo de la pantalla de entrada (PNG, JPEG o WebP; fuera de la bóveda; se ve antes de desbloquear)                               | En revisión | 0.2.0   |

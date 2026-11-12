@@ -55,6 +55,7 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/secrets',
   'PATCH /api/secrets/:id',
   'DELETE /api/secrets/:id',
+  'POST /api/secrets/bulk-delete',
   'POST /api/secrets/:id/reveal',
   'POST /api/secrets/import',
   'POST /api/share/projects/:id/export',
