@@ -9,6 +9,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { api } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
+import type { SortOrder } from '@/lib/sort';
 import { relativeTime, absoluteTime } from '@/lib/time';
 import { useToastStore } from '@/stores/toast';
 import { useI18n } from '@/i18n/use-i18n';
@@ -17,6 +18,7 @@ const props = defineProps<{
   secrets: SecretDto[];
   loading: boolean;
   selected: ReadonlySet<number>;
+  order: SortOrder;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +26,7 @@ const emit = defineEmits<{
   remove: [secret: SecretDto];
   toggle: [id: number];
   'toggle-all': [];
+  'toggle-sort': [];
   'clear-selection': [];
   'remove-selected': [];
   'create-first': [];
@@ -174,10 +177,19 @@ async function copySecret(secret: SecretDto): Promise<void> {
             : t('table.selectAll')
         }}
       </span>
+      <button
+        type="button"
+        class="ml-auto rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        :title="t('table.sortTitle')"
+        data-testid="toggle-sort"
+        @click="emit('toggle-sort')"
+      >
+        {{ order === 'asc' ? t('table.sortAsc') : t('table.sortDesc') }}
+      </button>
       <template v-if="selected.size > 0">
         <button
           type="button"
-          class="ml-auto rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          class="rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           data-testid="clear-selection"
           @click="emit('clear-selection')"
         >

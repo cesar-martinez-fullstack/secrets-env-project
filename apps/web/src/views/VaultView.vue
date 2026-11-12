@@ -3,7 +3,7 @@
  * Vista principal: barra superior, sidebar de ambientes y tabla de secretos
  * con todos los modales (CRUD, importar, exportar, confirmaciones).
  */
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { EnvironmentDto, ProjectDto, SecretDto } from '@secretvault/shared';
 import { useDataStore } from '@/stores/data';
@@ -11,6 +11,8 @@ import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
 import { useTourStore } from '@/stores/tour';
 import { useSelectionStore } from '@/stores/selection';
+import { useSortStore } from '@/stores/sort';
+import { sortByName } from '@/lib/sort';
 import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
@@ -37,6 +39,8 @@ const vault = useVaultStore();
 const toast = useToastStore();
 const tour = useTourStore();
 const selection = useSelectionStore();
+const sort = useSortStore();
+const sortedSecrets = computed(() => sortByName(data.secrets, sort.order));
 const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
@@ -209,7 +213,7 @@ function askDeleteSecret(secret: SecretDto): void {
 }
 
 function askDeleteSelected(): void {
-  const chosen = data.secrets.filter((secret) => selection.ids.has(secret.id));
+  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
   const names = chosen.map((secret) =>
     data.isSearching ? `${secret.name} (${secret.environmentName})` : secret.name,
   );
@@ -328,12 +332,14 @@ async function runConfirm(): Promise<void> {
             {{ t('vault.searchCount', { count: data.secrets.length }) }}
           </div>
           <SecretsTable
-            :secrets="data.secrets"
+            :secrets="sortedSecrets"
             :loading="data.loadingSecrets"
             :selected="selection.ids"
+            :order="sort.order"
             @edit="openEditSecret"
             @remove="askDeleteSecret"
             @toggle="selection.toggle"
+            @toggle-sort="sort.toggle()"
             @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
             @clear-selection="selection.clear()"
             @remove-selected="askDeleteSelected"
