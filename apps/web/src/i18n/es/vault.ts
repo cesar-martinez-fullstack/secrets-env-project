@@ -17,6 +17,13 @@ export const vault = {
   'vault.deleteSecretMessage':
     '¿Eliminar el secreto «{name}» del ambiente «{env}»? Esta acción no se puede deshacer.',
   'vault.delete': 'Eliminar',
+  'vault.bulkDeleteTitle': 'Eliminar secretos',
+  'vault.bulkDeleteMessage':
+    'Se eliminarán {count} secreto(s): {names}. Esta acción no se puede deshacer.',
+  'vault.bulkDeleteMore': 'y {count} más',
+  'vault.bulkDeleteConfirm': 'Eliminar {count} secreto(s)',
+  'vault.bulkDeleted': 'Secretos eliminados',
+  'vault.bulkDeletedBody': '{count} secreto(s) eliminado(s).',
   'vault.secretDeleted': 'Secreto eliminado',
   'vault.secretDeletedBody': '«{name}» fue borrado.',
   'vault.error': 'Error',

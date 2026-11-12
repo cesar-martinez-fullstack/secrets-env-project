@@ -16,13 +16,23 @@ import { useI18n } from '@/i18n/use-i18n';
 const props = defineProps<{
   secrets: SecretDto[];
   loading: boolean;
+  selected: ReadonlySet<number>;
 }>();
 
 const emit = defineEmits<{
   edit: [secret: SecretDto];
   remove: [secret: SecretDto];
+  toggle: [id: number];
+  'toggle-all': [];
+  'clear-selection': [];
+  'remove-selected': [];
   'create-first': [];
 }>();
+
+const allSelected = computed(
+  () => props.secrets.length > 0 && props.secrets.every((secret) => props.selected.has(secret.id)),
+);
+const someSelected = computed(() => props.selected.size > 0 && !allSelected.value);
 
 const toast = useToastStore();
 const { t, describeError, localeStore } = useI18n();
@@ -144,12 +154,60 @@ async function copySecret(secret: SecretDto): Promise<void> {
   </EmptyState>
 
   <div v-else class="overflow-hidden">
+    <div
+      class="flex items-center gap-3 border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800"
+      data-testid="selection-bar"
+    >
+      <input
+        type="checkbox"
+        class="h-4 w-4 rounded border-zinc-300 accent-indigo-600"
+        :checked="allSelected"
+        :indeterminate="someSelected"
+        :aria-label="t('table.selectAll')"
+        data-testid="select-all"
+        @change="emit('toggle-all')"
+      />
+      <span class="text-zinc-500 dark:text-zinc-400">
+        {{
+          selected.size > 0
+            ? t('table.selectedCount', { count: selected.size })
+            : t('table.selectAll')
+        }}
+      </span>
+      <template v-if="selected.size > 0">
+        <button
+          type="button"
+          class="ml-auto rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          data-testid="clear-selection"
+          @click="emit('clear-selection')"
+        >
+          {{ t('table.clearSelection') }}
+        </button>
+        <button
+          type="button"
+          class="rounded-lg bg-red-600 px-2.5 py-1 font-medium text-white hover:bg-red-700"
+          data-testid="delete-selected"
+          @click="emit('remove-selected')"
+        >
+          {{ t('table.deleteSelected') }}
+        </button>
+      </template>
+    </div>
     <ul class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
       <li
         v-for="secret in secrets"
         :key="secret.id"
         class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-zinc-50/80 sm:flex-nowrap dark:hover:bg-zinc-800/40"
+        :class="selected.has(secret.id) && 'bg-indigo-50/60 dark:bg-indigo-950/30'"
       >
+        <input
+          type="checkbox"
+          class="h-4 w-4 shrink-0 rounded border-zinc-300 accent-indigo-600"
+          :checked="selected.has(secret.id)"
+          :aria-label="t('table.select', { name: secret.name })"
+          data-testid="select-secret"
+          @change="emit('toggle', secret.id)"
+        />
         <!-- Nombre (+ badge de ambiente en búsqueda global) -->
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">

@@ -12,6 +12,7 @@ import type {
   CreateSecretRequestDto,
   EnvironmentDto,
   ProjectDto,
+  DeleteSecretsResultDto,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
@@ -176,6 +177,12 @@ export const api = {
     request<SecretDto>(`/api/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteSecret: (id: number) => request<OkDto>(`/api/secrets/${id}`, { method: 'DELETE' }),
+
+  deleteSecrets: (ids: number[]) =>
+    request<DeleteSecretsResultDto>('/api/secrets/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
 
   revealSecret: (id: number) =>
     request<RevealSecretDto>(`/api/secrets/${id}/reveal`, { method: 'POST' }),
