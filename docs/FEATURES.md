@@ -88,7 +88,7 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 | F-133 | Ajustes · 4: copia de seguridad (exportar el archivo cifrado) y retención o vaciado de la auditoría                                                     | Planeado    | 0.2.0   |
 | F-134 | Idioma de la interfaz: español e inglés (selector en la entrada y en la barra; se recuerda en el navegador)                                             | Hecho       | 0.2.0   |
 | F-135 | Tema con vista previa: miniatura de la interfaz a la derecha de Ajustes que cambia al elegir modo y acento; los colores salen de una paleta reasignable | En revisión | 0.2.0   |
-| F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | Planeado    | 0.2.0   |
+| F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | En revisión | 0.2.0   |
 | F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                           | Planeado    | 0.2.0   |
 | F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | Planeado    | 0.2.0   |
 

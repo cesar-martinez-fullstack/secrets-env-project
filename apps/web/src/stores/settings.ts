@@ -1,13 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect } from 'vue';
-import {
-  DEFAULT_APPEARANCE,
-  LOGO_MAX_BYTES,
-  detectLogoType,
-  encodeBase64,
-} from '@secretvault/shared';
+import { DEFAULT_APPEARANCE, encodeBase64 } from '@secretvault/shared';
 import type { Appearance, SettingsDto } from '@secretvault/shared';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
+import { readLogoFile } from '@/lib/logo-file';
 
 const NO_LOGO: SettingsDto = { hasLogo: false, logoVersion: null, ...DEFAULT_APPEARANCE };
 
@@ -37,17 +33,17 @@ export const useSettingsStore = defineStore('settings', () => {
     current.value = await api.updateAppearance(appearance);
   }
 
-  async function uploadLogo(file: File): Promise<void> {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (bytes.byteLength > LOGO_MAX_BYTES || detectLogoType(bytes) === null) {
-      throw new ApiError('LOGO_INVALID', 'Imagen no válida.', 400);
-    }
+  async function setLogoBytes(bytes: Uint8Array): Promise<void> {
     current.value = await api.setLogo(encodeBase64(bytes));
+  }
+
+  async function uploadLogo(file: File): Promise<void> {
+    await setLogoBytes((await readLogoFile(file)).bytes);
   }
 
   async function removeLogo(): Promise<void> {
     current.value = await api.removeLogo();
   }
 
-  return { current, logoUrl, load, updateAppearance, uploadLogo, removeLogo };
+  return { current, logoUrl, load, updateAppearance, setLogoBytes, uploadLogo, removeLogo };
 });

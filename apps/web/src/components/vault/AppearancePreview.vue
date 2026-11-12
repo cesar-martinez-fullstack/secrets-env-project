@@ -6,12 +6,18 @@ import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import AppIcon from '@/components/AppIcon.vue';
 
-const props = defineProps<{ appName: string; accent: Accent; theme: ThemeMode }>();
+const props = defineProps<{
+  appName: string;
+  accent: Accent;
+  theme: ThemeMode;
+  logo?: string | null;
+}>();
 
 const settings = useSettingsStore();
 const themeStore = useThemeStore();
 const { t } = useI18n();
 
+const logoSrc = computed(() => (props.logo === undefined ? settings.logoUrl : props.logo));
 const isDark = computed(() =>
   props.theme === 'system' ? themeStore.systemDark : props.theme === 'dark',
 );
@@ -29,12 +35,7 @@ const rows = ['API_KEY', 'DATABASE_URL', 'STRIPE_TOKEN'] as const;
     <div
       class="flex items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <img
-        v-if="settings.logoUrl"
-        :src="settings.logoUrl"
-        alt=""
-        class="h-5 w-5 rounded-md object-contain"
-      />
+      <img v-if="logoSrc" :src="logoSrc" alt="" class="h-5 w-5 rounded-md object-contain" />
       <span
         v-else
         class="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-600 text-white"
