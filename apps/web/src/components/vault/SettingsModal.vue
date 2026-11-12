@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { nextTick, reactive, ref, watch } from 'vue';
 import { ACCENTS, APP_NAME_MAX_LENGTH, THEME_MODES } from '@secretvault/shared';
 import type { Appearance } from '@secretvault/shared';
 import { useI18n } from '@/i18n/use-i18n';
 import { useSettingsStore } from '@/stores/settings';
 import { useToastStore } from '@/stores/toast';
+import { useTourStore } from '@/stores/tour';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import AppearancePreview from '@/components/vault/AppearancePreview.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
@@ -14,6 +15,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const settings = useSettingsStore();
 const toast = useToastStore();
+const tour = useTourStore();
 const { t, describeError } = useI18n();
 
 const input = ref<HTMLInputElement | null>(null);
@@ -61,6 +63,12 @@ const saveAppearance = () =>
     t('settings.appearanceSaved'),
     t('settings.appearanceFailed'),
   );
+
+async function replayTour(): Promise<void> {
+  emit('close');
+  await nextTick();
+  tour.start();
+}
 
 const secondaryButton =
   'rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800';
@@ -181,6 +189,19 @@ const fieldLabel = 'block text-xs font-medium text-zinc-600 dark:text-zinc-400';
             {{ t('settings.saveAppearance') }}
           </button>
         </form>
+
+        <section class="space-y-2" data-testid="settings-tour">
+          <h3 :class="heading">{{ t('settings.tourTitle') }}</h3>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ t('settings.tourBody') }}</p>
+          <button
+            type="button"
+            :class="secondaryButton"
+            data-testid="replay-tour"
+            @click="replayTour"
+          >
+            {{ t('settings.tourReplay') }}
+          </button>
+        </section>
       </div>
 
       <aside class="space-y-2 md:sticky md:top-0 md:self-start">

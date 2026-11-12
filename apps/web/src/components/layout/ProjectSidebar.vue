@@ -39,6 +39,7 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
 
 <template>
   <aside
+    data-tour="sidebar"
     class="flex w-full shrink-0 flex-col border-b border-zinc-200/80 lg:w-64 lg:border-b-0 lg:border-r dark:border-zinc-800"
   >
     <div class="flex items-center justify-between px-4 pb-2 pt-4">
