@@ -5,6 +5,8 @@
 import { Hono } from 'hono';
 import type {
   CreateSecretRequestDto,
+  DeleteSecretsRequestDto,
+  DeleteSecretsResultDto,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
@@ -18,6 +20,7 @@ import {
   parseExportFormat,
   parseIdParam,
   readJsonBody,
+  requireIdList,
   requireInt,
   requireString,
 } from '../http/helpers';
@@ -83,6 +86,12 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     const id = parseIdParam(c.req.param('id'));
     await secretService.remove(id);
     return jsonResponse<OkDto>(c, { ok: true });
+  });
+
+  app.post('/bulk-delete', async (c) => {
+    const body = await readJsonBody<DeleteSecretsRequestDto>(c);
+    const deleted = await secretService.removeMany(requireIdList(body, 'ids'));
+    return jsonResponse<DeleteSecretsResultDto>(c, { deleted });
   });
 
   // Reveal: desencripta bajo demanda y audita el acceso.
