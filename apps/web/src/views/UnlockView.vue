@@ -11,13 +11,16 @@ import { useVaultStore } from '@/stores/vault';
 import type { MessageKey } from '@/i18n/catalogs';
 import { useToastStore } from '@/stores/toast';
 import { useSettingsStore } from '@/stores/settings';
+import { useFirstRunStore } from '@/stores/first-run';
 import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
+import FirstRunWizard from '@/components/vault/FirstRunWizard.vue';
 
 const router = useRouter();
 const vault = useVaultStore();
 const settings = useSettingsStore();
+const firstRun = useFirstRunStore();
 const toast = useToastStore();
 const { t, describeError, localeStore } = useI18n();
 
@@ -31,6 +34,8 @@ const error = ref<string | null>(null);
 const ready = ref(false);
 const mode = ref<'unlock' | 'recover'>('unlock');
 const recoveryKeyInput = ref('');
+
+const showWizard = computed(() => !vault.initialized && !firstRun.finished);
 
 const strength = computed(() => passwordStrength(password.value));
 const strengthColors = [
@@ -68,6 +73,14 @@ onMounted(async () => {
   ready.value = true;
 });
 
+async function applyWizardChoices(): Promise<void> {
+  try {
+    await firstRun.apply();
+  } catch (err) {
+    toast.push('error', t('wizard.applyFailed'), describeError(err));
+  }
+}
+
 async function submit(): Promise<void> {
   if (!canSubmit.value || busy.value) return;
   busy.value = true;
@@ -86,6 +99,7 @@ async function submit(): Promise<void> {
     } else {
       await vault.setup(password.value);
       toast.push('success', t('unlock.toastCreatedTitle'), t('unlock.toastCreatedBody'));
+      await applyWizardChoices();
     }
     await router.replace('/vault');
   } catch (err) {
@@ -113,8 +127,9 @@ async function submit(): Promise<void> {
     >
       {{ nextLocale }}
     </button>
-    <Transition name="pop" appear>
-      <div v-if="ready" class="card w-full max-w-sm p-8">
+    <Transition name="pop" appear mode="out-in">
+      <FirstRunWizard v-if="ready && showWizard" key="wizard" />
+      <div v-else-if="ready" key="card" class="card w-full max-w-sm p-8">
         <!-- Logo -->
         <div class="mb-8 flex flex-col items-center text-center">
           <BrandMark :icon="vault.initialized ? 'unlock' : 'lock'" large class="mb-4" />
