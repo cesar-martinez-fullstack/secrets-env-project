@@ -138,6 +138,14 @@ export const useDataStore = defineStore('data', () => {
     return deleted;
   }
 
+  async function reorderSecrets(environmentId: number, ids: number[]): Promise<void> {
+    try {
+      await api.reorderSecrets(environmentId, ids);
+    } finally {
+      await refreshSecrets();
+    }
+  }
+
   async function importSecrets(
     environmentId: number,
     content: string,
@@ -185,6 +193,7 @@ export const useDataStore = defineStore('data', () => {
     updateSecret,
     removeSecret,
     removeSecrets,
+    reorderSecrets,
     importSecrets,
     importShare,
     init,

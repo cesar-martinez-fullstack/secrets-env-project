@@ -178,6 +178,12 @@ export const api = {
 
   deleteSecret: (id: number) => request<OkDto>(`/api/secrets/${id}`, { method: 'DELETE' }),
 
+  reorderSecrets: (environmentId: number, ids: number[]) =>
+    request<OkDto>('/api/secrets/order', {
+      method: 'PUT',
+      body: JSON.stringify({ environmentId, ids }),
+    }),
+
   deleteSecrets: (ids: number[]) =>
     request<DeleteSecretsResultDto>('/api/secrets/bulk-delete', {
       method: 'POST',

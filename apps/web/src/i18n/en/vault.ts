@@ -23,6 +23,7 @@ export const vault: Record<keyof typeof base, string> = {
   'vault.bulkDeleteMessage': '{count} secret(s) will be deleted: {names}. This cannot be undone.',
   'vault.bulkDeleteMore': 'and {count} more',
   'vault.bulkDeleteConfirm': 'Delete {count} secret(s)',
+  'vault.reorderFailed': 'The order could not be saved',
   'vault.bulkDeleted': 'Secrets deleted',
   'vault.bulkDeletedBody': '{count} secret(s) deleted.',
   'vault.secretDeleted': 'Secret deleted',
