@@ -10,6 +10,7 @@ import type {
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
+  ReorderSecretsRequestDto,
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
@@ -43,6 +44,7 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     maskedValue: s.maskedValue,
     hasNote: s.hasNote,
     importedAt: s.importedAt?.toISOString() ?? null,
+    position: s.position,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
   });
@@ -85,6 +87,12 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
   app.delete('/:id', async (c) => {
     const id = parseIdParam(c.req.param('id'));
     await secretService.remove(id);
+    return jsonResponse<OkDto>(c, { ok: true });
+  });
+
+  app.put('/order', async (c) => {
+    const body = await readJsonBody<ReorderSecretsRequestDto>(c);
+    await secretService.reorder(requireInt(body, 'environmentId'), requireIdList(body, 'ids'));
     return jsonResponse<OkDto>(c, { ok: true });
   });
 
