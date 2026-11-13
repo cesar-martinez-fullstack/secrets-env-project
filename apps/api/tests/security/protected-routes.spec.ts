@@ -22,7 +22,7 @@ export const PUBLIC_ROUTES = new Set<string>([
   'GET /api/health',
   'GET /api/vault/status',
   // Marca visible antes de desbloquear (logo): solo lectura, sin datos de la bóveda; servido como
-  // imagen validada por firma con nosniff y CSP sandbox.
+  // imagen validada por firma (bytes mágicos) y servida con nosniff.
   'GET /api/settings',
   'GET /api/settings/logo',
   'POST /api/vault/setup',
