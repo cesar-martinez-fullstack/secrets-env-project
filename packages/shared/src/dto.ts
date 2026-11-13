@@ -111,6 +111,7 @@ export interface SecretDto {
   maskedValue: string;
   hasNote: boolean;
   importedAt: string | null;
+  position: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,6 +135,11 @@ export interface RevealSecretDto {
   environmentName: string;
   value: string;
   note: string | null;
+}
+
+export interface ReorderSecretsRequestDto {
+  environmentId: number;
+  ids: number[];
 }
 
 export interface DeleteSecretsRequestDto {

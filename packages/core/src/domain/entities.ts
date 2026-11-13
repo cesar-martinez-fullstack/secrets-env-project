@@ -57,6 +57,7 @@ export interface SecretRecord {
   valueEnc: Uint8Array;
   noteEnc: Uint8Array | null;
   importedAt: Date | null;
+  position: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,6 +77,7 @@ export interface SecretSummary {
   maskedValue: string;
   hasNote: boolean;
   importedAt: Date | null;
+  position: number;
   createdAt: Date;
   updatedAt: Date;
 }
