@@ -17,6 +17,7 @@ interface SecretRow {
   value_enc: Uint8Array;
   note_enc: Uint8Array | null;
   imported_at: string | null;
+  position: number;
   created_at: string;
   updated_at: string;
   environment_name?: string;
@@ -31,6 +32,7 @@ function toRecord(row: SecretRow): SecretRecord {
     valueEnc: new Uint8Array(row.value_enc),
     noteEnc: row.note_enc ? new Uint8Array(row.note_enc) : null,
     importedAt: row.imported_at ? new Date(row.imported_at) : null,
+    position: row.position,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -45,7 +47,7 @@ function withMeta(row: SecretRow): SecretWithMeta {
 }
 
 const BASE_SELECT = `
-  SELECT s.id, s.environment_id, s.name, s.value_enc, s.note_enc, s.imported_at, s.created_at, s.updated_at,
+  SELECT s.id, s.environment_id, s.name, s.value_enc, s.note_enc, s.imported_at, s.position, s.created_at, s.updated_at,
          e.name AS environment_name, p.name AS project_name
   FROM secrets s
   JOIN environments e ON e.id = s.environment_id
@@ -113,7 +115,7 @@ export class SqliteSecretRepository implements SecretRepository {
   async findByName(environmentId: number, name: string): Promise<SecretRecord | null> {
     const row = this.db
       .query<SecretRow, [number, string]>(
-        'SELECT id, environment_id, name, value_enc, note_enc, imported_at, created_at, updated_at FROM secrets WHERE environment_id = ? AND name = ? COLLATE NOCASE',
+        'SELECT id, environment_id, name, value_enc, note_enc, imported_at, position, created_at, updated_at FROM secrets WHERE environment_id = ? AND name = ? COLLATE NOCASE',
       )
       .get(environmentId, name);
     return row ? toRecord(row) : null;
@@ -129,9 +131,9 @@ export class SqliteSecretRepository implements SecretRepository {
     const now = new Date().toISOString();
     const row = this.db
       .query<SecretRow, (string | number | Uint8Array | null)[]>(
-        `INSERT INTO secrets (environment_id, name, value_enc, note_enc, imported_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         RETURNING id, environment_id, name, value_enc, note_enc, imported_at, created_at, updated_at`,
+        `INSERT INTO secrets (environment_id, name, value_enc, note_enc, imported_at, position, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position) + 1, 0) FROM secrets WHERE environment_id = ?), ?, ?)
+         RETURNING id, environment_id, name, value_enc, note_enc, imported_at, position, created_at, updated_at`,
       )
       .get(
         input.environmentId,
@@ -139,6 +141,7 @@ export class SqliteSecretRepository implements SecretRepository {
         input.valueEnc,
         input.noteEnc,
         input.importedAt?.toISOString() ?? null,
+        input.environmentId,
         now,
         now,
       );
@@ -150,10 +153,17 @@ export class SqliteSecretRepository implements SecretRepository {
     this.db.query(`UPDATE secrets SET ${sets.join(', ')} WHERE id = ?`).run(...params, id);
     const row = this.db
       .query<SecretRow, [number]>(
-        'SELECT id, environment_id, name, value_enc, note_enc, imported_at, created_at, updated_at FROM secrets WHERE id = ?',
+        'SELECT id, environment_id, name, value_enc, note_enc, imported_at, position, created_at, updated_at FROM secrets WHERE id = ?',
       )
       .get(id);
     return toRecord(row!);
+  }
+
+  async setPositions(environmentId: number, orderedIds: readonly number[]): Promise<void> {
+    const statement = this.db.query(
+      'UPDATE secrets SET position = ? WHERE id = ? AND environment_id = ?',
+    );
+    orderedIds.forEach((id, position) => statement.run(position, id, environmentId));
   }
 
   async delete(id: number): Promise<void> {

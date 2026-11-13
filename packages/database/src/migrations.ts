@@ -142,6 +142,19 @@ export const MIGRATIONS: readonly Migration[] = [
     description: 'secretos: marca de origen para los recibidos por un archivo compartido',
     sql: 'ALTER TABLE secrets ADD COLUMN imported_at TEXT;',
   },
+  {
+    version: 5,
+    description: 'secretos: posición para el orden manual dentro de cada ambiente',
+    sql: `
+      ALTER TABLE secrets ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+      UPDATE secrets SET position = (
+        SELECT COUNT(*) FROM secrets other
+        WHERE other.environment_id = secrets.environment_id
+          AND (other.name COLLATE NOCASE < secrets.name COLLATE NOCASE
+            OR (other.name COLLATE NOCASE = secrets.name COLLATE NOCASE AND other.id < secrets.id))
+      );
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {
