@@ -13,7 +13,7 @@
     "@secretvault/crypto": "workspace:*",
     "@secretvault/database": "workspace:*",
     "@secretvault/shared": "workspace:*",
-    "hono": "^4.6.0"
+    "hono": "^4.13.18"
   },
   "devDependencies": {
     "@types/bun": "^1.1.0",
