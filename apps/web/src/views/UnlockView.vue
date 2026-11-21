@@ -278,8 +278,10 @@ async function submit(): Promise<void> {
         >
           <AppIcon name="alert" :size="15" class="mt-0.5 shrink-0" />
           <span>
-            {{ t('unlock.warningLead') }} <strong>{{ t('unlock.warningKey') }}</strong
-            >{{ t('unlock.warningMiddle') }} <strong>{{ t('unlock.warningEnd') }}</strong>
+            {{ t('unlock.warningLead') }} <strong>{{ t('unlock.warningKey') }}</strong>{{
+              t('unlock.warningMiddle')
+            }}
+            <strong>{{ t('unlock.warningEnd') }}</strong>
             {{ t('unlock.warningTail') }}
           </span>
         </div>
