@@ -35,6 +35,8 @@ export const secrets: Record<keyof typeof base, string> = {
   'export.csvHint': 'For Excel / Sheets (see warning)',
   'export.json': 'JSON file',
   'export.jsonHint': 'Structured, great for scripts',
+  'export.postman': 'Postman Environment',
+  'export.postmanHint': 'Secret variables, ready to import into Postman',
   'export.pdf': 'PDF report',
   'export.pdfHint': 'Styled, ready to print',
   'export.warning':

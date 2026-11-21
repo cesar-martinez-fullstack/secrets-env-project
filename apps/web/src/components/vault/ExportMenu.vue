@@ -29,6 +29,7 @@ const META: Record<
   csv: { icon: 'download', label: 'export.csv', description: 'export.csvHint' },
   json: { icon: 'download', label: 'export.json', description: 'export.jsonHint' },
   pdf: { icon: 'file-text', label: 'export.pdf', description: 'export.pdfHint' },
+  postman: { icon: 'download', label: 'export.postman', description: 'export.postmanHint' },
 };
 
 function exportAs(format: ExportFormat): void {

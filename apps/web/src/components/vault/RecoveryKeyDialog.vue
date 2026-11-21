@@ -71,8 +71,9 @@ function confirmSaved(): void {
     <div data-testid="recovery-dialog" class="space-y-4">
       <p class="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
         {{ t('recovery.leadStart') }} <strong>{{ t('recovery.leadOnly') }}</strong>
-        {{ t('recovery.leadMiddle') }} <strong>{{ t('recovery.leadOnce') }}</strong
-        >{{ t('recovery.leadEnd') }}
+        {{ t('recovery.leadMiddle') }} <strong>{{ t('recovery.leadOnce') }}</strong>{{
+          t('recovery.leadEnd')
+        }}
       </p>
 
       <div

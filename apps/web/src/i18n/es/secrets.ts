@@ -32,6 +32,8 @@ export const secrets = {
   'export.csvHint': 'Para Excel / Sheets (ver aviso)',
   'export.json': 'Archivo JSON',
   'export.jsonHint': 'Estructurado, ideal para scripts',
+  'export.postman': 'Postman Environment',
+  'export.postmanHint': 'Variables secretas, listas para importar en Postman',
   'export.pdf': 'Reporte PDF',
   'export.pdfHint': 'Estilizado, apto para imprimir',
   'export.warning':
