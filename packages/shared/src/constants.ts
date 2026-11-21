@@ -40,7 +40,7 @@ export const DEFAULT_AUTO_LOCK_MINUTES = 15;
 export const API_BASE = '/api' as const;
 
 /** Formatos de exportación soportados. */
-export const EXPORT_FORMATS = ['env', 'csv', 'json', 'pdf'] as const;
+export const EXPORT_FORMATS = ['env', 'csv', 'json', 'pdf', 'postman'] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 export function isExportFormat(value: string): value is ExportFormat {

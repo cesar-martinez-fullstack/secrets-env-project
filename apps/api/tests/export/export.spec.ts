@@ -7,6 +7,7 @@ import { buildCsvExport } from '../../src/export/csv';
 import { EXPORT_FORMATTERS, exportFilename } from '../../src/export/formatters';
 import { buildJsonExport } from '../../src/export/json';
 import { buildPdfExport } from '../../src/export/pdf';
+import { buildPostmanExport } from '../../src/export/postman';
 
 const ENTRIES = [
   {
@@ -158,6 +159,28 @@ describe('JSON export', () => {
   });
 });
 
+describe('Postman export', () => {
+  const generatedAt = new Date('2026-01-15T10:30:00Z');
+  const parsed = JSON.parse(
+    buildPostmanExport({ environmentName: 'Local', generatedAt, entries: ENTRIES, iterations: 1 }),
+  );
+
+  it('should describe an environment scoped document', () => {
+    expect(parsed).toMatchObject({
+      name: 'Local',
+      _postman_variable_scope: 'environment',
+      _postman_exported_at: '2026-01-15T10:30:00.000Z',
+    });
+  });
+
+  it('should export every variable as an enabled secret and leave the notes out', () => {
+    expect(parsed.values).toEqual(
+      ENTRIES.map(({ name, value }) => ({ key: name, value, type: 'secret', enabled: true })),
+    );
+    expect(JSON.stringify(parsed)).not.toContain('BD principal');
+  });
+});
+
 describe('export formatters', () => {
   it('should provide a formatter for every export format', () => {
     for (const format of EXPORT_FORMATS) expect(EXPORT_FORMATTERS[format]).toBeDefined();
@@ -195,5 +218,11 @@ describe('exportFilename', () => {
 
   it('should fall back to a generic name when nothing usable remains', () => {
     expect(exportFilename('***', generatedAt, 'env')).toBe('secretvault-ambiente-2026-01-15.env');
+  });
+
+  it('should use the Postman environment extension', () => {
+    expect(exportFilename('Local', generatedAt, 'postman')).toBe(
+      'secretvault-local-2026-01-15.postman_environment.json',
+    );
   });
 });

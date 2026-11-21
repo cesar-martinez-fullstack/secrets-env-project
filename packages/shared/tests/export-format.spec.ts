@@ -2,8 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import { EXPORT_FORMATS, isExportFormat } from '../src';
 
 describe('export formats', () => {
-  it('should list every supported format, JSON included', () => {
-    expect([...EXPORT_FORMATS].sort()).toEqual(['csv', 'env', 'json', 'pdf']);
+  it('should list every supported format, JSON and Postman included', () => {
+    expect([...EXPORT_FORMATS].sort()).toEqual(['csv', 'env', 'json', 'pdf', 'postman']);
   });
 
   it('should recognise only supported formats', () => {
