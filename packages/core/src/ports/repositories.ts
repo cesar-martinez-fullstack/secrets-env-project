@@ -69,6 +69,8 @@ export interface SecretRepository {
       importedAt?: Date | null;
     },
   ): Promise<SecretRecord>;
+  /** Fija el orden manual: `orderedIds[i]` queda en la posición `i` del ambiente. */
+  setPositions(environmentId: number, orderedIds: readonly number[]): Promise<void>;
   delete(id: number): Promise<void>;
 }
 

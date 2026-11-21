@@ -326,6 +326,41 @@ describe('SecretService', () => {
     });
   });
 
+  describe('reorder', () => {
+    beforeEach(() => {
+      envs.findById.mockResolvedValue({ id: 1, name: 'Local' });
+      secrets.list.mockResolvedValue([
+        secretWithMeta({ id: 1 }),
+        secretWithMeta({ id: 2 }),
+        secretWithMeta({ id: 3 }),
+      ]);
+    });
+
+    it('should store the new order when the ids are a permutation of the environment', async () => {
+      await service.reorder(1, [3, 1, 2]);
+
+      expect(secrets.setPositions).toHaveBeenCalledWith(1, [3, 1, 2]);
+    });
+
+    it('should reject missing, extra, repeated or foreign ids without writing', async () => {
+      for (const ids of [
+        [1, 2],
+        [1, 2, 3, 4],
+        [1, 1, 2],
+        [1, 2, 9],
+      ]) {
+        await expect(service.reorder(1, ids)).rejects.toThrow(ValidationFailedError);
+      }
+      expect(secrets.setPositions).not.toHaveBeenCalled();
+    });
+
+    it('should throw EnvironmentNotFoundError for unknown environments', async () => {
+      envs.findById.mockResolvedValue(null);
+
+      await expect(service.reorder(9, [1])).rejects.toThrow(EnvironmentNotFoundError);
+    });
+  });
+
   describe('removeMany', () => {
     it('should delete every secret once and audit a single event with the names', async () => {
       secrets.findById.mockImplementation(async (id: number) =>

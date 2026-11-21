@@ -22,7 +22,7 @@ export const PUBLIC_ROUTES = new Set<string>([
   'GET /api/health',
   'GET /api/vault/status',
   // Marca visible antes de desbloquear (logo): solo lectura, sin datos de la bóveda; servido como
-  // imagen validada por firma con nosniff y CSP sandbox.
+  // imagen validada por firma (bytes mágicos) y servida con nosniff.
   'GET /api/settings',
   'GET /api/settings/logo',
   'POST /api/vault/setup',
@@ -56,6 +56,7 @@ export const ROUTE_MANIFEST: string[] = [
   'PATCH /api/secrets/:id',
   'DELETE /api/secrets/:id',
   'POST /api/secrets/bulk-delete',
+  'PUT /api/secrets/order',
   'POST /api/secrets/:id/reveal',
   'POST /api/secrets/import',
   'POST /api/share/projects/:id/export',

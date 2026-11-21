@@ -553,6 +553,41 @@ describe('API integration — ciclo de vida completo', () => {
     expect(invalid.status).toBe(400);
   });
 
+  it('PUT /api/secrets/order guarda el orden manual y rechaza listas incompletas', async () => {
+    const created = await Promise.all(
+      ['ORDEN_A', 'ORDEN_B', 'ORDEN_C'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'x' })),
+      ),
+    );
+    const [a, b, c] = created.map((secret) => secret.id) as [number, number, number];
+    const put = (body: unknown) =>
+      app.request('/api/secrets/order', {
+        method: 'PUT',
+        headers: { ...cookieHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    const appended = await json<{ name: string; position: number }[]>(
+      await get('/api/secrets?q=orden_'),
+    );
+    const appendedOrder = [...appended].sort((x, y) => x.position - y.position).map((s) => s.name);
+    expect(appendedOrder).toEqual(['ORDEN_A', 'ORDEN_B', 'ORDEN_C']);
+
+    const incomplete = await put({ environmentId: 1, ids: [a, b] });
+    expect(incomplete.status).toBe(400);
+
+    const all = await json<{ id: number }[]>(await get('/api/secrets?environmentId=1'));
+    const others = all.map((secret) => secret.id).filter((id) => ![a, b, c].includes(id));
+    const ok = await put({ environmentId: 1, ids: [c, a, b, ...others] });
+    expect(ok.status).toBe(200);
+
+    const listed = await json<{ name: string; position: number }[]>(
+      await get('/api/secrets?q=orden_'),
+    );
+    const byPosition = [...listed].sort((x, y) => x.position - y.position).map((s) => s.name);
+    expect(byPosition).toEqual(['ORDEN_C', 'ORDEN_A', 'ORDEN_B']);
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);

@@ -169,7 +169,7 @@ describe('migration 2 (envelope encryption)', () => {
        VALUES (1, ?, 310000, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
     ).run(new Uint8Array(16).fill(1), new Uint8Array(48).fill(2));
 
-    expect(migrate(db)).toEqual([2, 3, 4]);
+    expect(migrate(db)).toEqual([2, 3, 4, 5]);
 
     const row = db
       .query<{ format_version: number; wrapped_dek: Uint8Array | null; iterations: number }, []>(
@@ -258,7 +258,7 @@ describe('migration 3 (projects)', () => {
       ).run(env, name, BLOB, now, now);
     }
 
-    expect(migrate(db)).toEqual([3, 4]);
+    expect(migrate(db)).toEqual([3, 4, 5]);
 
     const projects = db.query('SELECT id, name FROM projects').all();
     expect(projects).toEqual([{ id: 1, name: 'General' }]);
@@ -353,6 +353,50 @@ describe('migration 4 (imported mark)', () => {
     expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
     expect(db.query('SELECT name, imported_at FROM secrets').all()).toEqual([
       { name: 'API_KEY', imported_at: null },
+    ]);
+  });
+});
+
+describe('migration 5 (manual order)', () => {
+  it('should number existing secrets alphabetically within each environment', () => {
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    migrate(
+      db,
+      MIGRATIONS.filter((m) => m.version <= 4),
+    );
+    const now = '2024-01-01T00:00:00.000Z';
+    const insertEnv = db.query(
+      'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, ?, ?, ?)',
+    );
+    insertEnv.run('Local', now, now);
+    insertEnv.run('Prod', now, now);
+    const insertSecret = db.query(
+      'INSERT INTO secrets (environment_id, name, value_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+    );
+    for (const [env, name] of [
+      [1, 'gamma'],
+      [1, 'Alfa'],
+      [1, 'beta'],
+      [2, 'zeta'],
+      [2, 'eta'],
+    ] as const) {
+      insertSecret.run(env, name, new Uint8Array(32).fill(7), now, now);
+    }
+
+    migrate(db);
+
+    expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
+    expect(
+      db
+        .query('SELECT environment_id AS env, name, position FROM secrets ORDER BY env, position')
+        .all(),
+    ).toEqual([
+      { env: 1, name: 'Alfa', position: 0 },
+      { env: 1, name: 'beta', position: 1 },
+      { env: 1, name: 'gamma', position: 2 },
+      { env: 2, name: 'eta', position: 0 },
+      { env: 2, name: 'zeta', position: 1 },
     ]);
   });
 });

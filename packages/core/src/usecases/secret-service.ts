@@ -69,6 +69,7 @@ export class SecretService {
       maskedValue: MASKED_VALUE,
       hasNote: secret.noteEnc !== null,
       importedAt: secret.importedAt ?? null,
+      position: secret.position,
       createdAt: secret.createdAt,
       updatedAt: secret.updatedAt,
     };
@@ -182,6 +183,24 @@ export class SecretService {
       'secret.deleted',
       `Secreto «${secret.name}» eliminado del ambiente «${secret.environmentName}».`,
     );
+  }
+
+  /** Fija el orden manual de un ambiente: `ids` debe ser una permutación de sus secretos. */
+  async reorder(environmentId: number, ids: readonly number[]): Promise<void> {
+    if (!(await this.deps.environments.findById(environmentId))) {
+      throw new EnvironmentNotFoundError(environmentId);
+    }
+    await this.deps.unitOfWork.run(async () => {
+      const current = await this.deps.secrets.list({ environmentId });
+      const known = new Set(current.map((secret) => secret.id));
+      const isPermutation = ids.length === known.size && new Set(ids).size === ids.length;
+      if (!isPermutation || !ids.every((id) => known.has(id))) {
+        throw new ValidationFailedError([
+          { field: 'ids', message: 'Debe incluir exactamente los secretos del ambiente.' },
+        ]);
+      }
+      await this.deps.secrets.setPositions(environmentId, ids);
+    });
   }
 
   /** Elimina varios secretos de forma atómica: si alguno no existe, no se borra ninguno. */

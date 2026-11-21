@@ -12,7 +12,7 @@ import { useToastStore } from '@/stores/toast';
 import { useTourStore } from '@/stores/tour';
 import { useSelectionStore } from '@/stores/selection';
 import { useSortStore } from '@/stores/sort';
-import { sortByName } from '@/lib/sort';
+import { sortSecrets } from '@/lib/sort';
 import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
@@ -40,7 +40,19 @@ const toast = useToastStore();
 const tour = useTourStore();
 const selection = useSelectionStore();
 const sort = useSortStore();
-const sortedSecrets = computed(() => sortByName(data.secrets, sort.order));
+const reorderable = computed(() => sort.order === 'manual' && !data.isSearching);
+const sortedSecrets = computed(() =>
+  sortSecrets(data.secrets, sort.order === 'manual' && data.isSearching ? 'asc' : sort.order),
+);
+
+async function reorderSecrets(ids: number[]): Promise<void> {
+  if (data.activeEnvId === null) return;
+  try {
+    await data.reorderSecrets(data.activeEnvId, ids);
+  } catch (error) {
+    toast.push('error', t('vault.reorderFailed'), describeError(error));
+  }
+}
 const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
@@ -336,10 +348,12 @@ async function runConfirm(): Promise<void> {
             :loading="data.loadingSecrets"
             :selected="selection.ids"
             :order="sort.order"
+            :reorderable="reorderable"
             @edit="openEditSecret"
             @remove="askDeleteSecret"
             @toggle="selection.toggle"
-            @toggle-sort="sort.toggle()"
+            @set-order="sort.set"
+            @reorder="reorderSecrets"
             @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
             @clear-selection="selection.clear()"
             @remove-selected="askDeleteSelected"

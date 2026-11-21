@@ -22,6 +22,7 @@ export const vault = {
     'Se eliminarán {count} secreto(s): {names}. Esta acción no se puede deshacer.',
   'vault.bulkDeleteMore': 'y {count} más',
   'vault.bulkDeleteConfirm': 'Eliminar {count} secreto(s)',
+  'vault.reorderFailed': 'No se pudo guardar el orden',
   'vault.bulkDeleted': 'Secretos eliminados',
   'vault.bulkDeletedBody': '{count} secreto(s) eliminado(s).',
   'vault.secretDeleted': 'Secreto eliminado',

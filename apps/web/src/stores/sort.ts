@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { DEFAULT_SORT_ORDER, isSortOrder, oppositeOrder } from '@/lib/sort';
+import { DEFAULT_SORT_ORDER, isSortOrder } from '@/lib/sort';
 import type { SortOrder } from '@/lib/sort';
 
 const STORAGE_KEY = 'sv-sort';
@@ -25,10 +25,10 @@ function storeOrder(order: SortOrder): void {
 export const useSortStore = defineStore('sort', () => {
   const order = ref<SortOrder>(readStoredOrder());
 
-  function toggle(): void {
-    order.value = oppositeOrder(order.value);
-    storeOrder(order.value);
+  function set(next: SortOrder): void {
+    order.value = next;
+    storeOrder(next);
   }
 
-  return { order, toggle };
+  return { order, set };
 });

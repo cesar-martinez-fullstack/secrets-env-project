@@ -9,7 +9,9 @@ import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { api } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
+import { moveId, shiftId } from '@/lib/sort';
 import type { SortOrder } from '@/lib/sort';
+import SortSelector from '@/components/vault/SortSelector.vue';
 import { relativeTime, absoluteTime } from '@/lib/time';
 import { useToastStore } from '@/stores/toast';
 import { useI18n } from '@/i18n/use-i18n';
@@ -19,6 +21,7 @@ const props = defineProps<{
   loading: boolean;
   selected: ReadonlySet<number>;
   order: SortOrder;
+  reorderable: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -26,7 +29,8 @@ const emit = defineEmits<{
   remove: [secret: SecretDto];
   toggle: [id: number];
   'toggle-all': [];
-  'toggle-sort': [];
+  'set-order': [order: SortOrder];
+  reorder: [ids: number[]];
   'clear-selection': [];
   'remove-selected': [];
   'create-first': [];
@@ -36,6 +40,20 @@ const allSelected = computed(
   () => props.secrets.length > 0 && props.secrets.every((secret) => props.selected.has(secret.id)),
 );
 const someSelected = computed(() => props.selected.size > 0 && !allSelected.value);
+
+const draggingId = ref<number | null>(null);
+const orderedIds = computed(() => props.secrets.map((secret) => secret.id));
+
+function dropOn(targetId: number): void {
+  const dragged = draggingId.value;
+  draggingId.value = null;
+  if (dragged === null || dragged === targetId) return;
+  emit('reorder', moveId(orderedIds.value, dragged, orderedIds.value.indexOf(targetId)));
+}
+
+function shift(id: number, delta: number): void {
+  emit('reorder', shiftId(orderedIds.value, id, delta));
+}
 
 const toast = useToastStore();
 const { t, describeError, localeStore } = useI18n();
@@ -177,15 +195,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
             : t('table.selectAll')
         }}
       </span>
-      <button
-        type="button"
-        class="ml-auto rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-        :title="t('table.sortTitle')"
-        data-testid="toggle-sort"
-        @click="emit('toggle-sort')"
-      >
-        {{ order === 'asc' ? t('table.sortAsc') : t('table.sortDesc') }}
-      </button>
+      <SortSelector class="ml-auto" :order="order" @change="emit('set-order', $event)" />
       <template v-if="selected.size > 0">
         <button
           type="button"
@@ -211,7 +221,40 @@ async function copySecret(secret: SecretDto): Promise<void> {
         :key="secret.id"
         class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-zinc-50/80 sm:flex-nowrap dark:hover:bg-zinc-800/40"
         :class="selected.has(secret.id) && 'bg-indigo-50/60 dark:bg-indigo-950/30'"
+        :draggable="reorderable"
+        data-testid="secret-row"
+        @dragstart="draggingId = secret.id"
+        @dragover.prevent="reorderable && draggingId !== null"
+        @drop.prevent="dropOn(secret.id)"
+        @dragend="draggingId = null"
       >
+        <div v-if="reorderable" class="flex shrink-0 items-center text-zinc-400">
+          <span class="cursor-grab" :title="t('table.dragHandle')" data-testid="drag-handle">
+            <AppIcon name="grip" :size="15" />
+          </span>
+          <div class="flex flex-col">
+            <button
+              type="button"
+              class="rounded p-0.5 hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-200"
+              :aria-label="t('table.moveUp', { name: secret.name })"
+              :disabled="secret.id === orderedIds[0]"
+              data-testid="move-up"
+              @click="shift(secret.id, -1)"
+            >
+              <AppIcon name="chevron-up" :size="13" />
+            </button>
+            <button
+              type="button"
+              class="rounded p-0.5 hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-200"
+              :aria-label="t('table.moveDown', { name: secret.name })"
+              :disabled="secret.id === orderedIds.at(-1)"
+              data-testid="move-down"
+              @click="shift(secret.id, 1)"
+            >
+              <AppIcon name="chevron-down" :size="13" />
+            </button>
+          </div>
+        </div>
         <input
           type="checkbox"
           class="h-4 w-4 shrink-0 rounded border-zinc-300 accent-indigo-600"

@@ -103,6 +103,7 @@ export interface MockSecretRepo {
   findByName: ReturnType<typeof jest.fn>;
   create: ReturnType<typeof jest.fn>;
   update: ReturnType<typeof jest.fn>;
+  setPositions: ReturnType<typeof jest.fn>;
   delete: ReturnType<typeof jest.fn>;
 }
 
@@ -113,13 +114,15 @@ export function mockSecretRepo(): MockSecretRepo {
   const create = jest.fn();
   const update = jest.fn();
   const remove = jest.fn();
+  const setPositions = jest.fn();
   return {
-    repo: { list, findById, findByName, create, update, delete: remove },
+    repo: { list, findById, findByName, create, update, setPositions, delete: remove },
     list,
     findById,
     findByName,
     create,
     update,
+    setPositions,
     delete: remove,
   };
 }
