@@ -334,6 +334,11 @@ describe('API integration — ciclo de vida completo', () => {
     expect(invalid.status).toBe(400);
     expect(await json(invalid)).toMatchObject({ error: { code: 'VALIDATION_FAILED' } });
 
+    const postmanRes = await get('/api/secrets/export?environmentId=1&format=postman');
+    expect(postmanRes.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(postmanRes.headers.get('Content-Disposition')).toContain('.postman_environment.json');
+    expect(await json(postmanRes)).toMatchObject({ _postman_variable_scope: 'environment' });
+
     const pdfRes = await get('/api/secrets/export?environmentId=1&format=pdf');
     expect(pdfRes.headers.get('Content-Type')).toBe('application/pdf');
     const pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
