@@ -173,6 +173,19 @@ describe('Postman export', () => {
     });
   });
 
+  it('should have the same top-level structure Postman exports', () => {
+    expect(Object.keys(parsed)).toEqual([
+      'id',
+      'name',
+      'values',
+      'color',
+      '_postman_variable_scope',
+      '_postman_exported_at',
+      '_postman_exported_using',
+    ]);
+    expect(parsed.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  });
+
   it('should export every variable as an enabled secret and leave the notes out', () => {
     expect(parsed.values).toEqual(
       ENTRIES.map(({ name, value }) => ({ key: name, value, type: 'secret', enabled: true })),
