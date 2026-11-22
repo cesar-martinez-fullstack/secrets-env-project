@@ -30,11 +30,11 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Organización
 
-| ID    | Funcionalidad                                                                                                                                                                                             | Estado      | Versión |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-120 | Proyectos: agrupar ambientes en un árbol; crear, renombrar y eliminar proyectos vacíos (ADR-0007)                                                                                                         | En revisión | 0.2.0   |
-| F-140 | Compartir un proyecto o un ambiente en un archivo cifrado con frase de paso e importarlo como proyecto nuevo (ADR-0009)                                                                                   | En revisión | 0.2.0   |
-| F-141 | Importar un archivo compartido en un proyecto existente (selector con búsqueda): mezclar o crear aparte cada ambiente repetido, omitir o sobrescribir variables y marca «Importado» hasta editar el valor | En revisión | 0.2.0   |
+| ID    | Funcionalidad                                                                                                                                                                                             | Estado | Versión |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------- |
+| F-120 | Proyectos: agrupar ambientes en un árbol; crear, renombrar y eliminar proyectos vacíos (ADR-0007)                                                                                                         | Hecho  | 0.2.0   |
+| F-140 | Compartir un proyecto o un ambiente en un archivo cifrado con frase de paso e importarlo como proyecto nuevo (ADR-0009)                                                                                   | Hecho  | 0.2.0   |
+| F-141 | Importar un archivo compartido en un proyecto existente (selector con búsqueda): mezclar o crear aparte cada ambiente repetido, omitir o sobrescribir variables y marca «Importado» hasta editar el valor | Hecho  | 0.2.0   |
 
 ## Auditoría y experiencia
 
@@ -67,30 +67,30 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 
 ## Planeado · organización y Postman
 
-| ID    | Rebanada                                                                                         | Estado      | Versión |
-| ----- | ------------------------------------------------------------------------------------------------ | ----------- | ------- |
-| F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada             | Planeado    | 0.2.0   |
-| F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | En revisión | 0.2.0   |
-| F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | Planeado    | 0.2.0   |
-| F-124 | Mover un ambiente a otro proyecto                                                                | Planeado    | 0.2.0   |
-| F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                     | Planeado    | 0.2.0   |
+| ID    | Rebanada                                                                                         | Estado   | Versión |
+| ----- | ------------------------------------------------------------------------------------------------ | -------- | ------- |
+| F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada             | Planeado | 0.2.0   |
+| F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | Hecho    | 0.2.0   |
+| F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | Planeado | 0.2.0   |
+| F-124 | Mover un ambiente a otro proyecto                                                                | Planeado | 0.2.0   |
+| F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                     | Planeado | 0.2.0   |
 
 ## Planeado · gestión de secretos y ajustes
 
-| ID    | Rebanada                                                                                                                                                | Estado      | Versión |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-125 | Selección múltiple y borrado en lote, con confirmación que cuenta y lista los nombres (atómico)                                                         | En revisión | 0.2.0   |
-| F-126 | Orden alfabético A→Z / Z→A, con la preferencia guardada                                                                                                 | En revisión | 0.2.0   |
-| F-127 | Orden manual por ambiente: arrastrar y soltar, con botones subir y bajar (solo en modo Manual)                                                          | En revisión | 0.2.0   |
-| F-130 | Ajustes · 1: cambiar el logo de la pantalla de entrada (PNG, JPEG o WebP; fuera de la bóveda; se ve antes de desbloquear)                               | En revisión | 0.2.0   |
-| F-131 | Ajustes · 2: nombre de la app, color de acento y tema por defecto                                                                                       | En revisión | 0.2.0   |
-| F-132 | Ajustes · 3: seguridad editable (auto-bloqueo, vida de sesión, borrado del portapapeles); pide contraseña                                               | Planeado    | 0.2.0   |
-| F-133 | Ajustes · 4: copia de seguridad (exportar el archivo cifrado) y retención o vaciado de la auditoría                                                     | Planeado    | 0.2.0   |
-| F-134 | Idioma de la interfaz: español e inglés (selector en la entrada y en la barra; se recuerda en el navegador)                                             | Hecho       | 0.2.0   |
-| F-135 | Tema con vista previa: miniatura de la interfaz a la derecha de Ajustes que cambia al elegir modo y acento; los colores salen de una paleta reasignable | En revisión | 0.2.0   |
-| F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | En revisión | 0.2.0   |
-| F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                           | En revisión | 0.2.0   |
-| F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | Planeado    | 0.2.0   |
+| ID    | Rebanada                                                                                                                                                | Estado   | Versión |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| F-125 | Selección múltiple y borrado en lote, con confirmación que cuenta y lista los nombres (atómico)                                                         | Hecho    | 0.2.0   |
+| F-126 | Orden alfabético A→Z / Z→A, con la preferencia guardada                                                                                                 | Hecho    | 0.2.0   |
+| F-127 | Orden manual por ambiente: arrastrar y soltar, con botones subir y bajar (solo en modo Manual)                                                          | Hecho    | 0.2.0   |
+| F-130 | Ajustes · 1: cambiar el logo de la pantalla de entrada (PNG, JPEG o WebP; fuera de la bóveda; se ve antes de desbloquear)                               | Hecho    | 0.2.0   |
+| F-131 | Ajustes · 2: nombre de la app, color de acento y tema por defecto                                                                                       | Hecho    | 0.2.0   |
+| F-132 | Ajustes · 3: seguridad editable (auto-bloqueo, vida de sesión, borrado del portapapeles); pide contraseña                                               | Planeado | 0.2.0   |
+| F-133 | Ajustes · 4: copia de seguridad (exportar el archivo cifrado) y retención o vaciado de la auditoría                                                     | Planeado | 0.2.0   |
+| F-134 | Idioma de la interfaz: español e inglés (selector en la entrada y en la barra; se recuerda en el navegador)                                             | Hecho    | 0.2.0   |
+| F-135 | Tema con vista previa: miniatura de la interfaz a la derecha de Ajustes que cambia al elegir modo y acento; los colores salen de una paleta reasignable | Hecho    | 0.2.0   |
+| F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | Hecho    | 0.2.0   |
+| F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                           | Hecho    | 0.2.0   |
+| F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | Planeado | 0.2.0   |
 
 Los ajustes son **por instancia** (quien tiene la bóveda abierta los administra, sin roles) y se guardan fuera de
 la bóveda, en la carpeta de datos, para poder leerse antes de desbloquear. El logo solo admite imágenes
