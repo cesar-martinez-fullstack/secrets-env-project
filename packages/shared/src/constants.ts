@@ -22,6 +22,7 @@ export const MASTER_PASSWORD_MAX = 128;
 export const MAX_SECRET_VALUE_LENGTH = 100_000;
 export const MAX_SECRET_NOTE_LENGTH = 2_000;
 export const MAX_BULK_SECRETS = 200;
+export const MAX_IMPORT_ENTRIES = 2_000;
 export const MAX_ENVIRONMENT_NAME_LENGTH = 40;
 export const MAX_PROJECT_NAME_LENGTH = 40;
 

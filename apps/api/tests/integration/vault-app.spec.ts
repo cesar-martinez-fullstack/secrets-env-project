@@ -593,6 +593,28 @@ describe('API integration — ciclo de vida completo', () => {
     expect(byPosition).toEqual(['ORDEN_C', 'ORDEN_A', 'ORDEN_B']);
   });
 
+  it('POST /api/secrets/import acepta entradas estructuradas con notas y cuenta las inválidas', async () => {
+    const res = await post('/api/secrets/import', {
+      environmentId: 1,
+      overwrite: false,
+      entries: [
+        { name: 'IMPORTADA_CON_NOTA', value: 'valor', note: 'nota importada' },
+        { name: '1INVALIDA', value: 'x', note: null },
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ imported: 1, updated: 0, skipped: 0, invalidLines: 1 });
+
+    const [created] = await json<{ id: number }[]>(await get('/api/secrets?q=importada_con_nota'));
+    const revealed = await json<{ value: string; note: string | null }>(
+      await post(`/api/secrets/${created!.id}/reveal`, {}),
+    );
+    expect(revealed).toMatchObject({ value: 'valor', note: 'nota importada' });
+
+    const bad = await post('/api/secrets/import', { environmentId: 1, entries: 'no-es-lista' });
+    expect(bad.status).toBe(400);
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);

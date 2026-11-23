@@ -5,6 +5,7 @@ import { describe, expect, it } from 'bun:test';
 import { EXPORT_FORMATS } from '@secretvault/shared';
 import { buildCsvExport } from '../../src/export/csv';
 import { EXPORT_FORMATTERS, exportFilename } from '../../src/export/formatters';
+import { parseImportFile } from '@secretvault/shared';
 import { buildJsonExport } from '../../src/export/json';
 import { buildPdfExport } from '../../src/export/pdf';
 import { buildPostmanExport } from '../../src/export/postman';
@@ -156,6 +157,28 @@ describe('JSON export', () => {
   it('should export an empty environment as an empty list', () => {
     const doc = JSON.parse(buildJsonExport({ ...INPUT, entries: [] })) as { secrets: unknown[] };
     expect(doc.secrets).toEqual([]);
+  });
+});
+
+describe('export and import round trip', () => {
+  const INPUT = {
+    environmentName: 'Local',
+    generatedAt: new Date('2026-01-15T10:30:00Z'),
+    entries: [
+      { name: 'CON_COMILLAS', value: 'di "hola", amigo', note: 'nota, con coma' },
+      { name: 'MULTILINEA', value: 'linea1\nlinea2', note: null },
+    ],
+    iterations: 1,
+  };
+
+  it('should read back what the CSV export writes', () => {
+    const csv = new TextDecoder().decode(buildCsvExport(INPUT.entries));
+
+    expect(parseImportFile('export.csv', csv).entries).toEqual(INPUT.entries);
+  });
+
+  it('should read back what the JSON export writes', () => {
+    expect(parseImportFile('export.json', buildJsonExport(INPUT)).entries).toEqual(INPUT.entries);
   });
 });
 

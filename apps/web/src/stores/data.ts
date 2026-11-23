@@ -7,6 +7,7 @@ import { computed, ref, watch } from 'vue';
 import type {
   CreateSecretRequestDto,
   EnvironmentDto,
+  ImportEntryDto,
   ImportSecretsResultDto,
   ShareImportRequestDto,
   ShareImportResultDto,
@@ -148,10 +149,10 @@ export const useDataStore = defineStore('data', () => {
 
   async function importSecrets(
     environmentId: number,
-    content: string,
+    entries: ImportEntryDto[],
     overwrite: boolean,
   ): Promise<ImportSecretsResultDto> {
-    const result = await api.importSecrets({ environmentId, content, overwrite });
+    const result = await api.importSecrets({ environmentId, entries, overwrite });
     await Promise.all([refreshEnvironments(), refreshSecrets()]);
     return result;
   }

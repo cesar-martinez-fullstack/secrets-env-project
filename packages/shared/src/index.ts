@@ -3,6 +3,7 @@ export * from './error-codes';
 export * from './dto';
 export * from './validation';
 export * from './parse-env';
+export * from './import-file';
 export * from './recovery-key';
 export * from './share-package';
 export * from './logo';

@@ -4,7 +4,12 @@
  */
 import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { SESSION_COOKIE, isExportFormat, type ExportFormat } from '@secretvault/shared';
+import {
+  SESSION_COOKIE,
+  isExportFormat,
+  type ExportFormat,
+  type ImportEntry,
+} from '@secretvault/shared';
 import { DomainError, ValidationFailedError } from '@secretvault/core';
 import type { ApiConfig } from '../config';
 
@@ -94,6 +99,23 @@ export function requireStringList(body: object, field: string): string[] {
     throw new ValidationFailedError([{ field, message: 'Debe ser una lista de textos.' }]);
   }
   return value;
+}
+
+/** Exige una lista de entradas de importación `{ name, value, note? }`. */
+export function requireImportEntries(body: object, field: string): ImportEntry[] {
+  const value = (body as Record<string, unknown>)[field];
+  const entries = Array.isArray(value) ? value.map(toImportEntry) : null;
+  if (entries === null || entries.includes(null)) {
+    throw new ValidationFailedError([{ field, message: 'Debe ser una lista de entradas.' }]);
+  }
+  return entries as ImportEntry[];
+}
+
+function toImportEntry(item: unknown): ImportEntry | null {
+  if (typeof item !== 'object' || item === null) return null;
+  const { name, value, note } = item as Record<string, unknown>;
+  if (typeof name !== 'string' || typeof value !== 'string') return null;
+  return { name, value, note: typeof note === 'string' ? note : null };
 }
 
 /** Exige una lista de enteros positivos en el body. */
