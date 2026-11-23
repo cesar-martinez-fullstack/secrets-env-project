@@ -27,6 +27,7 @@ Mapa del proyecto. Cada tema tiene un único documento: se actualiza el existent
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | [GIT_WORKFLOW.md](GIT_WORKFLOW.md) | Git Flow, commits, PRs y releases                                                                                         |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Herramientas y MCPs necesarios                                                                                            |
+| [MAC.md](MAC.md)                   | Instalar, actualizar y compilar SecretVault en un Mac                                                                     |
 | [../CLAUDE.md](../CLAUDE.md)       | Guía para el agente; enlaza las reglas de `.claude/rules/` (rebanadas verticales, calidad de código, API, datos, testing) |
 
 ## Qué se actualiza y cuándo
