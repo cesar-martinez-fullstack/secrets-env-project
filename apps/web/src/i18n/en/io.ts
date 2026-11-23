@@ -1,10 +1,16 @@
 import type { io as base } from '../es/io';
 
 export const io: Record<keyof typeof base, string> = {
-  'import.title': 'Import variables (.env)',
+  'import.title': 'Import variables',
   'import.leadStart': 'Paste the contents of a',
   'import.leadMiddle': 'file to import it into the environment',
   'import.leadEnd': '. Each value is encrypted with AES-256-GCM when saved.',
+  'import.chooseFile': 'Choose file',
+  'import.fileHint': 'Supports .env, .txt, CSV and JSON (the same format you export).',
+  'import.removeFile': 'Remove file',
+  'import.tooLarge': 'The file is larger than 2 MB.',
+  'import.unreadable': 'The file content is not recognized',
+  'import.withNotes': '{count} with a note',
   'import.valid': '{count} valid variable(s)',
   'import.duplicates': '{count} duplicate(s) (the last one wins)',
   'import.invalid': '{count} invalid line(s)',

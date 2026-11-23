@@ -4,7 +4,7 @@
  * localmente (paquete shared) mostrando un resumen antes de importar.
  */
 import { computed, ref, watch } from 'vue';
-import { parseEnvContent } from '@secretvault/shared';
+import { parseImportFile } from '@secretvault/shared';
 import { useDataStore } from '@/stores/data';
 import { useToastStore } from '@/stores/toast';
 import { useI18n } from '@/i18n/use-i18n';
@@ -23,7 +23,11 @@ const data = useDataStore();
 const toast = useToastStore();
 const { t, describeError } = useI18n();
 
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
+
 const content = ref('');
+const fileName = ref<string | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
 const overwrite = ref(false);
 const submitting = ref(false);
 
@@ -31,26 +35,55 @@ watch(
   () => props.open,
   (open) => {
     if (!open) return;
-    content.value = '';
+    clearFile();
     overwrite.value = false;
   },
 );
 
+const parsed = computed(() =>
+  content.value.trim().length === 0
+    ? null
+    : parseImportFile(fileName.value ?? 'pegado.env', content.value),
+);
+
 const preview = computed(() => {
-  if (content.value.trim().length === 0) return null;
-  const parsed = parseEnvContent(content.value);
+  if (!parsed.value) return null;
+  const { entries, invalid, duplicates, unreadable } = parsed.value;
   return {
-    valid: parsed.entries.length,
-    invalid: parsed.invalidLines,
-    duplicates: parsed.duplicates,
+    valid: entries.length,
+    invalid,
+    duplicates,
+    unreadable,
+    withNotes: entries.filter((entry) => entry.note !== null).length,
   };
 });
 
+const canSubmit = computed(() => (parsed.value?.entries.length ?? 0) > 0 && !submitting.value);
+
+function clearFile(): void {
+  content.value = '';
+  fileName.value = null;
+}
+
+async function onFile(event: Event): Promise<void> {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  target.value = '';
+  if (!file) return;
+  if (file.size > MAX_FILE_BYTES) {
+    toast.push('error', t('import.failed'), t('import.tooLarge'));
+    return;
+  }
+  content.value = await file.text();
+  fileName.value = file.name;
+}
+
 async function submit(): Promise<void> {
-  if (!content.value.trim() || data.activeEnvId === null || submitting.value) return;
+  const entries = parsed.value?.entries;
+  if (!entries?.length || data.activeEnvId === null || submitting.value) return;
   submitting.value = true;
   try {
-    const result = await data.importSecrets(data.activeEnvId, content.value, overwrite.value);
+    const result = await data.importSecrets(data.activeEnvId, entries, overwrite.value);
     const parts: string[] = [];
     if (result.imported > 0) parts.push(t('import.created', { count: result.imported }));
     if (result.updated > 0) parts.push(t('import.updated', { count: result.updated }));
@@ -82,6 +115,41 @@ async function submit(): Promise<void> {
       >{{ t('import.leadEnd') }}
     </p>
 
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        data-testid="import-choose-file"
+        @click="fileInput?.click()"
+      >
+        {{ t('import.chooseFile') }}
+      </button>
+      <span
+        v-if="fileName"
+        class="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+        data-testid="import-file-name"
+      >
+        {{ fileName }}
+        <button
+          type="button"
+          class="rounded-full hover:text-sky-900 dark:hover:text-sky-100"
+          :aria-label="t('import.removeFile')"
+          @click="clearFile"
+        >
+          <AppIcon name="x" :size="12" />
+        </button>
+      </span>
+      <span v-else class="text-xs text-zinc-400">{{ t('import.fileHint') }}</span>
+      <input
+        ref="fileInput"
+        type="file"
+        accept=".env,.txt,.csv,.json,text/plain,text/csv,application/json"
+        class="hidden"
+        data-testid="import-file-input"
+        @change="onFile"
+      />
+    </div>
+
     <textarea
       v-model="content"
       rows="9"
@@ -92,6 +160,20 @@ async function submit(): Promise<void> {
 
     <div v-if="preview" class="mt-3 flex flex-wrap items-center gap-2 text-xs">
       <span
+        v-if="preview.unreadable"
+        class="rounded-full bg-red-50 px-2.5 py-1 font-medium text-red-700 dark:bg-red-950/60 dark:text-red-400"
+        data-testid="import-unreadable"
+      >
+        {{ t('import.unreadable') }}
+      </span>
+      <span
+        v-if="preview.withNotes > 0"
+        class="rounded-full bg-zinc-100 px-2.5 py-1 font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+      >
+        {{ t('import.withNotes', { count: preview.withNotes }) }}
+      </span>
+      <span
+        v-if="!preview.unreadable"
         class="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
       >
         {{ t('import.valid', { count: preview.valid }) }}
@@ -132,7 +214,7 @@ async function submit(): Promise<void> {
       </button>
       <button
         type="button"
-        :disabled="!content.trim() || submitting"
+        :disabled="!canSubmit"
         class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         @click="submit"
       >
