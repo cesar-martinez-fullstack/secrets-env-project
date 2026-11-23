@@ -1,7 +1,7 @@
 export const io = {
   'import.title': 'Importar variables',
-  'import.leadStart': 'Pega el contenido de un archivo',
-  'import.leadMiddle': 'para importarlo al ambiente',
+  'import.leadStart': 'Elige un archivo o pega su contenido en formato',
+  'import.leadMiddle': ', CSV o JSON para importarlo al ambiente',
   'import.leadEnd': '. Cada valor se cifrará con AES-256-GCM al guardarse.',
   'import.chooseFile': 'Elegir archivo',
   'import.fileHint': 'Admite .env, .txt, CSV y JSON (el mismo formato que exportas).',

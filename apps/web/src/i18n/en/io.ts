@@ -2,8 +2,8 @@ import type { io as base } from '../es/io';
 
 export const io: Record<keyof typeof base, string> = {
   'import.title': 'Import variables',
-  'import.leadStart': 'Paste the contents of a',
-  'import.leadMiddle': 'file to import it into the environment',
+  'import.leadStart': 'Choose a file or paste its contents in',
+  'import.leadMiddle': ', CSV or JSON format to import it into the environment',
   'import.leadEnd': '. Each value is encrypted with AES-256-GCM when saved.',
   'import.chooseFile': 'Choose file',
   'import.fileHint': 'Supports .env, .txt, CSV and JSON (the same format you export).',
