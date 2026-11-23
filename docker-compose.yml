@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: secretvault:latest
-    container_name: secretvault
+    container_name: ${SV_CONTAINER_NAME:-secretvault}
     ports:
       # SOLO loopback del host: la bóveda no es alcanzable desde la red local.
       # (Dentro del contenedor la app escucha en 0.0.0.0; este mapeo es la barrera.)
