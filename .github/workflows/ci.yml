@@ -70,6 +70,10 @@ jobs:
       - uses: actions/checkout@v7
       - name: Build image
         run: docker build -t secretvault:ci .
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the arm64 image (no push)
+        run: docker buildx build --platform linux/arm64 -t secretvault:ci-arm64 .
       - name: Run and check health
         run: |
           docker run -d --name sv -p 127.0.0.1:3000:3000 secretvault:ci
