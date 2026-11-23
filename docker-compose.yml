@@ -18,7 +18,7 @@ services:
     ports:
       # SOLO loopback del host: la bóveda no es alcanzable desde la red local.
       # (Dentro del contenedor la app escucha en 0.0.0.0; este mapeo es la barrera.)
-      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:${SV_PORT:-3000}:3000'
     volumes:
       # ── Persistencia del SQLite fuera del contenedor ──
       - secretvault-data:/app/data
