@@ -7,7 +7,7 @@
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Etapa 1: compilación ──────────────────────────────────────────────
-FROM oven/bun:1.4.4 AS build
+FROM oven/bun:1.4.5 AS build
 WORKDIR /app
 # El contenedor no es un repo git: evita que `bun install` ejecute husky.
 ENV HUSKY=0
@@ -38,7 +38,7 @@ RUN bun build --compile --minify --sourcemap=none \
       --outfile /out/secretvault
 
 # ── Etapa 2: producción ───────────────────────────────────────────────
-FROM oven/bun:1.4.4-slim AS production
+FROM oven/bun:1.4.5-slim AS production
 
 WORKDIR /app
 
