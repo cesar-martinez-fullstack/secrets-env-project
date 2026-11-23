@@ -22,6 +22,7 @@ import {
   parseIdParam,
   readJsonBody,
   requireIdList,
+  requireImportEntries,
   requireInt,
   requireString,
 } from '../http/helpers';
@@ -119,12 +120,16 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
   // Importación masiva desde contenido .env.
   app.post('/import', async (c) => {
     const body = await readJsonBody<ImportSecretsRequestDto>(c);
-    const result = await secretService.import(
-      c.get('session').key,
-      requireInt(body, 'environmentId'),
-      requireString(body, 'content'),
-      body.overwrite === true,
-    );
+    const { key } = c.get('session');
+    const environmentId = requireInt(body, 'environmentId');
+    const overwrite = body.overwrite === true;
+    const result =
+      body.entries === undefined
+        ? await secretService.import(key, environmentId, requireString(body, 'content'), overwrite)
+        : await secretService.importEntries(key, environmentId, {
+            entries: requireImportEntries(body, 'entries'),
+            overwrite,
+          });
     const dto: ImportSecretsResultDto = result;
     return jsonResponse(c, dto);
   });

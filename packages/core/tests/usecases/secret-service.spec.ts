@@ -410,6 +410,96 @@ describe('SecretService', () => {
     });
   });
 
+  describe('importEntries', () => {
+    const env = { id: 1, name: 'QA', createdAt: new Date(), updatedAt: new Date() };
+    const stored = {
+      id: 7,
+      environmentId: 1,
+      name: 'Api_Key',
+      valueEnc: new Uint8Array(4),
+      noteEnc: null,
+      importedAt: null,
+      position: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    beforeEach(() => {
+      envs.findById.mockResolvedValue(env);
+      secrets.findByName.mockResolvedValue(null);
+      secrets.create.mockResolvedValue(stored);
+    });
+
+    it('should encrypt the note with the note AAD when the entry has one', async () => {
+      const result = await service.importEntries(KEY, 1, {
+        entries: [{ name: 'API_KEY', value: 'v', note: 'una nota' }],
+        overwrite: false,
+      });
+
+      expect(result.imported).toBe(1);
+      expect(crypto.encrypt).toHaveBeenCalledWith(KEY, 'una nota', secretNoteAad(1, 'API_KEY'));
+      expect(secrets.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'API_KEY', noteEnc: expect.any(Uint8Array) }),
+      );
+    });
+
+    it('should count entries that fail validation instead of importing them', async () => {
+      const result = await service.importEntries(KEY, 1, {
+        entries: [
+          { name: 'OK', value: 'v', note: null },
+          { name: '1MALO', value: 'v', note: null },
+          { name: 'VACIO', value: '', note: null },
+        ],
+        overwrite: false,
+        invalidLines: 2,
+      });
+
+      expect(result).toEqual({ imported: 1, updated: 0, skipped: 0, invalidLines: 4 });
+    });
+
+    it('should overwrite with the stored name as AAD and keep the note when none comes', async () => {
+      secrets.findByName.mockResolvedValue(stored);
+
+      const result = await service.importEntries(KEY, 1, {
+        entries: [{ name: 'API_KEY', value: 'nuevo', note: null }],
+        overwrite: true,
+      });
+
+      expect(result.updated).toBe(1);
+      expect(crypto.encrypt).toHaveBeenCalledWith(KEY, 'nuevo', secretValueAad(1, 'Api_Key'));
+      expect(secrets.update).toHaveBeenCalledWith(7, { valueEnc: expect.any(Uint8Array) });
+    });
+
+    it('should skip existing entries without overwrite and audit nothing when nothing changed', async () => {
+      secrets.findByName.mockResolvedValue(stored);
+
+      const result = await service.importEntries(KEY, 1, {
+        entries: [{ name: 'API_KEY', value: 'v', note: null }],
+        overwrite: false,
+      });
+
+      expect(result.skipped).toBe(1);
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('should reject more entries than the limit and unknown environments', async () => {
+      const tooMany = Array.from({ length: 2_001 }, (_, index) => ({
+        name: `K${index}`,
+        value: 'v',
+        note: null,
+      }));
+
+      await expect(
+        service.importEntries(KEY, 1, { entries: tooMany, overwrite: false }),
+      ).rejects.toThrow(ValidationFailedError);
+
+      envs.findById.mockResolvedValue(null);
+      await expect(
+        service.importEntries(KEY, 9, { entries: [], overwrite: false }),
+      ).rejects.toThrow(EnvironmentNotFoundError);
+    });
+  });
+
   describe('import', () => {
     it('should create new entries and count invalid lines', async () => {
       envs.findById.mockResolvedValue({
