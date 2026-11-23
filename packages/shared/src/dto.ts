@@ -150,9 +150,17 @@ export interface DeleteSecretsResultDto {
   deleted: number;
 }
 
+export interface ImportEntryDto {
+  name: string;
+  value: string;
+  note: string | null;
+}
+
+/** `entries` (ya estructuradas) tiene prioridad sobre `content` (texto .env). */
 export interface ImportSecretsRequestDto {
   environmentId: number;
-  content: string;
+  content?: string;
+  entries?: ImportEntryDto[];
   overwrite: boolean;
 }
 
