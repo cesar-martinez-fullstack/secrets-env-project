@@ -47,6 +47,10 @@ Si el puerto 3000 está ocupado: `SV_PORT=3001 docker compose up -d` y abre <htt
 
 ## 3. Actualizar (conserva tus secretos)
 
+Para saber si hay una versión nueva: **Ajustes > Actualizaciones > Comprobar actualizaciones**. La aplicación solo
+se conecta a GitHub cuando pulsas el botón, no envía ningún dato de tu bóveda y te muestra el comando para
+instalarla. Si prefieres que no salga nunca a internet, pon `SV_UPDATE_CHECK=false`.
+
 ```bash
 cd secrets-env-project
 ./scripts/update.sh --check   # solo informa si hay versión nueva
