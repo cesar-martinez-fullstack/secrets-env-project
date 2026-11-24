@@ -10,7 +10,7 @@
  *     y olvida actualizar el manifest, el test falla el build.
  */
 import { beforeAll, afterAll, describe, expect, it } from 'bun:test';
-import { readFileSync, rmSync, mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, readdirSync, rmSync, mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../../src/app';
@@ -21,9 +21,16 @@ import { createContainer, disposeContainer, type Container } from '../../src/con
 export const PUBLIC_ROUTES = new Set<string>([
   'GET /api/health',
   'GET /api/vault/status',
+  // Marca visible antes de desbloquear (logo): solo lectura, sin datos de la bóveda; servido como
+  // imagen validada por firma (bytes mágicos) y servida con nosniff.
+  'GET /api/settings',
+  'GET /api/settings/logo',
   'POST /api/vault/setup',
   'POST /api/vault/unlock',
   'POST /api/vault/lock', // idempotente por diseño (bloquea si hay sesión)
+  // Recuperación de acceso: no hay sesión (se olvidó la contraseña). La protege la clave de
+  // recuperación de 256 bits + rate limit (10/15 min) + auditoría de los fallos.
+  'POST /api/vault/recover',
 ]);
 
 /** Manifest completo de rutas del API (method + path). */
@@ -34,6 +41,12 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/vault/unlock',
   'POST /api/vault/lock',
   'POST /api/vault/change-password',
+  'POST /api/vault/recover',
+  'POST /api/vault/recovery-key',
+  'GET /api/projects',
+  'POST /api/projects',
+  'PATCH /api/projects/:id',
+  'DELETE /api/projects/:id',
   'GET /api/environments',
   'POST /api/environments',
   'PATCH /api/environments/:id',
@@ -42,38 +55,49 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/secrets',
   'PATCH /api/secrets/:id',
   'DELETE /api/secrets/:id',
+  'POST /api/secrets/bulk-delete',
+  'PUT /api/secrets/order',
   'POST /api/secrets/:id/reveal',
   'POST /api/secrets/import',
+  'POST /api/share/projects/:id/export',
+  'POST /api/share/environments/:id/export',
+  'POST /api/share/preview',
+  'POST /api/share/import',
   'GET /api/secrets/export',
   'GET /api/audit',
+  'POST /api/update/check',
+  'GET /api/settings',
+  'GET /api/settings/logo',
+  'PUT /api/settings/appearance',
+  'PUT /api/settings/logo',
+  'DELETE /api/settings/logo',
 ];
 
 const SRC_ROUTES = join(import.meta.dir, '..', '..', 'src', 'routes');
+
+/** Archivo de rutas → prefijo montado en `app.ts`. Un archivo nuevo debe añadirse aquí. */
+const ROUTE_FILES: Record<string, string> = {
+  'vault.routes.ts': '/api/vault',
+  'projects.routes.ts': '/api/projects',
+  'environments.routes.ts': '/api/environments',
+  'secrets.routes.ts': '/api/secrets',
+  'share.routes.ts': '/api/share',
+  'audit.routes.ts': '/api/audit',
+  'settings.routes.ts': '/api/settings',
+  'update.routes.ts': '/api/update',
+};
 
 function scanRouteFiles(): string[] {
   const found: string[] = [];
   // app.ts registra /api/health fuera del directorio routes/ — se escanea también.
   const appTs = readFileSync(join(import.meta.dir, '..', '..', 'src', 'app.ts'), 'utf8');
-  for (const match of appTs.matchAll(/app\.(get|post|patch|delete)\(\s*'([^']*)'/g)) {
+  for (const match of appTs.matchAll(/app\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
     if (match[2] === '*') continue; // catch-all del SPA, no es una ruta del API
     found.push(`${match[1]!.toUpperCase()} ${match[2]!}`);
   }
-  for (const file of [
-    'vault.routes.ts',
-    'environments.routes.ts',
-    'secrets.routes.ts',
-    'audit.routes.ts',
-  ]) {
+  for (const [file, prefix] of Object.entries(ROUTE_FILES)) {
     const source = readFileSync(join(SRC_ROUTES, file), 'utf8');
-    for (const match of source.matchAll(/app\.(get|post|patch|delete)\(\s*'([^']*)'/g)) {
-      const prefix =
-        file === 'vault.routes.ts'
-          ? '/api/vault'
-          : file === 'environments.routes.ts'
-            ? '/api/environments'
-            : file === 'secrets.routes.ts'
-              ? '/api/secrets'
-              : '/api/audit';
+    for (const match of source.matchAll(/app\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
       const sub = match[2] === '/' ? '' : match[2]!;
       found.push(`${match[1]!.toUpperCase()} ${prefix}${sub}`);
     }
@@ -106,6 +130,14 @@ describe('security: route coverage', () => {
     const scanned = scanRouteFiles().sort();
     const manifest = [...ROUTE_MANIFEST].sort();
     expect(scanned).toEqual(manifest);
+  });
+
+  it('el escáner conoce todos los archivos *.routes.ts (ninguna ruta se escapa del manifest)', () => {
+    const files = readdirSync(SRC_ROUTES)
+      .filter((file) => file.endsWith('.routes.ts'))
+      .sort();
+
+    expect(Object.keys(ROUTE_FILES).sort()).toEqual(files);
   });
 
   it('toda ruta del manifest está clasificada como pública o protegida', () => {

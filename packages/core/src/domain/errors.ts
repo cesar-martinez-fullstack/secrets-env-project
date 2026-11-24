@@ -44,6 +44,22 @@ export class InvalidMasterPasswordError extends DomainError {
   }
 }
 
+export class InvalidRecoveryKeyError extends DomainError {
+  constructor() {
+    super('INVALID_RECOVERY_KEY', 'La clave de recuperación no es válida.', 401);
+  }
+}
+
+export class RecoveryNotAvailableError extends DomainError {
+  constructor() {
+    super(
+      'RECOVERY_NOT_AVAILABLE',
+      'Esta bóveda aún no tiene clave de recuperación: desbloquéala una vez con tu contraseña para generarla.',
+      409,
+    );
+  }
+}
+
 export class WeakMasterPasswordError extends DomainError {
   constructor(issues: ValidationIssue[]) {
     super(
@@ -51,6 +67,34 @@ export class WeakMasterPasswordError extends DomainError {
       'La contraseña maestra no cumple los requisitos mínimos.',
       400,
       issues,
+    );
+  }
+}
+
+export class ProjectNotFoundError extends DomainError {
+  constructor(id: number) {
+    super('PROJECT_NOT_FOUND', `El proyecto #${id} no existe.`, 404);
+  }
+}
+
+export class ProjectNameRequiredError extends DomainError {
+  constructor() {
+    super('PROJECT_NAME_REQUIRED', 'El nombre del proyecto es obligatorio.', 400);
+  }
+}
+
+export class ProjectNameTakenError extends DomainError {
+  constructor(name: string) {
+    super('PROJECT_NAME_TAKEN', `Ya existe un proyecto llamado «${name}».`, 409);
+  }
+}
+
+export class ProjectNotEmptyError extends DomainError {
+  constructor(name: string, environmentCount: number) {
+    super(
+      'PROJECT_NOT_EMPTY',
+      `El proyecto «${name}» tiene ${environmentCount} ambiente(s). Elimínalos o muévelos antes de borrarlo.`,
+      409,
     );
   }
 }
@@ -106,5 +150,31 @@ export class SecretValueRequiredError extends DomainError {
 export class ValidationFailedError extends DomainError {
   constructor(issues: ValidationIssue[]) {
     super('VALIDATION_FAILED', 'Datos inválidos.', 400, issues);
+  }
+}
+
+export class LogoInvalidError extends DomainError {
+  constructor() {
+    super('LOGO_INVALID', 'El logo debe ser una imagen PNG, JPEG o WebP de hasta 256 KB.', 400);
+  }
+}
+
+export class UpdateCheckFailedError extends DomainError {
+  constructor() {
+    super(
+      'UPDATE_CHECK_FAILED',
+      'No se pudo comprobar si hay una versión nueva. Revisa la conexión e inténtalo de nuevo.',
+      502,
+    );
+  }
+}
+
+export class SharePackageInvalidError extends DomainError {
+  constructor() {
+    super(
+      'SHARE_PACKAGE_INVALID',
+      'No se pudo abrir el archivo: la frase de paso es incorrecta o el archivo está dañado.',
+      400,
+    );
   }
 }

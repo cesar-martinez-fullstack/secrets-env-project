@@ -13,8 +13,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // En desarrollo, el frontend (5173) delega el API en Bun (3000).
-      '/api': 'http://localhost:3000',
+      '/api': {
+        target: process.env.SV_API_URL ?? 'http://localhost:3000',
+        // El API compara Origin con Host (anti CSRF): el proxy debe conservar el Host del navegador.
+        changeOrigin: false,
+      },
     },
   },
   build: {

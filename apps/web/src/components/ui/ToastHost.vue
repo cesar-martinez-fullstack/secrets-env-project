@@ -4,10 +4,12 @@
  */
 import { useToastStore } from '@/stores/toast';
 import type { ToastKind } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 import AppIcon from '@/components/AppIcon.vue';
 import type { IconName } from '@/components/icons';
 
 const store = useToastStore();
+const { t } = useI18n();
 
 const styles: Record<ToastKind, { icon: IconName; classes: string }> = {
   success: {
@@ -39,7 +41,7 @@ const styles: Record<ToastKind, { icon: IconName; classes: string }> = {
           <button
             type="button"
             class="shrink-0 rounded-md p-1 text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-200"
-            aria-label="Descartar"
+            :aria-label="t('common.dismiss')"
             @click="store.remove(toast.id)"
           >
             <AppIcon name="x" :size="14" />

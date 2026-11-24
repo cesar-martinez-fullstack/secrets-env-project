@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './accents.css';
 
 /* Modo oscuro basado en clase .dark (controlado por el store de tema). */
 @custom-variant dark (&:where(.dark, .dark *));

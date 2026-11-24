@@ -3,19 +3,32 @@
  * Vista principal: barra superior, sidebar de ambientes y tabla de secretos
  * con todos los modales (CRUD, importar, exportar, confirmaciones).
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import type { EnvironmentDto, SecretDto } from '@secretvault/shared';
+import type { EnvironmentDto, ProjectDto, SecretDto } from '@secretvault/shared';
 import { useDataStore } from '@/stores/data';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
+import { useTourStore } from '@/stores/tour';
+import { useSelectionStore } from '@/stores/selection';
+import { useSortStore } from '@/stores/sort';
+import { sortSecrets } from '@/lib/sort';
+import { summarizeNames } from '@/lib/selection';
+import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
-import EnvironmentSidebar from '@/components/layout/EnvironmentSidebar.vue';
+import ProjectSidebar from '@/components/layout/ProjectSidebar.vue';
 import SecretsTable from '@/components/vault/SecretsTable.vue';
 import SecretFormModal from '@/components/vault/SecretFormModal.vue';
 import ImportModal from '@/components/vault/ImportModal.vue';
+import ShareExportModal from '@/components/vault/ShareExportModal.vue';
+import ShareImportModal from '@/components/vault/ShareImportModal.vue';
+import type { ShareTarget } from '@/components/vault/share-target';
 import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
+import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
+import SecurityModal from '@/components/vault/SecurityModal.vue';
+import SettingsModal from '@/components/vault/SettingsModal.vue';
+import TourOverlay from '@/components/ui/TourOverlay.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -24,6 +37,23 @@ const router = useRouter();
 const data = useDataStore();
 const vault = useVaultStore();
 const toast = useToastStore();
+const tour = useTourStore();
+const selection = useSelectionStore();
+const sort = useSortStore();
+const reorderable = computed(() => sort.order === 'manual' && !data.isSearching);
+const sortedSecrets = computed(() =>
+  sortSecrets(data.secrets, sort.order === 'manual' && data.isSearching ? 'asc' : sort.order),
+);
+
+async function reorderSecrets(ids: number[]): Promise<void> {
+  if (data.activeEnvId === null) return;
+  try {
+    await data.reorderSecrets(data.activeEnvId, ids);
+  } catch (error) {
+    toast.push('error', t('vault.reorderFailed'), describeError(error));
+  }
+}
+const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
 const secretModalOpen = ref(false);
@@ -31,8 +61,16 @@ const secretModalEditing = ref<SecretDto | null>(null);
 
 const envModalOpen = ref(false);
 const envModalEditing = ref<EnvironmentDto | null>(null);
+const envModalProjectId = ref<number | null>(null);
+
+const projectModalOpen = ref(false);
+const projectModalEditing = ref<ProjectDto | null>(null);
 
 const importOpen = ref(false);
+const shareTarget = ref<ShareTarget | null>(null);
+const shareImportOpen = ref(false);
+const securityOpen = ref(false);
+const settingsOpen = ref(false);
 
 const confirmState = ref<{
   open: boolean;
@@ -46,9 +84,24 @@ const confirmState = ref<{
   title: '',
   message: '',
   danger: true,
-  confirmText: 'Eliminar',
+  confirmText: '',
   action: null,
 });
+
+watch(
+  () => vault.pendingRecoveryKey,
+  async (key) => {
+    if (key !== null) return;
+    await nextTick();
+    tour.startIfRequested();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => data.secrets,
+  (secrets) => selection.prune(secrets.map((secret) => secret.id)),
+);
 
 // ── Auto-lock informativo en la UI ─────────────────────────────────────
 const minutesLeft = ref(0);
@@ -72,7 +125,7 @@ onBeforeUnmount(() => {
 
 async function handleLock(): Promise<void> {
   await vault.lock();
-  toast.push('info', 'Bóveda bloqueada', 'La clave fue borrada de la memoria.');
+  toast.push('info', t('vault.lockedTitle'), t('vault.lockedBody'));
   await router.replace('/');
 }
 
@@ -86,26 +139,69 @@ function openEditSecret(secret: SecretDto): void {
   secretModalOpen.value = true;
 }
 
-function openCreateEnv(): void {
+function openCreateProject(): void {
+  projectModalEditing.value = null;
+  projectModalOpen.value = true;
+}
+
+function openRenameProject(project: ProjectDto): void {
+  projectModalEditing.value = project;
+  projectModalOpen.value = true;
+}
+
+function askDeleteProject(project: ProjectDto): void {
+  if (project.environmentCount > 0) {
+    toast.push(
+      'info',
+      t('vault.projectHasEnvsTitle'),
+      t('vault.projectHasEnvsBody', { count: project.environmentCount, name: project.name }),
+    );
+    return;
+  }
+  confirmState.value = {
+    open: true,
+    title: t('vault.deleteProjectTitle'),
+    message: t('vault.deleteProjectMessage', { name: project.name }),
+    danger: true,
+    confirmText: t('vault.deleteProjectConfirm', { name: project.name }),
+    action: async () => {
+      await data.deleteProject(project.id);
+      toast.push(
+        'success',
+        t('vault.projectDeleted'),
+        t('vault.projectDeletedBody', { name: project.name }),
+      );
+    },
+  };
+}
+
+function openCreateEnv(project: ProjectDto): void {
   envModalEditing.value = null;
+  envModalProjectId.value = project.id;
   envModalOpen.value = true;
+}
+
+function openCreateFirstEnv(): void {
+  const first = data.projects[0];
+  if (first) openCreateEnv(first);
 }
 
 function openRenameEnv(env: EnvironmentDto): void {
   envModalEditing.value = env;
+  envModalProjectId.value = env.projectId;
   envModalOpen.value = true;
 }
 
 function askDeleteEnv(env: EnvironmentDto): void {
   confirmState.value = {
     open: true,
-    title: 'Eliminar ambiente',
-    message: `Se eliminará el ambiente «${env.name}» junto con sus ${env.secretCount} secreto(s) cifrado(s). Esta acción no se puede deshacer.`,
+    title: t('vault.deleteEnvTitle'),
+    message: t('vault.deleteEnvMessage', { name: env.name, count: env.secretCount }),
     danger: true,
-    confirmText: `Eliminar ${env.name}`,
+    confirmText: t('vault.deleteProjectConfirm', { name: env.name }),
     action: async () => {
       await data.deleteEnvironment(env.id);
-      toast.push('success', 'Ambiente eliminado', `«${env.name}» y sus secretos fueron borrados.`);
+      toast.push('success', t('vault.envDeleted'), t('vault.envDeletedBody', { name: env.name }));
     },
   };
 }
@@ -113,13 +209,38 @@ function askDeleteEnv(env: EnvironmentDto): void {
 function askDeleteSecret(secret: SecretDto): void {
   confirmState.value = {
     open: true,
-    title: 'Eliminar secreto',
-    message: `¿Eliminar el secreto «${secret.name}» del ambiente «${secret.environmentName}»? Esta acción no se puede deshacer.`,
+    title: t('vault.deleteSecretTitle'),
+    message: t('vault.deleteSecretMessage', { name: secret.name, env: secret.environmentName }),
     danger: true,
-    confirmText: 'Eliminar',
+    confirmText: t('vault.delete'),
     action: async () => {
       await data.removeSecret(secret.id);
-      toast.push('success', 'Secreto eliminado', `«${secret.name}» fue borrado.`);
+      toast.push(
+        'success',
+        t('vault.secretDeleted'),
+        t('vault.secretDeletedBody', { name: secret.name }),
+      );
+    },
+  };
+}
+
+function askDeleteSelected(): void {
+  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
+  const names = chosen.map((secret) =>
+    data.isSearching ? `${secret.name} (${secret.environmentName})` : secret.name,
+  );
+  confirmState.value = {
+    open: true,
+    title: t('vault.bulkDeleteTitle'),
+    message: t('vault.bulkDeleteMessage', {
+      count: chosen.length,
+      names: summarizeNames(names, (count) => t('vault.bulkDeleteMore', { count })),
+    }),
+    danger: true,
+    confirmText: t('vault.bulkDeleteConfirm', { count: chosen.length }),
+    action: async () => {
+      const deleted = await data.removeSecrets(chosen.map((secret) => secret.id));
+      toast.push('success', t('vault.bulkDeleted'), t('vault.bulkDeletedBody', { count: deleted }));
     },
   };
 }
@@ -128,7 +249,7 @@ async function runConfirm(): Promise<void> {
   try {
     await confirmState.value.action?.();
   } catch (error) {
-    toast.push('error', 'Error', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('vault.error'), describeError(error));
   } finally {
     confirmState.value = { ...confirmState.value, open: false };
   }
@@ -137,13 +258,26 @@ async function runConfirm(): Promise<void> {
 
 <template>
   <div class="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-    <TopBar @create-secret="openCreateSecret" @lock="handleLock" />
+    <TopBar
+      @create-secret="openCreateSecret"
+      @security="securityOpen = true"
+      @settings="settingsOpen = true"
+      @lock="handleLock"
+    />
 
     <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
-      <EnvironmentSidebar
+      <ProjectSidebar
+        @create-project="openCreateProject"
+        @rename-project="openRenameProject"
+        @delete-project="askDeleteProject"
         @create-env="openCreateEnv"
         @rename-env="openRenameEnv"
         @delete-env="askDeleteEnv"
+        @share-project="
+          (project) => (shareTarget = { kind: 'projects', id: project.id, name: project.name })
+        "
+        @share-env="(env) => (shareTarget = { kind: 'environments', id: env.id, name: env.name })"
+        @import-share="shareImportOpen = true"
       />
 
       <!-- Contenido principal -->
@@ -153,12 +287,12 @@ async function runConfirm(): Promise<void> {
           <div class="min-w-0">
             <template v-if="data.isSearching">
               <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Resultados para
+                {{ t('vault.resultsFor') }}
                 <span class="font-mono text-indigo-600 dark:text-indigo-400"
                   >«{{ data.query.trim() }}»</span
                 >
               </h1>
-              <p class="text-xs text-zinc-400">Buscando entre todos los ambientes</p>
+              <p class="text-xs text-zinc-400">{{ t('vault.searchingAll') }}</p>
             </template>
             <template v-else-if="data.activeEnv">
               <h1
@@ -167,12 +301,12 @@ async function runConfirm(): Promise<void> {
                 {{ data.activeEnv.name }}
               </h1>
               <p class="text-xs text-zinc-400">
-                {{ data.activeEnv.secretCount }} secreto(s) · cifrado AES-256-GCM
+                {{ t('vault.envSummary', { count: data.activeEnv.secretCount }) }}
               </p>
             </template>
             <template v-else>
               <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Bóveda
+                {{ t('vault.title') }}
               </h1>
             </template>
           </div>
@@ -182,19 +316,21 @@ async function runConfirm(): Promise<void> {
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               :disabled="data.activeEnvId === null"
+              data-tour="import"
               @click="importOpen = true"
             >
               <AppIcon name="upload" :size="15" />
-              Importar
+              {{ t('vault.import') }}
             </button>
             <ExportMenu />
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-600/25 transition-all hover:bg-indigo-700 active:scale-[0.98]"
+              data-tour="new-secret"
               @click="openCreateSecret"
             >
               <AppIcon name="plus" :size="15" />
-              Nuevo
+              {{ t('vault.new') }}
             </button>
           </div>
         </div>
@@ -205,13 +341,22 @@ async function runConfirm(): Promise<void> {
             v-if="data.isSearching && data.secrets.length > 0"
             class="border-b border-zinc-100 px-4 py-2 text-xs text-zinc-400 dark:border-zinc-800"
           >
-            {{ data.secrets.length }} resultado(s) en múltiples ambientes
+            {{ t('vault.searchCount', { count: data.secrets.length }) }}
           </div>
           <SecretsTable
-            :secrets="data.secrets"
+            :secrets="sortedSecrets"
             :loading="data.loadingSecrets"
+            :selected="selection.ids"
+            :order="sort.order"
+            :reorderable="reorderable"
             @edit="openEditSecret"
             @remove="askDeleteSecret"
+            @toggle="selection.toggle"
+            @set-order="sort.set"
+            @reorder="reorderSecrets"
+            @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
+            @clear-selection="selection.clear()"
+            @remove-selected="askDeleteSelected"
             @create-first="openCreateSecret"
           />
         </div>
@@ -223,16 +368,16 @@ async function runConfirm(): Promise<void> {
         >
           <EmptyState
             icon="folder"
-            title="Crea tu primer ambiente"
-            description="Los ambientes (Local, QA, Production…) agrupan tus variables de entorno."
+            :title="t('vault.firstEnvTitle')"
+            :description="t('vault.firstEnvDescription')"
           >
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-700"
-              @click="openCreateEnv"
+              @click="openCreateFirstEnv"
             >
               <AppIcon name="plus" :size="16" />
-              Crear ambiente
+              {{ t('vault.createEnv') }}
             </button>
           </EmptyState>
         </div>
@@ -246,11 +391,27 @@ async function runConfirm(): Promise<void> {
       @close="secretModalOpen = false"
     />
     <ImportModal :open="importOpen" @close="importOpen = false" />
+    <ShareExportModal
+      :open="shareTarget !== null"
+      :target="shareTarget"
+      @close="shareTarget = null"
+    />
+    <ShareImportModal :open="shareImportOpen" @close="shareImportOpen = false" />
+    <SecurityModal :open="securityOpen" @close="securityOpen = false" />
+    <SettingsModal :open="settingsOpen" @close="settingsOpen = false" />
+    <ProjectFormModal
+      :open="projectModalOpen"
+      :editing="projectModalEditing"
+      @close="projectModalOpen = false"
+    />
     <EnvironmentFormModal
       :open="envModalOpen"
       :editing="envModalEditing"
+      :project-id="envModalProjectId"
       @close="envModalOpen = false"
     />
+
+    <TourOverlay />
 
     <ConfirmDialog
       :open="confirmState.open"

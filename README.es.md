@@ -29,7 +29,9 @@ está desbloqueada y se borra al bloquear.
 - **Importar / exportar** — pega un `.env` para importar; exporta a `.env`, CSV o PDF imprimible.
 - **Auditoría** — cada desbloqueo, desbloqueo fallido, revelado, exportación y rotación queda registrado (nunca con valores).
 - **Auto-bloqueo** por inactividad, con tope absoluto de vida de la sesión.
-- **Rotación de contraseña** — re-cifra todos los secretos de forma atómica con una clave nueva.
+- **Clave de recuperación** — una clave de 256 bits, mostrada una sola vez, permite recuperar el acceso si
+  olvidas la contraseña; al usarla se emite una nueva. Cambiar la contraseña no re-cifra tus secretos
+  (cifrado de envoltura).
 - Generador de valores, tema claro/oscuro y despliegue en un solo contenedor Docker.
 
 ## Modelo de seguridad
@@ -48,7 +50,9 @@ Pensado para **un usuario en un equipo**. A propósito no es accesible desde tu 
 
 Limitaciones (detalle en [docs/SECURITY.md](docs/SECURITY.md)):
 
-- La contraseña maestra **no se puede recuperar** por diseño. Si la pierdes, pierdes los secretos.
+- No hay reseteo por correo ni custodia en servidor. Si pierdes **la contraseña y la clave de recuperación**,
+  pierdes los secretos. La clave de recuperación (se muestra una vez, al crear la bóveda) es un segundo
+  secreto que debes guardar **fuera del equipo**: quien la tenga puede abrir la bóveda.
 - Los **nombres** de variables se guardan en claro (para buscar al instante); valores y notas, cifrados.
 - JavaScript no garantiza el borrado seguro de la RAM; las claves se ponen a cero en la medida de lo posible.
 - El proyecto **no** ha sido auditado por terceros. Úsalo bajo tu responsabilidad.

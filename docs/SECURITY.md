@@ -22,7 +22,7 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
 | **A07** Identification & Auth Failures | Sesiones predecibles/reutilizables           | Token de sesión aleatorio de 32 bytes (base64url, 43 chars), único por sesión, opaco, sin estado en disco; expiración por inactividad (ventana deslizante) con barrido cada 30s; lock destruye la clave y limpia la cookie; rotación de clave en RAM sin renovar token                                                                                                           | `session-store.spec.ts`, `owasp.spec.ts A07`                       |
 | **A08** Software & Data Integrity      | Tampering de blobs cifrados                  | GCM auth tag detecta cualquier bit alterado; el AAD (ambiente+nombre) impide recolocar blobs entre campos **y entre filas** (test `perimeter.spec.ts`); migraciones transaccionales con `CHECK`/FK y `quick_check` al abrir; rotación de contraseña e importación atómicas (`UnitOfWork`); verificador de contraseña compara texto plano conocido además de la autenticación GCM | `crypto-service.spec.ts`                                           |
 | **A09** Logging & Monitoring Failures  | Accesos sin rastro                           | Auditoría local inmutable (append-only con poda): setup/unlock/**unlock_failed**/lock/rotación/CRUD/**reveal**/**export** con timestamp; los mensajes de auditoría nunca contienen valores                                                                                                                                                                                       | `owasp.spec.ts A09`                                                |
-| **A10** SSRF                           | —                                            | N/A: la app no realiza peticiones salientes ni consume URLs del usuario                                                                                                                                                                                                                                                                                                          | —                                                                  |
+| **A10** SSRF                           | —                                            | Una única petición saliente, solo al pulsar «Comprobar actualizaciones»: URL fija en el código (nunca del usuario), sin cookies ni datos de la bóveda, timeout, sin redirecciones, tope de tamaño y enlace validado (ADR-0010); apagable con `SV_UPDATE_CHECK=false`                                                                                                             | —                                                                  |
 
 ## Perímetro (defensa en profundidad)
 
@@ -39,7 +39,10 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
 
 1. **RAM no es borrado criptográfico garantizado**: la clave se sobrescribe con ceros
    al destruir la sesión (reduce la ventana), pero el GC de JS puede retener copias.
-2. **La contraseña maestra es irrecuperable por diseño**: no hay backdoor ni reset.
+2. **Sin contraseña ni clave de recuperación no hay acceso**: no hay backdoor, reset por correo ni
+   custodia en servidor. La **clave de recuperación** (256 bits, se muestra una vez) permite fijar una
+   contraseña nueva; es un segundo secreto que la persona debe guardar fuera del equipo. Quien la tenga
+   abre la bóveda. Ver ADR-0006.
    Perderla = perder los secretos. Es la consecuencia de que nadie (ni el propio
    servidor) pueda descifrar sin ella.
 3. **Nombres de variables en claro**: son metadata necesaria para búsqueda SQL
@@ -49,9 +52,26 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
 5. **CSRF**: mitigado por `SameSite=Lax` + JSON-only API. Para dureza extra detrás de
    proxy, validar `Origin` en el proxy inverso.
 
-6. **CSV (riesgo aceptado, a decidir)**: el export CSV no neutraliza valores que empiezan por
-   `=`, `+`, `-`, `@` (inyección de fórmulas al abrirlo en Excel). Prefijar con una comilla simple
-   corrompería contraseñas legítimas; ver TODO.
+6. **CSV (riesgo aceptado)**: el export CSV no neutraliza valores que empiezan por `=`, `+`, `-`, `@`
+   (inyección de fórmulas al abrirlo en Excel). Prefijar con una comilla simple corrompería
+   contraseñas legítimas, así que el menú de exportación avisa en la propia interfaz (ISS-013).
+7. **Paquete para compartir (ADR-0009)**: el archivo `.svshare` va cifrado con una clave derivada de
+   la frase de paso (PBKDF2-SHA256, AES-256-GCM); su confidencialidad es exactamente la de esa frase,
+   que exige 12 caracteres y que SecretVault nunca guarda. Quien tenga archivo y frase conserva el
+   acceso y no hay revocación. Un archivo hostil no puede forzar un coste de KDF arbitrario
+   (iteraciones acotadas) ni colar nombres inválidos o repetidos (se revalidan al importar). Frase
+   incorrecta y archivo alterado dan el mismo error. Importar y previsualizar tienen límite de intentos
+   por IP. Al mezclar en un proyecto existente, sobrescribir exige una petición explícita (por defecto se
+   omite) y los secretos recibidos quedan marcados como importados hasta que se edite su valor.
+
+8. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
+   la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
+   `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
+   JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
+   archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
+   Lo mismo vale para el nombre, el acento y el tema por defecto (F-131): `GET /api/settings` los devuelve sin
+   sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
+   control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 

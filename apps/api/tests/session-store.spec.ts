@@ -60,23 +60,10 @@ describe('InMemorySessionStore', () => {
     expect(await store.count()).toBe(0);
   });
 
-  it('should rotate the key in place without renewing the session id', async () => {
-    const store = new InMemorySessionStore(crypto);
-    const session = await store.create(KEY_A, 15);
-    const rotated = await store.rotateKey(session.sessionId, KEY_B);
-
-    expect(rotated?.sessionId).toBe(session.sessionId);
-    expect(Buffer.from(rotated!.key).equals(Buffer.from(KEY_B))).toBe(true);
-    expect(KEY_A.every((b) => b === 0)).toBe(true); // clave vieja destruida
-    // La clave nueva es la misma referencia que vive en el store:
-    expect((await store.get(session.sessionId))!.key).toBe(KEY_B);
-  });
-
   it('should return null for unknown session ids', async () => {
     const store = new InMemorySessionStore(crypto);
     expect(await store.get('no-existe')).toBeNull();
     expect(await store.touch('no-existe', 15)).toBeNull();
-    expect(await store.rotateKey('no-existe', KEY_B)).toBeNull();
   });
 
   it('should not resurrect sessions removed twice', async () => {

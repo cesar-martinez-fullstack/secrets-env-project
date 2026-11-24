@@ -23,7 +23,9 @@ Un commit sin prefijo reconocible = commitlint se saltó: avisar, no adivinar.
 
 1. **Rango.** `git describe --tags --abbrev=0` y `git log <tag>..develop --oneline`
    (sin tags: todo el historial). Verifica que `develop` está limpio y al día con `origin`.
-2. **Versión nueva** a partir del `version` del `package.json` raíz (único lugar con versión de producto).
+2. **Versión nueva** a partir del `version` del `package.json` raíz (único lugar con versión de producto). Al subirla,
+   cambia también `APP_VERSION` en `apps/api/src/version.ts`: la app la muestra en «Comprobar actualizaciones» y un test
+   falla si no coinciden.
 3. **Borrador del CHANGELOG** (Keep a Changelog, inglés, estilo de `CHANGELOG.md`):
    - `### Added` ← `feat` · `### Fixed` ← `fix` · `### Security` ← cambios de seguridad ·
      `### Changed` ← `refactor`/`perf` visibles o cambios incompatibles · `### Removed`/`Deprecated`.

@@ -5,9 +5,13 @@ import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { DomainError } from '@secretvault/core';
 import { vaultRoutes } from './routes/vault.routes';
+import { projectRoutes } from './routes/projects.routes';
+import { shareRoutes } from './routes/share.routes';
+import { settingsRoutes } from './routes/settings.routes';
 import { environmentRoutes } from './routes/environments.routes';
 import { secretRoutes } from './routes/secrets.routes';
 import { auditRoutes } from './routes/audit.routes';
+import { updateRoutes } from './routes/update.routes';
 import { serveWebApp } from './http/static';
 import { hostGuard, originGuard, securityHeaders } from './middleware/security';
 import type { Container } from './container';
@@ -58,9 +62,13 @@ export function createApp(container: Container): Hono<AppEnv> {
 
   // --- API ---
   app.route('/api/vault', vaultRoutes(container));
+  app.route('/api/projects', projectRoutes(container));
   app.route('/api/environments', environmentRoutes(container));
   app.route('/api/secrets', secretRoutes(container));
+  app.route('/api/share', shareRoutes(container));
+  app.route('/api/settings', settingsRoutes(container));
   app.route('/api/audit', auditRoutes(container));
+  app.route('/api/update', updateRoutes(container));
 
   // --- SPA (frontend compilado) — catch-all para GET ---
   app.get('*', (c) => serveWebApp(container.config.publicDir, c));

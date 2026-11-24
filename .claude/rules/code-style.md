@@ -29,5 +29,4 @@
 
 ## Comentarios
 
-- Explica el **por qué** no obvio (una decisión de seguridad, un workaround). No el qué.
-- JSDoc en puertos y en funciones exportadas con contrato no trivial.
+Ver `.claude/rules/code-quality.md`: por defecto ninguno; solo el porqué que no se deduce.

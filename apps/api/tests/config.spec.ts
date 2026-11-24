@@ -3,10 +3,10 @@
  * (precedencia entorno real > .env, walk-up de directorios y SV_ENV_FILE).
  */
 import { afterEach, describe, expect, it } from 'bun:test';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, loadDotEnv } from '../src/config';
+import { insecureExposureWarning, loadConfig, loadDotEnv } from '../src/config';
 
 const ENV_KEYS = [
   'PORT',
@@ -36,6 +36,40 @@ function withEnv(overrides: Record<string, string | undefined>, fn: () => void):
     }
   }
 }
+
+describe('default public dir', () => {
+  it('should find the SPA built into apps/api/public when run from the repo root', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sv-root-'));
+    mkdirSync(join(root, 'apps', 'api', 'public'), { recursive: true });
+    writeFileSync(join(root, 'apps', 'api', 'public', 'index.html'), '<title>x</title>');
+    const previous = process.cwd();
+    try {
+      process.chdir(root);
+      expect(loadConfig({}).publicDir).toBe(join(realpathSync(root), 'apps', 'api', 'public'));
+    } finally {
+      process.chdir(previous);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('should prefer ./public (binary and Docker layout) when it exists', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sv-root-'));
+    mkdirSync(join(root, 'public'), { recursive: true });
+    writeFileSync(join(root, 'public', 'index.html'), '<title>x</title>');
+    const previous = process.cwd();
+    try {
+      process.chdir(root);
+      expect(loadConfig({}).publicDir).toBe(join(realpathSync(root), 'public'));
+    } finally {
+      process.chdir(previous);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('should honour an explicit SV_PUBLIC_DIR over any default', () => {
+    expect(loadConfig({ SV_PUBLIC_DIR: '/custom/spa' }).publicDir).toContain('spa');
+  });
+});
 
 const tempDirs: string[] = [];
 afterEach(() => {
@@ -100,6 +134,44 @@ describe('loadConfig', () => {
     const config = loadConfig({ PORT: 'no-es-un-número', SV_AUTO_LOCK_MINUTES: '' });
     expect(config.port).toBe(3000);
     expect(config.autoLockMinutes).toBe(15);
+  });
+});
+
+describe('insecureExposureWarning', () => {
+  it('should warn when the host is non-loopback without a secure cookie', () => {
+    const warning = insecureExposureWarning({
+      host: '0.0.0.0',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]'],
+      cookieSecure: false,
+    });
+    expect(warning).toContain('SV_COOKIE_SECURE');
+  });
+
+  it('should warn when an allowed host outside loopback is added without a secure cookie', () => {
+    const warning = insecureExposureWarning({
+      host: '127.0.0.1',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]', 'vault.home.lan'],
+      cookieSecure: false,
+    });
+    expect(warning).toContain('SV_COOKIE_SECURE');
+  });
+
+  it('should stay quiet for the loopback-only default', () => {
+    const warning = insecureExposureWarning({
+      host: '127.0.0.1',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]'],
+      cookieSecure: false,
+    });
+    expect(warning).toBeNull();
+  });
+
+  it('should stay quiet when the cookie is secure even off loopback', () => {
+    const warning = insecureExposureWarning({
+      host: '0.0.0.0',
+      allowedHosts: ['localhost', '127.0.0.1', '[::1]', 'vault.home.lan'],
+      cookieSecure: true,
+    });
+    expect(warning).toBeNull();
   });
 });
 

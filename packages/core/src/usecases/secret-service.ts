@@ -7,12 +7,15 @@
  */
 import {
   MASKED_VALUE,
+  MAX_BULK_SECRETS,
+  MAX_IMPORT_ENTRIES,
+  isValidImportEntry,
   parseEnvContent,
   validateSecretName,
   validateSecretNote,
   validateSecretValue,
 } from '@secretvault/shared';
-import type { ExportFormat } from '@secretvault/shared';
+import type { ExportFormat, ImportEntry } from '@secretvault/shared';
 import type {
   AuditRepository,
   EnvironmentRepository,
@@ -47,6 +50,21 @@ export interface SecretServiceDeps {
   unitOfWork: UnitOfWork;
 }
 
+const AUDIT_LISTED_NAMES = 10;
+
+function assertImportSize(count: number): void {
+  if (count <= MAX_IMPORT_ENTRIES) return;
+  throw new ValidationFailedError([
+    { field: 'entries', message: `Máximo ${MAX_IMPORT_ENTRIES} entradas por importación.` },
+  ]);
+}
+
+function describeBulkDeletion(names: readonly string[]): string {
+  const listed = names.slice(0, AUDIT_LISTED_NAMES).map((name) => `«${name}»`);
+  const rest = names.length - listed.length;
+  return `${names.length} secretos eliminados: ${listed.join(', ')}${rest > 0 ? ` y ${rest} más` : ''}.`;
+}
+
 export class SecretService {
   constructor(private readonly deps: SecretServiceDeps) {}
 
@@ -55,9 +73,12 @@ export class SecretService {
       id: secret.id,
       environmentId: secret.environmentId,
       environmentName: secret.environmentName,
+      projectName: secret.projectName,
       name: secret.name,
       maskedValue: MASKED_VALUE,
       hasNote: secret.noteEnc !== null,
+      importedAt: secret.importedAt ?? null,
+      position: secret.position,
       createdAt: secret.createdAt,
       updatedAt: secret.updatedAt,
     };
@@ -126,7 +147,8 @@ export class SecretService {
     );
 
     const full = await this.deps.secrets.findById(created.id);
-    return this.toSummary(full ?? { ...created, environmentName: env.name });
+    if (!full) throw new SecretNotFoundError(created.id);
+    return this.toSummary(full);
   }
 
   async update(
@@ -149,6 +171,7 @@ export class SecretService {
       name: renamed ? newName : undefined,
       valueEnc,
       noteEnc,
+      importedAt: patch.value === undefined ? undefined : null,
     });
 
     await this.deps.audit.record(
@@ -171,6 +194,46 @@ export class SecretService {
     );
   }
 
+  /** Fija el orden manual de un ambiente: `ids` debe ser una permutación de sus secretos. */
+  async reorder(environmentId: number, ids: readonly number[]): Promise<void> {
+    if (!(await this.deps.environments.findById(environmentId))) {
+      throw new EnvironmentNotFoundError(environmentId);
+    }
+    await this.deps.unitOfWork.run(async () => {
+      const current = await this.deps.secrets.list({ environmentId });
+      const known = new Set(current.map((secret) => secret.id));
+      const isPermutation = ids.length === known.size && new Set(ids).size === ids.length;
+      if (!isPermutation || !ids.every((id) => known.has(id))) {
+        throw new ValidationFailedError([
+          { field: 'ids', message: 'Debe incluir exactamente los secretos del ambiente.' },
+        ]);
+      }
+      await this.deps.secrets.setPositions(environmentId, ids);
+    });
+  }
+
+  /** Elimina varios secretos de forma atómica: si alguno no existe, no se borra ninguno. */
+  async removeMany(ids: readonly number[]): Promise<number> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0 || unique.length > MAX_BULK_SECRETS) {
+      throw new ValidationFailedError([
+        { field: 'ids', message: `Indica entre 1 y ${MAX_BULK_SECRETS} secretos.` },
+      ]);
+    }
+    const names = await this.deps.unitOfWork.run(async () => {
+      const removed: string[] = [];
+      for (const id of unique) {
+        const secret = await this.deps.secrets.findById(id);
+        if (!secret) throw new SecretNotFoundError(id);
+        await this.deps.secrets.delete(id);
+        removed.push(secret.name);
+      }
+      return removed;
+    });
+    await this.deps.audit.record('secret.deleted', describeBulkDeletion(names));
+    return names.length;
+  }
+
   /** Importación masiva desde contenido .env. Atómica: o entra todo, o nada. */
   async import(
     key: Uint8Array,
@@ -178,20 +241,38 @@ export class SecretService {
     content: string,
     overwrite: boolean,
   ): Promise<ImportResult> {
+    const parsed = parseEnvContent(content);
+    return this.importEntries(key, environmentId, {
+      entries: parsed.entries.map(({ name, value }) => ({ name, value, note: null })),
+      overwrite,
+      invalidLines: parsed.invalidLines,
+    });
+  }
+
+  /**
+   * Importación de entradas ya estructuradas (.env, CSV o JSON). Atómica. Las inválidas se cuentan
+   * en `invalidLines` y no se importan; las notas, si vienen, se cifran con su AAD.
+   */
+  async importEntries(
+    key: Uint8Array,
+    environmentId: number,
+    batch: { entries: readonly ImportEntry[]; overwrite: boolean; invalidLines?: number },
+  ): Promise<ImportResult> {
     const env = await this.deps.environments.findById(environmentId);
     if (!env) throw new EnvironmentNotFoundError(environmentId);
+    assertImportSize(batch.entries.length);
 
-    const parsed = parseEnvContent(content);
+    const valid = batch.entries.filter(isValidImportEntry);
     const result: ImportResult = {
       imported: 0,
       updated: 0,
       skipped: 0,
-      invalidLines: parsed.invalidLines,
+      invalidLines: (batch.invalidLines ?? 0) + batch.entries.length - valid.length,
     };
 
     await this.deps.unitOfWork.run(async () => {
-      for (const entry of parsed.entries) {
-        await this.importEntry(key, environmentId, entry, overwrite, result);
+      for (const entry of valid) {
+        await this.importEntry(key, environmentId, entry, batch.overwrite, result);
       }
       if (result.imported + result.updated > 0) {
         await this.deps.audit.record(
@@ -241,33 +322,30 @@ export class SecretService {
   private async importEntry(
     key: Uint8Array,
     environmentId: number,
-    entry: { name: string; value: string },
+    entry: ImportEntry,
     overwrite: boolean,
     result: ImportResult,
   ): Promise<void> {
     const existing = await this.deps.secrets.findByName(environmentId, entry.name);
-    if (!existing) {
-      const valueEnc = await this.deps.crypto.encrypt(
-        key,
-        entry.value,
-        secretValueAad(environmentId, entry.name),
-      );
-      await this.deps.secrets.create({ environmentId, name: entry.name, valueEnc, noteEnc: null });
-      result.imported++;
-      return;
-    }
-    if (!overwrite) {
+    if (existing && !overwrite) {
       result.skipped++;
       return;
     }
     // El AAD usa el nombre ALMACENADO (la búsqueda es case-insensitive).
-    const valueEnc = await this.deps.crypto.encrypt(
-      key,
-      entry.value,
-      secretValueAad(environmentId, existing.name),
-    );
-    await this.deps.secrets.update(existing.id, { valueEnc });
-    result.updated++;
+    const name = existing?.name ?? entry.name;
+    const { crypto } = this.deps;
+    const valueEnc = await crypto.encrypt(key, entry.value, secretValueAad(environmentId, name));
+    const noteEnc = entry.note
+      ? await crypto.encrypt(key, entry.note, secretNoteAad(environmentId, name))
+      : null;
+
+    if (existing) {
+      await this.deps.secrets.update(existing.id, noteEnc ? { valueEnc, noteEnc } : { valueEnc });
+      result.updated++;
+    } else {
+      await this.deps.secrets.create({ environmentId, name, valueEnc, noteEnc });
+      result.imported++;
+    }
   }
 
   private validName(raw: string): string {

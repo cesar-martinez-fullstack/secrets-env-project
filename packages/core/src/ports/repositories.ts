@@ -6,6 +6,9 @@ import type {
   AuditEvent,
   Environment,
   EnvironmentWithCount,
+  InstanceSettings,
+  Project,
+  ProjectWithCount,
   SecretRecord,
   SecretWithMeta,
   VaultInfo,
@@ -18,13 +21,24 @@ export interface VaultRepository {
   save(info: VaultInfo): Promise<void>;
 }
 
+export interface ProjectRepository {
+  listWithCounts(): Promise<ProjectWithCount[]>;
+  findById(id: number): Promise<Project | null>;
+  /** Búsqueda case-insensitive del nombre exacto. */
+  findByName(name: string): Promise<Project | null>;
+  create(name: string): Promise<Project>;
+  rename(id: number, name: string): Promise<void>;
+  delete(id: number): Promise<void>;
+  countEnvironments(id: number): Promise<number>;
+}
+
 export interface EnvironmentRepository {
   list(): Promise<Environment[]>;
   listWithCounts(): Promise<EnvironmentWithCount[]>;
   findById(id: number): Promise<Environment | null>;
-  /** Búsqueda case-insensitive del nombre exacto. */
-  findByName(name: string): Promise<Environment | null>;
-  create(name: string): Promise<Environment>;
+  /** Búsqueda case-insensitive del nombre exacto dentro de un proyecto. */
+  findByName(projectId: number, name: string): Promise<Environment | null>;
+  create(projectId: number, name: string): Promise<Environment>;
   rename(id: number, name: string): Promise<void>;
   delete(id: number): Promise<void>;
 }
@@ -44,11 +58,19 @@ export interface SecretRepository {
     name: string;
     valueEnc: Uint8Array;
     noteEnc: Uint8Array | null;
+    importedAt?: Date | null;
   }): Promise<SecretRecord>;
   update(
     id: number,
-    patch: { name?: string; valueEnc?: Uint8Array; noteEnc?: Uint8Array | null },
+    patch: {
+      name?: string;
+      valueEnc?: Uint8Array;
+      noteEnc?: Uint8Array | null;
+      importedAt?: Date | null;
+    },
   ): Promise<SecretRecord>;
+  /** Fija el orden manual: `orderedIds[i]` queda en la posición `i` del ambiente. */
+  setPositions(environmentId: number, orderedIds: readonly number[]): Promise<void>;
   delete(id: number): Promise<void>;
 }
 
@@ -58,4 +80,11 @@ export interface AuditRepository {
   count(): Promise<number>;
   /** Podar eventos antiguos más allá del máximo retenido. */
   prune(max: number): Promise<void>;
+}
+
+/** Ajustes de la instancia: viven fuera de la bóveda y se leen antes de desbloquearla. */
+export interface SettingsRepository {
+  /** Devuelve los valores por defecto si todavía no hay nada guardado. */
+  load(): Promise<InstanceSettings>;
+  save(settings: InstanceSettings): Promise<void>;
 }

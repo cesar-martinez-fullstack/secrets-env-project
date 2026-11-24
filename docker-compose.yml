@@ -14,19 +14,30 @@ services:
       context: .
       dockerfile: Dockerfile
     image: secretvault:latest
-    container_name: secretvault
+    container_name: ${SV_CONTAINER_NAME:-secretvault}
     ports:
       # SOLO loopback del host: la bóveda no es alcanzable desde la red local.
       # (Dentro del contenedor la app escucha en 0.0.0.0; este mapeo es la barrera.)
-      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:${SV_PORT:-3000}:3000'
     volumes:
       # ── Persistencia del SQLite fuera del contenedor ──
       - secretvault-data:/app/data
       # Alternativa (bind mount, archivo visible en el host):
       #   - ./docker-data:/app/data
+    # Endurecimiento: el binario no necesita ningún privilegio de Linux ni escribir
+    # fuera de /app/data. Si apareciera una RCE en el runtime, esto limita el daño.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       # Minutos de inactividad antes de bloquear la bóveda (borra la clave de RAM).
       SV_AUTO_LOCK_MINUTES: '15'
+      # Botón «Comprobar actualizaciones»: única petición saliente, solo al pulsarlo ('false' la desactiva).
+      SV_UPDATE_CHECK: 'true'
       # Iteraciones PBKDF2 (sube el valor si tu máquina lo permite).
       SV_PBKDF2_ITERATIONS: '600000'
       # Activa 'true' si publicas detrás de un proxy con HTTPS.

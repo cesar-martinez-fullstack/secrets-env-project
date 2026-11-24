@@ -3,6 +3,7 @@
  * Los valores de secretos NUNCA viajan en estos DTOs salvo en la respuesta
  * explícita de "reveal" (y en los archivos de exportación, bajo demanda).
  */
+import type { Appearance } from './appearance';
 import type { AuditEventType, ExportFormat } from './constants';
 
 export interface ApiErrorBody {
@@ -11,6 +12,8 @@ export interface ApiErrorBody {
 
 export interface VaultStatusDto {
   initialized: boolean;
+  /** `true` si la bóveda admite recuperación con clave de recuperación. */
+  recoveryAvailable: boolean;
   unlocked: boolean;
   autoLockMinutes: number;
   pbkdf2Iterations: number;
@@ -33,14 +36,65 @@ export interface OkDto {
   ok: true;
 }
 
+/**
+ * La clave de recuperación se muestra UNA sola vez (setup, recuperación, actualización de una
+ * bóveda anterior o regeneración): el servidor no la guarda y no puede volver a mostrarla.
+ */
+export interface SetupVaultResponseDto {
+  ok: true;
+  recoveryKey: string;
+}
+
+export interface UnlockVaultResponseDto {
+  ok: true;
+  /** Solo presente cuando una bóveda anterior se actualizó al formato con clave de recuperación. */
+  recoveryKey?: string;
+}
+
+export interface RecoverVaultRequestDto {
+  recoveryKey: string;
+  newPassword: string;
+}
+
+/** Tras recuperar el acceso la clave usada se reemplaza: esta es la NUEVA clave de recuperación. */
+export interface RecoverVaultResponseDto {
+  ok: true;
+  recoveryKey: string;
+}
+
+export interface RegenerateRecoveryKeyRequestDto {
+  currentPassword: string;
+}
+
+export interface RecoveryKeyDto {
+  recoveryKey: string;
+}
+
+export interface ProjectDto {
+  id: number;
+  name: string;
+  environmentCount: number;
+  createdAt: string;
+}
+
+export interface CreateProjectRequestDto {
+  name: string;
+}
+
+export interface RenameProjectRequestDto {
+  name: string;
+}
+
 export interface EnvironmentDto {
   id: number;
+  projectId: number;
   name: string;
   secretCount: number;
   createdAt: string;
 }
 
 export interface CreateEnvironmentRequestDto {
+  projectId: number;
   name: string;
 }
 
@@ -52,9 +106,12 @@ export interface SecretDto {
   id: number;
   environmentId: number;
   environmentName: string;
+  projectName: string;
   name: string;
   maskedValue: string;
   hasNote: boolean;
+  importedAt: string | null;
+  position: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,9 +137,30 @@ export interface RevealSecretDto {
   note: string | null;
 }
 
+export interface ReorderSecretsRequestDto {
+  environmentId: number;
+  ids: number[];
+}
+
+export interface DeleteSecretsRequestDto {
+  ids: number[];
+}
+
+export interface DeleteSecretsResultDto {
+  deleted: number;
+}
+
+export interface ImportEntryDto {
+  name: string;
+  value: string;
+  note: string | null;
+}
+
+/** `entries` (ya estructuradas) tiene prioridad sobre `content` (texto .env). */
 export interface ImportSecretsRequestDto {
   environmentId: number;
-  content: string;
+  content?: string;
+  entries?: ImportEntryDto[];
   overwrite: boolean;
 }
 
@@ -108,4 +186,68 @@ export interface AuditEventDto {
 export interface AuditQueryResultDto {
   events: AuditEventDto[];
   total: number;
+}
+
+export interface ShareExportRequestDto {
+  passphrase: string;
+}
+
+export interface SharePreviewRequestDto {
+  content: string;
+  passphrase: string;
+  projectId?: number | null;
+}
+
+export interface ShareImportRequestDto {
+  content: string;
+  passphrase: string;
+  projectId: number | null;
+  separateEnvironments: string[];
+  overwrite: boolean;
+}
+
+export interface SharePreviewEnvironmentDto {
+  name: string;
+  secretCount: number;
+  exists: boolean;
+  conflicts: string[];
+}
+
+export interface SharePreviewDto {
+  projectName: string;
+  environments: SharePreviewEnvironmentDto[];
+  secretCount: number;
+}
+
+export interface ShareImportResultDto {
+  projectId: number;
+  projectName: string;
+  environmentCount: number;
+  importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
+}
+
+export interface SettingsDto extends Appearance {
+  hasLogo: boolean;
+  logoVersion: number | null;
+}
+
+export type UpdateAppearanceRequestDto = Appearance;
+
+export interface SetLogoRequestDto {
+  data: string;
+}
+
+export interface UpdateCheckDto {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseUrl: string;
+  checkedAt: string;
+}
+
+export interface ShareFileDto {
+  filename: string;
+  content: string;
 }

@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, develop]
   pull_request:
@@ -23,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -40,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
@@ -54,21 +55,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - run: bun install --frozen-lockfile
-      - run: bun audit --audit-level=high
+      - run: bun audit --audit-level=moderate
 
   docker:
     name: Docker build and smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build image
         run: docker build -t secretvault:ci .
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the arm64 image (no push)
+        run: docker buildx build --platform linux/arm64 -t secretvault:ci-arm64 .
       - name: Run and check health
         run: |
           docker run -d --name sv -p 127.0.0.1:3000:3000 secretvault:ci

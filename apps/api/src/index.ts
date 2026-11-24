@@ -4,13 +4,17 @@
  * Punto de arranque: carga config, construye el contenedor (DI), sirve HTTP
  * con Bun y programa el barrido de sesiones expiradas (auto-lock por inactividad).
  */
-import { loadConfig, loadDotEnv } from './config';
+import { insecureExposureWarning, loadConfig, loadDotEnv } from './config';
 import { createContainer, disposeContainer, type Container } from './container';
 import { createApp } from './app';
 
 // Carga explícita de .env (multiplataforma; precedencia: entorno real > .env).
 const envFile = loadDotEnv();
 const config = loadConfig();
+
+const exposureWarning = insecureExposureWarning(config);
+if (exposureWarning) console.warn(`[SecretVault] ADVERTENCIA: ${exposureWarning}`);
+
 const container: Container = createContainer(config);
 const app = createApp(container);
 

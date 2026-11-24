@@ -15,6 +15,10 @@ export const AAD_SECRET_VALUE = 'secretvault:aad:secret-value:v2';
 export const AAD_SECRET_NOTE = 'secretvault:aad:secret-note:v2';
 /** AAD para el verificador de la contraseña maestra. */
 export const AAD_VERIFIER = 'secretvault:aad:verifier:v1';
+/** AAD de la clave de datos (DEK) envuelta con la clave derivada de la contraseña maestra. */
+export const AAD_DEK_MASTER = 'secretvault:aad:dek-master:v1';
+/** AAD de la clave de datos (DEK) envuelta con la clave de recuperación. */
+export const AAD_DEK_RECOVERY = 'secretvault:aad:dek-recovery:v1';
 /** Texto plano conocido cifrado dentro del verificador. */
 export const VERIFIER_PLAINTEXT = 'secretvault/verifier/v1';
 
@@ -30,6 +34,11 @@ export function secretValueAad(environmentId: number, name: string): string {
 /** AAD de una nota (mismo criterio que `secretValueAad`). */
 export function secretNoteAad(environmentId: number, name: string): string {
   return `${AAD_SECRET_NOTE}:${environmentId}:${name}`;
+}
+
+/** AAD del paquete para compartir: incluye las iteraciones para que no se puedan alterar sin invalidarlo. */
+export function shareAad(iterations: number): string {
+  return `secretvault:aad:share:v1:${iterations}`;
 }
 
 export interface VaultCryptoService {
@@ -53,6 +62,21 @@ export interface VaultCryptoService {
    * o el blob fue manipulado (el tag GCM no autentica).
    */
   decrypt(key: Uint8Array, blob: Uint8Array, aad: string): Promise<string>;
+
+  /** Clave aleatoria de 256 bits (clave de datos y clave de recuperación). */
+  generateKey(): Uint8Array;
+
+  /**
+   * Deriva la KEK de la clave de recuperación (HKDF-SHA256). La clave de recuperación ya
+   * tiene 256 bits de entropía, así que no necesita un KDF lento como la contraseña.
+   */
+  deriveRecoveryKek(recoveryKey: Uint8Array, salt: Uint8Array): Promise<Uint8Array>;
+
+  /** Envuelve (cifra) una clave con otra usando AES-256-GCM. */
+  wrapKey(kek: Uint8Array, key: Uint8Array, aad: string): Promise<Uint8Array>;
+
+  /** Desenvuelve una clave. Falla si la KEK es incorrecta o el blob fue alterado. */
+  unwrapKey(kek: Uint8Array, wrapped: Uint8Array, aad: string): Promise<Uint8Array>;
 
   /** Token aleatorio URL-safe (sesiones). */
   randomToken(bytes?: number): string;

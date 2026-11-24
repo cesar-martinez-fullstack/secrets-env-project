@@ -69,14 +69,6 @@ export class InMemorySessionStore implements SessionStore {
     }
   }
 
-  async rotateKey(sessionId: string, newKey: Uint8Array): Promise<VaultSession | null> {
-    const session = await this.get(sessionId);
-    if (!session) return null;
-    zeroKey(session.key);
-    session.key = newKey;
-    return session;
-  }
-
   async purgeExpired(): Promise<number> {
     let purged = 0;
     const now = this.now();

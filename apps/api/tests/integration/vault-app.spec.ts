@@ -17,6 +17,8 @@ let rootDir: string;
 let container: Container;
 let app: ReturnType<typeof createApp>;
 let sessionId: string | null = null;
+let recoveryKey = '';
+const RECOVERY_FORMAT = /^([0-9A-Z]{4}-){12}[0-9A-Z]{4}$/;
 
 function cookieHeader(): Record<string, string> {
   return sessionId ? { Cookie: `sv_session=${sessionId}` } : {};
@@ -90,7 +92,10 @@ describe('API integration — ciclo de vida completo', () => {
   it('POST /api/vault/setup crea la bóveda, el ambiente Local y la cookie de sesión', async () => {
     const res = await post('/api/vault/setup', { masterPassword: PASSWORD }, false);
     expect(res.status).toBe(201);
-    expect(await json(res)).toEqual({ ok: true });
+    const body = await json<{ ok: boolean; recoveryKey: string }>(res);
+    expect(body.ok).toBe(true);
+    expect(body.recoveryKey).toMatch(RECOVERY_FORMAT); // se muestra UNA sola vez
+    recoveryKey = body.recoveryKey;
 
     const setCookie = res.headers.get('set-cookie') ?? '';
     sessionId = extractSession(res);
@@ -110,21 +115,103 @@ describe('API integration — ciclo de vida completo', () => {
     expect(await json(res)).toMatchObject({ error: { code: 'VAULT_ALREADY_INITIALIZED' } });
   });
 
-  it('GET /api/environments lista el ambiente Local por defecto', async () => {
-    const res = await get('/api/environments');
+  it('GET /api/projects lista el proyecto General con su ambiente Local', async () => {
+    const res = await get('/api/projects');
     expect(res.status).toBe(200);
-    const envs = await json<{ id: number; name: string; secretCount: number }[]>(res);
-    expect(envs).toHaveLength(1);
-    expect(envs[0]).toMatchObject({ name: 'Local', secretCount: 0 });
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const projects = await json<{ id: number; name: string; environmentCount: number }[]>(res);
+    expect(projects).toEqual([
+      expect.objectContaining({ id: 1, name: 'General', environmentCount: 1 }),
+    ]);
   });
 
-  it('POST /api/environments crea ambientes y valida duplicados', async () => {
-    const created = await json<{ id: number }>(await post('/api/environments', { name: 'QA' }));
-    expect(created.id).toBeGreaterThan(1);
+  it('GET /api/environments lista el ambiente Local dentro del proyecto General', async () => {
+    const res = await get('/api/environments');
+    expect(res.status).toBe(200);
+    const envs =
+      await json<{ id: number; projectId: number; name: string; secretCount: number }[]>(res);
+    expect(envs).toHaveLength(1);
+    expect(envs[0]).toMatchObject({ projectId: 1, name: 'Local', secretCount: 0 });
+  });
 
-    const dup = await post('/api/environments', { name: 'qa' });
+  it('POST /api/environments crea ambientes en un proyecto y valida duplicados dentro de él', async () => {
+    const created = await json<{ id: number; projectId: number }>(
+      await post('/api/environments', { projectId: 1, name: 'QA' }),
+    );
+    expect(created.id).toBeGreaterThan(1);
+    expect(created.projectId).toBe(1);
+
+    const dup = await post('/api/environments', { projectId: 1, name: 'qa' });
     expect(dup.status).toBe(409);
     expect(await json(dup)).toMatchObject({ error: { code: 'ENVIRONMENT_NAME_TAKEN' } });
+
+    const noProject = await post('/api/environments', { name: 'Sin proyecto' });
+    expect(noProject.status).toBe(400);
+    const ghost = await post('/api/environments', { projectId: 999, name: 'X' });
+    expect(ghost.status).toBe(404);
+    expect(await json(ghost)).toMatchObject({ error: { code: 'PROJECT_NOT_FOUND' } });
+  });
+
+  it('el mismo nombre de ambiente puede existir en dos proyectos', async () => {
+    const shop = await json<{ id: number }>(await post('/api/projects', { name: 'Tienda' }));
+    const shopLocal = await post('/api/environments', { projectId: shop.id, name: 'Local' });
+    expect(shopLocal.status).toBe(201);
+    const { id: envId } = await json<{ id: number }>(shopLocal);
+
+    const envs = await json<{ projectId: number; name: string }[]>(await get('/api/environments'));
+    expect(
+      envs
+        .filter((e) => e.name === 'Local')
+        .map((e) => e.projectId)
+        .sort(),
+    ).toEqual([1, shop.id]);
+
+    await app.request(`/api/environments/${envId}`, { method: 'DELETE', headers: cookieHeader() });
+    await app.request(`/api/projects/${shop.id}`, { method: 'DELETE', headers: cookieHeader() });
+  });
+
+  it('proyectos: renombrar, nombre duplicado y no se elimina uno con ambientes', async () => {
+    const created = await post('/api/projects', { name: 'Interno' });
+    expect(created.status).toBe(201);
+    const { id } = await json<{ id: number }>(created);
+
+    const dup = await post('/api/projects', { name: 'INTERNO' });
+    expect(dup.status).toBe(409);
+    expect(await json(dup)).toMatchObject({ error: { code: 'PROJECT_NAME_TAKEN' } });
+
+    const renamed = await app.request(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { ...cookieHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Backoffice' }),
+    });
+    expect(renamed.status).toBe(200);
+    expect(await json(renamed)).toMatchObject({ id, name: 'Backoffice' });
+
+    await post('/api/environments', { projectId: id, name: 'Dev' });
+    const refused = await app.request(`/api/projects/${id}`, {
+      method: 'DELETE',
+      headers: cookieHeader(),
+    });
+    expect(refused.status).toBe(409);
+    expect(await json(refused)).toMatchObject({ error: { code: 'PROJECT_NOT_EMPTY' } });
+
+    const envs = await json<{ id: number; name: string }[]>(await get('/api/environments'));
+    const dev = envs.find((e) => e.name === 'Dev')!;
+    await app.request(`/api/environments/${dev.id}`, { method: 'DELETE', headers: cookieHeader() });
+    const ok = await app.request(`/api/projects/${id}`, {
+      method: 'DELETE',
+      headers: cookieHeader(),
+    });
+    expect(ok.status).toBe(200);
+  });
+
+  it('proyectos: nombre vacío es inválido y un id inexistente da 404', async () => {
+    expect((await post('/api/projects', { name: '   ' })).status).toBe(400);
+    const missing = await app.request('/api/projects/999', {
+      method: 'DELETE',
+      headers: cookieHeader(),
+    });
+    expect(missing.status).toBe(404);
   });
 
   it('POST /api/secrets crea y NUNCA devuelve el valor en claro', async () => {
@@ -142,6 +229,7 @@ describe('API integration — ciclo de vida completo', () => {
       maskedValue: '••••••••',
       hasNote: true,
       environmentName: 'Local',
+      projectName: 'General',
     });
   });
 
@@ -209,7 +297,7 @@ describe('API integration — ciclo de vida completo', () => {
     expect(await json(res)).toEqual({ imported: 1, updated: 1, skipped: 0, invalidLines: 1 });
   });
 
-  it('GET /api/secrets/export descarga en .env, CSV y PDF', async () => {
+  it('GET /api/secrets/export descarga en .env, CSV, JSON y PDF', async () => {
     const envRes = await get('/api/secrets/export?environmentId=1&format=env');
     expect(envRes.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
     expect(envRes.headers.get('Content-Disposition')).toContain('.env');
@@ -221,6 +309,35 @@ describe('API integration — ciclo de vida completo', () => {
     expect(csvRes.headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
     const csvText = await csvRes.text();
     expect(csvText).toContain('name,value,note');
+
+    const jsonRes = await get('/api/secrets/export?environmentId=1&format=json');
+    expect(jsonRes.status).toBe(200);
+    expect(jsonRes.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(jsonRes.headers.get('Content-Disposition')).toMatch(
+      /^attachment; filename="secretvault-local-\d{4}-\d{2}-\d{2}\.json"$/,
+    );
+    expect(jsonRes.headers.get('Cache-Control')).toBe('no-store');
+    const doc = await json<{
+      version: number;
+      secrets: { environment: string; name: string; value: string }[];
+    }>(jsonRes);
+    expect(doc.version).toBe(1);
+    expect(doc.secrets).toContainEqual(
+      expect.objectContaining({
+        environment: 'Local',
+        name: 'DATABASE_URL_V2',
+        value: 'postgres://v2',
+      }),
+    );
+
+    const invalid = await get('/api/secrets/export?environmentId=1&format=xml');
+    expect(invalid.status).toBe(400);
+    expect(await json(invalid)).toMatchObject({ error: { code: 'VALIDATION_FAILED' } });
+
+    const postmanRes = await get('/api/secrets/export?environmentId=1&format=postman');
+    expect(postmanRes.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(postmanRes.headers.get('Content-Disposition')).toContain('.postman_environment.json');
+    expect(await json(postmanRes)).toMatchObject({ _postman_variable_scope: 'environment' });
 
     const pdfRes = await get('/api/secrets/export?environmentId=1&format=pdf');
     expect(pdfRes.headers.get('Content-Type')).toBe('application/pdf');
@@ -264,7 +381,7 @@ describe('API integration — ciclo de vida completo', () => {
     expect(reveal.value).toBe('postgres://v2'); // los datos sobreviven al ciclo lock/unlock
   });
 
-  it('POST /api/vault/change-password re-encripta todo y la clave vieja deja de funcionar', async () => {
+  it('POST /api/vault/change-password cambia la contraseña sin tocar los datos y la vieja deja de funcionar', async () => {
     const wrongCurrent = await post('/api/vault/change-password', {
       currentPassword: 'Incorrecta99!',
       newPassword: 'RotadaFuerte2026!',
@@ -277,7 +394,7 @@ describe('API integration — ciclo de vida completo', () => {
     });
     expect(ok.status).toBe(200);
 
-    // La sesión activa sigue funcionando (clave rotada en RAM).
+    // La sesión activa sigue funcionando: la clave de datos no cambia, solo se re-envolvió.
     const reveal = await json<{ value: string }>(await post('/api/secrets/1/reveal', {}));
     expect(reveal.value).toBe('postgres://v2');
 
@@ -288,6 +405,112 @@ describe('API integration — ciclo de vida completo', () => {
     const fresh = await post('/api/vault/unlock', { masterPassword: 'RotadaFuerte2026!' }, false);
     expect(fresh.status).toBe(200);
     sessionId = extractSession(fresh);
+  });
+
+  it('GET /api/vault/status indica que la recuperación está disponible', async () => {
+    const status = await json<{ recoveryAvailable: boolean }>(await get('/api/vault/status'));
+    expect(status.recoveryAvailable).toBe(true);
+  });
+
+  it('POST /api/vault/recovery-key exige la contraseña actual e invalida la clave anterior', async () => {
+    const wrong = await post('/api/vault/recovery-key', { currentPassword: 'Incorrecta99!' });
+    expect(wrong.status).toBe(401);
+
+    const ok = await post('/api/vault/recovery-key', { currentPassword: 'RotadaFuerte2026!' });
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('cache-control')).toBe('no-store');
+    const body = await json<{ recoveryKey: string }>(ok);
+    expect(body.recoveryKey).toMatch(RECOVERY_FORMAT);
+    expect(body.recoveryKey).not.toBe(recoveryKey);
+
+    // La clave que se mostró en el setup ya no sirve.
+    const stale = await post(
+      '/api/vault/recover',
+      { recoveryKey, newPassword: 'NoDeberiaEntrar2026!' },
+      false,
+    );
+    expect(stale.status).toBe(401);
+    recoveryKey = body.recoveryKey;
+  });
+
+  it('POST /api/vault/recover rechaza claves inválidas sin crear sesión ni cookie', async () => {
+    const wellFormedButWrong = 'ABCD-EFGH-JKMN-PQRS-TVWX-YZ01-2345-6789-ABCD-EFGH-JKMN-PQRS-TVWX';
+    for (const bad of ['', 'no-es-una-clave', wellFormedButWrong]) {
+      const res = await post(
+        '/api/vault/recover',
+        { recoveryKey: bad, newPassword: 'NoDeberiaEntrar2026!' },
+        false,
+      );
+      expect(res.status).toBe(401);
+      expect(await json(res)).toMatchObject({ error: { code: 'INVALID_RECOVERY_KEY' } });
+      expect(res.headers.get('set-cookie')).toBeNull();
+    }
+  });
+
+  it('POST /api/vault/recover exige una contraseña nueva fuerte y campos de texto', async () => {
+    const weak = await post('/api/vault/recover', { recoveryKey, newPassword: 'corta' }, false);
+    expect(weak.status).toBe(400);
+    const missing = await post(
+      '/api/vault/recover',
+      { newPassword: 'RecuperadaSegura2026!' },
+      false,
+    );
+    expect(missing.status).toBe(400);
+  });
+
+  it('POST /api/vault/recover devuelve el acceso, cambia la contraseña y rota la clave de recuperación', async () => {
+    const res = await post(
+      '/api/vault/recover',
+      {
+        recoveryKey: recoveryKey.toLowerCase().replaceAll('-', ' '),
+        newPassword: 'RecuperadaSegura2026!',
+      },
+      false,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const body = await json<{ ok: boolean; recoveryKey: string }>(res);
+    expect(body.recoveryKey).toMatch(RECOVERY_FORMAT);
+    expect(body.recoveryKey).not.toBe(recoveryKey);
+    expect(res.headers.get('set-cookie')).toContain('HttpOnly');
+    const usedKey = recoveryKey;
+    recoveryKey = body.recoveryKey;
+    sessionId = extractSession(res);
+
+    // Los datos siguen ahí: la clave de datos no cambió.
+    const reveal = await json<{ value: string }>(await post('/api/secrets/1/reveal', {}));
+    expect(reveal.value).toBe('postgres://v2');
+
+    // La contraseña anterior ya no entra; la nueva sí; la clave usada ya no sirve.
+    expect(
+      (await post('/api/vault/unlock', { masterPassword: 'RotadaFuerte2026!' }, false)).status,
+    ).toBe(401);
+    const fresh = await post(
+      '/api/vault/unlock',
+      { masterPassword: 'RecuperadaSegura2026!' },
+      false,
+    );
+    expect(fresh.status).toBe(200);
+    sessionId = extractSession(fresh);
+    const reused = await post(
+      '/api/vault/recover',
+      { recoveryKey: usedKey, newPassword: 'OtraMasSegura2026!' },
+      false,
+    );
+    expect(reused.status).toBe(401);
+  });
+
+  it('el audit log registra la recuperación y NO contiene claves ni contraseñas', async () => {
+    const audit = await json<{ events: { type: string; message: string }[] }>(
+      await get('/api/audit?limit=100'),
+    );
+    const types = audit.events.map((e) => e.type);
+    expect(types).toContain('vault.recovered');
+    expect(types).toContain('vault.recovery_failed');
+    expect(types).toContain('vault.recovery_key_regenerated');
+    const everything = JSON.stringify(audit);
+    expect(everything).not.toContain(recoveryKey);
+    expect(everything).not.toContain('RecuperadaSegura2026!');
   });
 
   it('DELETE /api/environments/:id elimina el ambiente con sus secretos en cascada', async () => {
@@ -312,6 +535,84 @@ describe('API integration — ciclo de vida completo', () => {
 
     const gone = await json<unknown[]>(await get('/api/secrets?q=temporal_key'));
     expect(gone).toEqual([]);
+  });
+
+  it('POST /api/secrets/bulk-delete elimina varios secretos de forma atómica', async () => {
+    const created = await Promise.all(
+      ['LOTE_UNO', 'LOTE_DOS'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'x' })),
+      ),
+    );
+    const ids = created.map((secret) => secret.id);
+
+    const partial = await post('/api/secrets/bulk-delete', { ids: [...ids, 999_999] });
+    expect(partial.status).toBe(404);
+    expect(await json<unknown[]>(await get('/api/secrets?q=lote_'))).toHaveLength(2);
+
+    const ok = await post('/api/secrets/bulk-delete', { ids });
+    expect(ok.status).toBe(200);
+    expect(await json(ok)).toEqual({ deleted: 2 });
+    expect(await json<unknown[]>(await get('/api/secrets?q=lote_'))).toEqual([]);
+
+    const invalid = await post('/api/secrets/bulk-delete', { ids: 'no-es-lista' });
+    expect(invalid.status).toBe(400);
+  });
+
+  it('PUT /api/secrets/order guarda el orden manual y rechaza listas incompletas', async () => {
+    const created = await Promise.all(
+      ['ORDEN_A', 'ORDEN_B', 'ORDEN_C'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'x' })),
+      ),
+    );
+    const [a, b, c] = created.map((secret) => secret.id) as [number, number, number];
+    const put = (body: unknown) =>
+      app.request('/api/secrets/order', {
+        method: 'PUT',
+        headers: { ...cookieHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    const appended = await json<{ name: string; position: number }[]>(
+      await get('/api/secrets?q=orden_'),
+    );
+    const appendedOrder = [...appended].sort((x, y) => x.position - y.position).map((s) => s.name);
+    expect(appendedOrder).toEqual(['ORDEN_A', 'ORDEN_B', 'ORDEN_C']);
+
+    const incomplete = await put({ environmentId: 1, ids: [a, b] });
+    expect(incomplete.status).toBe(400);
+
+    const all = await json<{ id: number }[]>(await get('/api/secrets?environmentId=1'));
+    const others = all.map((secret) => secret.id).filter((id) => ![a, b, c].includes(id));
+    const ok = await put({ environmentId: 1, ids: [c, a, b, ...others] });
+    expect(ok.status).toBe(200);
+
+    const listed = await json<{ name: string; position: number }[]>(
+      await get('/api/secrets?q=orden_'),
+    );
+    const byPosition = [...listed].sort((x, y) => x.position - y.position).map((s) => s.name);
+    expect(byPosition).toEqual(['ORDEN_C', 'ORDEN_A', 'ORDEN_B']);
+  });
+
+  it('POST /api/secrets/import acepta entradas estructuradas con notas y cuenta las inválidas', async () => {
+    const res = await post('/api/secrets/import', {
+      environmentId: 1,
+      overwrite: false,
+      entries: [
+        { name: 'IMPORTADA_CON_NOTA', value: 'valor', note: 'nota importada' },
+        { name: '1INVALIDA', value: 'x', note: null },
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ imported: 1, updated: 0, skipped: 0, invalidLines: 1 });
+
+    const [created] = await json<{ id: number }[]>(await get('/api/secrets?q=importada_con_nota'));
+    const revealed = await json<{ value: string; note: string | null }>(
+      await post(`/api/secrets/${created!.id}/reveal`, {}),
+    );
+    expect(revealed).toMatchObject({ value: 'valor', note: 'nota importada' });
+
+    const bad = await post('/api/secrets/import', { environmentId: 1, entries: 'no-es-lista' });
+    expect(bad.status).toBe(400);
   });
 
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {

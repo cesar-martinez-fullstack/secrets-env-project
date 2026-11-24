@@ -9,21 +9,54 @@ import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { api } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
+import { moveId, shiftId } from '@/lib/sort';
+import type { SortOrder } from '@/lib/sort';
+import SortSelector from '@/components/vault/SortSelector.vue';
 import { relativeTime, absoluteTime } from '@/lib/time';
 import { useToastStore } from '@/stores/toast';
+import { useI18n } from '@/i18n/use-i18n';
 
 const props = defineProps<{
   secrets: SecretDto[];
   loading: boolean;
+  selected: ReadonlySet<number>;
+  order: SortOrder;
+  reorderable: boolean;
 }>();
 
 const emit = defineEmits<{
   edit: [secret: SecretDto];
   remove: [secret: SecretDto];
+  toggle: [id: number];
+  'toggle-all': [];
+  'set-order': [order: SortOrder];
+  reorder: [ids: number[]];
+  'clear-selection': [];
+  'remove-selected': [];
   'create-first': [];
 }>();
 
+const allSelected = computed(
+  () => props.secrets.length > 0 && props.secrets.every((secret) => props.selected.has(secret.id)),
+);
+const someSelected = computed(() => props.selected.size > 0 && !allSelected.value);
+
+const draggingId = ref<number | null>(null);
+const orderedIds = computed(() => props.secrets.map((secret) => secret.id));
+
+function dropOn(targetId: number): void {
+  const dragged = draggingId.value;
+  draggingId.value = null;
+  if (dragged === null || dragged === targetId) return;
+  emit('reorder', moveId(orderedIds.value, dragged, orderedIds.value.indexOf(targetId)));
+}
+
+function shift(id: number, delta: number): void {
+  emit('reorder', shiftId(orderedIds.value, id, delta));
+}
+
 const toast = useToastStore();
+const { t, describeError, localeStore } = useI18n();
 
 interface Revealed {
   value: string;
@@ -86,7 +119,7 @@ async function toggleReveal(secret: SecretDto): Promise<void> {
     });
     ensureTicker();
   } catch (error) {
-    toast.push('error', 'No se pudo revelar', error instanceof Error ? error.message : undefined);
+    toast.push('error', t('table.revealFailed'), describeError(error));
   }
 }
 
@@ -103,20 +136,16 @@ async function copySecret(secret: SecretDto): Promise<void> {
       value = detail.value;
     } catch (error) {
       copyBusy.delete(secret.id);
-      toast.push('error', 'No se pudo copiar', error instanceof Error ? error.message : undefined);
+      toast.push('error', t('table.copyFailed'), describeError(error));
       return;
     }
     copyBusy.delete(secret.id);
   }
   const ok = await copyText(value!);
   if (ok) {
-    toast.push(
-      'success',
-      `${secret.name} copiado al portapapeles`,
-      'El valor está disponible para pegar.',
-    );
+    toast.push('success', t('table.copied', { name: secret.name }), t('table.copiedBody'));
   } else {
-    toast.push('error', 'No se pudo copiar', 'Tu navegador bloqueó el acceso al portapapeles.');
+    toast.push('error', t('table.copyFailed'), t('table.clipboardBlocked'));
   }
 }
 </script>
@@ -132,8 +161,8 @@ async function copySecret(secret: SecretDto): Promise<void> {
   <EmptyState
     v-else-if="secrets.length === 0"
     icon="database"
-    title="Este ambiente está vacío"
-    description="Crea tu primera variable de entorno o importa un archivo .env completo."
+    :title="t('table.emptyTitle')"
+    :description="t('table.emptyDescription')"
   >
     <button
       type="button"
@@ -141,17 +170,99 @@ async function copySecret(secret: SecretDto): Promise<void> {
       @click="emit('create-first')"
     >
       <AppIcon name="plus" :size="16" />
-      Crear secreto
+      {{ t('table.createSecret') }}
     </button>
   </EmptyState>
 
   <div v-else class="overflow-hidden">
+    <div
+      class="flex items-center gap-3 border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800"
+      data-testid="selection-bar"
+    >
+      <input
+        type="checkbox"
+        class="h-4 w-4 rounded border-zinc-300 accent-indigo-600"
+        :checked="allSelected"
+        :indeterminate="someSelected"
+        :aria-label="t('table.selectAll')"
+        data-testid="select-all"
+        @change="emit('toggle-all')"
+      />
+      <span class="text-zinc-500 dark:text-zinc-400">
+        {{
+          selected.size > 0
+            ? t('table.selectedCount', { count: selected.size })
+            : t('table.selectAll')
+        }}
+      </span>
+      <SortSelector class="ml-auto" :order="order" @change="emit('set-order', $event)" />
+      <template v-if="selected.size > 0">
+        <button
+          type="button"
+          class="rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          data-testid="clear-selection"
+          @click="emit('clear-selection')"
+        >
+          {{ t('table.clearSelection') }}
+        </button>
+        <button
+          type="button"
+          class="rounded-lg bg-red-600 px-2.5 py-1 font-medium text-white hover:bg-red-700"
+          data-testid="delete-selected"
+          @click="emit('remove-selected')"
+        >
+          {{ t('table.deleteSelected') }}
+        </button>
+      </template>
+    </div>
     <ul class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
       <li
         v-for="secret in secrets"
         :key="secret.id"
         class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-zinc-50/80 sm:flex-nowrap dark:hover:bg-zinc-800/40"
+        :class="selected.has(secret.id) && 'bg-indigo-50/60 dark:bg-indigo-950/30'"
+        :draggable="reorderable"
+        data-testid="secret-row"
+        @dragstart="draggingId = secret.id"
+        @dragover.prevent="reorderable && draggingId !== null"
+        @drop.prevent="dropOn(secret.id)"
+        @dragend="draggingId = null"
       >
+        <div v-if="reorderable" class="flex shrink-0 items-center text-zinc-400">
+          <span class="cursor-grab" :title="t('table.dragHandle')" data-testid="drag-handle">
+            <AppIcon name="grip" :size="15" />
+          </span>
+          <div class="flex flex-col">
+            <button
+              type="button"
+              class="rounded p-0.5 hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-200"
+              :aria-label="t('table.moveUp', { name: secret.name })"
+              :disabled="secret.id === orderedIds[0]"
+              data-testid="move-up"
+              @click="shift(secret.id, -1)"
+            >
+              <AppIcon name="chevron-up" :size="13" />
+            </button>
+            <button
+              type="button"
+              class="rounded p-0.5 hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-200"
+              :aria-label="t('table.moveDown', { name: secret.name })"
+              :disabled="secret.id === orderedIds.at(-1)"
+              data-testid="move-down"
+              @click="shift(secret.id, 1)"
+            >
+              <AppIcon name="chevron-down" :size="13" />
+            </button>
+          </div>
+        </div>
+        <input
+          type="checkbox"
+          class="h-4 w-4 shrink-0 rounded border-zinc-300 accent-indigo-600"
+          :checked="selected.has(secret.id)"
+          :aria-label="t('table.select', { name: secret.name })"
+          data-testid="select-secret"
+          @change="emit('toggle', secret.id)"
+        />
         <!-- Nombre (+ badge de ambiente en búsqueda global) -->
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
@@ -160,17 +271,29 @@ async function copySecret(secret: SecretDto): Promise<void> {
             >
               {{ secret.name }}
             </span>
-            <span v-if="secret.hasNote" title="Tiene nota" class="text-amber-500/80">
+            <span
+              v-if="secret.importedAt"
+              :title="
+                t('table.importedTitle', {
+                  date: absoluteTime(secret.importedAt, localeStore.locale),
+                })
+              "
+              class="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+              data-testid="imported-badge"
+            >
+              {{ t('table.imported') }}
+            </span>
+            <span v-if="secret.hasNote" :title="t('table.hasNote')" class="text-amber-500/80">
               <AppIcon name="sticky" :size="13" />
             </span>
           </div>
           <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
-            <span v-if="isRevealed(secret.id)" class="font-medium text-indigo-500"
-              >se oculta en {{ secondsLeft[secret.id] ?? 0 }}s</span
-            >
-            <span :title="absoluteTime(secret.updatedAt)"
-              >editado {{ relativeTime(secret.updatedAt) }}</span
-            >
+            <span v-if="isRevealed(secret.id)" class="font-medium text-indigo-500">{{
+              t('table.hidesIn', { seconds: secondsLeft[secret.id] ?? 0 })
+            }}</span>
+            <span :title="absoluteTime(secret.updatedAt, localeStore.locale)">{{
+              t('table.edited', { time: relativeTime(secret.updatedAt, localeStore.locale) })
+            }}</span>
           </div>
         </div>
 
@@ -178,7 +301,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
         <span
           class="hidden shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 md:inline-block"
         >
-          {{ secret.environmentName }}
+          {{ secret.projectName }} › {{ secret.environmentName }}
         </span>
 
         <!-- Valor enmascarado / revelado -->
@@ -203,7 +326,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200/60 hover:text-zinc-700 dark:hover:bg-zinc-700/60 dark:hover:text-zinc-200"
-            :title="isRevealed(secret.id) ? 'Ocultar valor' : 'Revelar valor (10s)'"
+            :title="isRevealed(secret.id) ? t('table.hide') : t('table.reveal')"
             @click="toggleReveal(secret)"
           >
             <AppIcon :name="isRevealed(secret.id) ? 'eye-off' : 'eye'" :size="15" />
@@ -212,7 +335,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200/60 hover:text-zinc-700 disabled:opacity-50 dark:hover:bg-zinc-700/60 dark:hover:text-zinc-200"
-            :title="'Copiar valor'"
+            :title="t('table.copy')"
             :disabled="copyBusy.has(secret.id)"
             @click="copySecret(secret)"
           >
@@ -231,7 +354,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-400"
-            title="Editar secreto"
+            :title="t('table.edit')"
             @click="emit('edit', secret)"
           >
             <AppIcon name="pencil" :size="15" />
@@ -239,7 +362,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50 dark:hover:text-red-400"
-            title="Eliminar secreto"
+            :title="t('table.delete')"
             @click="emit('remove', secret)"
           >
             <AppIcon name="trash" :size="15" />

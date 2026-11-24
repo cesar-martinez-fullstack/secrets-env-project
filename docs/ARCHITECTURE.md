@@ -57,16 +57,16 @@ flowchart TB
 
 ## 4. Trade-offs asumidos (no hay balas de plata)
 
-| Decisión                                  | Ganamos                                                     | Pagamos                                                                         |
-| ----------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **SQLite en un archivo**                  | Cero operación, ACID, backup = copiar un archivo            | Un solo escritor, sin replicación ni alta disponibilidad                        |
-| **Monolito modular**                      | Simplicidad de despliegue y de depuración, fronteras claras | No escala por componentes (no hace falta para un usuario)                       |
-| **Clave solo en RAM**                     | El disco nunca contiene la clave                            | Hay que reintroducir la contraseña tras cada bloqueo/reinicio; sin recuperación |
-| **Nombres de variables en claro**         | Búsqueda instantánea con SQL                                | Los nombres son metadata visible para quien lea el disco                        |
-| **AAD ligado a la fila**                  | Un blob no se puede mover entre secretos                    | Renombrar obliga a re-cifrar                                                    |
-| **Puertos `async` sobre SQLite síncrono** | Cambiar de motor sin tocar `core`                           | Pequeño coste de `Promise` que hoy no aporta rendimiento                        |
-| **Solo loopback**                         | Superficie de ataque mínima                                 | No sirve para uso en red/equipo sin un proxy propio y revisión de seguridad     |
-| **Sin dependencias en `shared`/`core`**   | Núcleo portable y fácil de auditar                          | Validación escrita a mano (candidata a esquema, ver TODO)                       |
+| Decisión                                      | Ganamos                                                                          | Pagamos                                                                                                   |
+| --------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **SQLite en un archivo**                      | Cero operación, ACID, backup = copiar un archivo                                 | Un solo escritor, sin replicación ni alta disponibilidad                                                  |
+| **Monolito modular**                          | Simplicidad de despliegue y de depuración, fronteras claras                      | No escala por componentes (no hace falta para un usuario)                                                 |
+| **Clave solo en RAM + clave de recuperación** | El disco nunca contiene la clave; se recupera el acceso sin servidores ni correo | La clave de recuperación es un segundo secreto a custodiar; sin ella ni la contraseña no hay recuperación |
+| **Nombres de variables en claro**             | Búsqueda instantánea con SQL                                                     | Los nombres son metadata visible para quien lea el disco                                                  |
+| **AAD ligado a la fila**                      | Un blob no se puede mover entre secretos                                         | Renombrar obliga a re-cifrar                                                                              |
+| **Puertos `async` sobre SQLite síncrono**     | Cambiar de motor sin tocar `core`                                                | Pequeño coste de `Promise` que hoy no aporta rendimiento                                                  |
+| **Solo loopback**                             | Superficie de ataque mínima                                                      | No sirve para uso en red/equipo sin un proxy propio y revisión de seguridad                               |
+| **Sin dependencias en `shared`/`core`**       | Núcleo portable y fácil de auditar                                               | Validación escrita a mano (candidata a esquema, ver TODO)                                                 |
 
 ## 5. Qué NO hacemos (y por qué) — YAGNI explícito
 

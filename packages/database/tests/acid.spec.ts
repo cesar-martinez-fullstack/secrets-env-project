@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import {
+  LegacyDatabaseError,
   MIGRATIONS,
   SchemaTooNewError,
   SqliteUnitOfWork,
@@ -44,6 +45,14 @@ describe('migrations', () => {
     expect(leftover).toEqual([]);
   });
 
+  it('should reject a pre-migrations database with a clear error and leave it untouched', () => {
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE vault_meta (id INTEGER PRIMARY KEY)');
+
+    expect(() => migrate(db)).toThrow(LegacyDatabaseError);
+    expect(currentVersion(db)).toBe(0);
+  });
+
   it('should refuse to open a database created by a newer version', () => {
     const db = new Database(':memory:');
     migrate(db);
@@ -56,7 +65,7 @@ describe('schema constraints (consistency)', () => {
   it('should reject ciphertext blobs shorter than IV+tag (28 bytes)', async () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
-    const env = await environments.create('Local');
+    const env = await environments.create(1, 'Local');
     await expect(
       secrets.create({
         environmentId: env.id,
@@ -70,7 +79,7 @@ describe('schema constraints (consistency)', () => {
   it('should reject blank names and orphan secrets', async () => {
     const db = openInMemoryDatabase();
     const { environments, secrets } = createRepositories(db);
-    await expect(environments.create('   ')).rejects.toThrow();
+    await expect(environments.create(1, '   ')).rejects.toThrow();
     await expect(
       secrets.create({ environmentId: 999, name: 'X', valueEnc: BLOB, noteEnc: null }),
     ).rejects.toThrow();
@@ -84,8 +93,8 @@ describe('SqliteUnitOfWork (atomicity)', () => {
     const uow = new SqliteUnitOfWork(db);
 
     await uow.run(async () => {
-      await environments.create('A');
-      await environments.create('B');
+      await environments.create(1, 'A');
+      await environments.create(1, 'B');
     });
 
     expect((await environments.list()).map((e) => e.name)).toEqual(['A', 'B']);
@@ -98,8 +107,8 @@ describe('SqliteUnitOfWork (atomicity)', () => {
 
     await expect(
       uow.run(async () => {
-        await environments.create('A');
-        await environments.create('B');
+        await environments.create(1, 'A');
+        await environments.create(1, 'B');
         throw new Error('crash a mitad de la operacion');
       }),
     ).rejects.toThrow('crash');
@@ -115,13 +124,13 @@ describe('SqliteUnitOfWork (atomicity)', () => {
 
     const first = uow.run(async () => {
       order.push('1:start');
-      await environments.create('A');
+      await environments.create(1, 'A');
       await new Promise((resolve) => setTimeout(resolve, 10));
       order.push('1:end');
     });
     const second = uow.run(async () => {
       order.push('2:start');
-      await environments.create('B');
+      await environments.create(1, 'B');
       order.push('2:end');
     });
     await Promise.all([first, second]);
@@ -136,7 +145,7 @@ describe('SqliteUnitOfWork (atomicity)', () => {
 
     await uow.run(async () => Promise.reject(new Error('x'))).catch(() => undefined);
     await uow.run(async () => {
-      await environments.create('OK');
+      await environments.create(1, 'OK');
     });
 
     expect((await environments.list()).map((e) => e.name)).toEqual(['OK']);
@@ -146,5 +155,248 @@ describe('SqliteUnitOfWork (atomicity)', () => {
     const db = openInMemoryDatabase();
     const uow = new SqliteUnitOfWork(db);
     await expect(uow.run(async () => uow.run(async () => 1))).rejects.toThrow('anidado');
+  });
+});
+
+describe('migration 2 (envelope encryption)', () => {
+  const V1 = MIGRATIONS.filter((m) => m.version === 1);
+
+  it('should keep an existing v1 vault intact as format 1 with empty envelope columns', () => {
+    const db = new Database(':memory:');
+    migrate(db, V1);
+    db.query(
+      `INSERT INTO vault_meta (id, salt, iterations, verifier, created_at, updated_at)
+       VALUES (1, ?, 310000, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
+    ).run(new Uint8Array(16).fill(1), new Uint8Array(48).fill(2));
+
+    expect(migrate(db)).toEqual([2, 3, 4, 5]);
+
+    const row = db
+      .query<{ format_version: number; wrapped_dek: Uint8Array | null; iterations: number }, []>(
+        'SELECT format_version, wrapped_dek, iterations FROM vault_meta WHERE id = 1',
+      )
+      .get()!;
+    expect(row).toEqual({ format_version: 1, wrapped_dek: null, iterations: 310_000 });
+  });
+
+  it('should require the whole envelope for format 2 (consistency CHECK)', async () => {
+    const db = openInMemoryDatabase();
+    const { vault } = createRepositories(db);
+    const base = {
+      salt: new Uint8Array(16).fill(1),
+      iterations: 600_000,
+      verifier: new Uint8Array(48).fill(2),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await expect(
+      vault.save({
+        ...base,
+        formatVersion: 2,
+        wrappedDek: null,
+        recoverySalt: null,
+        recoveryWrappedDek: null,
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      vault.save({
+        ...base,
+        formatVersion: 2,
+        wrappedDek: new Uint8Array(60),
+        recoverySalt: new Uint8Array(16),
+        recoveryWrappedDek: new Uint8Array(60),
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('should reject unknown format versions', () => {
+    const db = openInMemoryDatabase();
+    expect(() =>
+      db
+        .query(
+          `INSERT INTO vault_meta (id, salt, iterations, verifier, format_version, created_at, updated_at)
+           VALUES (1, ?, 600000, ?, 3, 'x', 'x')`,
+        )
+        .run(new Uint8Array(16), new Uint8Array(48)),
+    ).toThrow();
+  });
+});
+
+describe('migration 3 (projects)', () => {
+  const BEFORE_PROJECTS = MIGRATIONS.filter((m) => m.version <= 2);
+  const BLOB = new Uint8Array(32).fill(7);
+
+  function dbAtVersion2(): Database {
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    migrate(db, BEFORE_PROJECTS);
+    return db;
+  }
+
+  it('should move existing environments into a default project without losing a secret', () => {
+    const db = dbAtVersion2();
+    const now = '2024-01-01T00:00:00.000Z';
+    db.query('INSERT INTO environments (name, created_at, updated_at) VALUES (?, ?, ?)').run(
+      'Local',
+      now,
+      now,
+    );
+    db.query('INSERT INTO environments (name, created_at, updated_at) VALUES (?, ?, ?)').run(
+      'QA',
+      now,
+      now,
+    );
+    for (const [env, name] of [
+      [1, 'A'],
+      [1, 'B'],
+      [2, 'C'],
+    ] as const) {
+      db.query(
+        'INSERT INTO secrets (environment_id, name, value_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+      ).run(env, name, BLOB, now, now);
+    }
+
+    expect(migrate(db)).toEqual([3, 4, 5]);
+
+    const projects = db.query('SELECT id, name FROM projects').all();
+    expect(projects).toEqual([{ id: 1, name: 'General' }]);
+    const envs = db.query('SELECT id, name, project_id FROM environments ORDER BY id').all();
+    expect(envs).toEqual([
+      { id: 1, name: 'Local', project_id: 1 },
+      { id: 2, name: 'QA', project_id: 1 },
+    ]);
+    const secrets = db.query('SELECT environment_id, name FROM secrets ORDER BY id').all();
+    expect(secrets).toEqual([
+      { environment_id: 1, name: 'A' },
+      { environment_id: 1, name: 'B' },
+      { environment_id: 2, name: 'C' },
+    ]);
+    expect(db.query('PRAGMA foreign_key_check').all()).toEqual([]);
+  });
+
+  it('should leave foreign keys enabled after a table-rebuilding migration', () => {
+    const db = dbAtVersion2();
+    migrate(db);
+    const row = db.query('PRAGMA foreign_keys').get() as { foreign_keys: number };
+    expect(row.foreign_keys).toBe(1);
+  });
+
+  it('should restore foreign keys and roll back when a rebuilding migration fails', () => {
+    const db = dbAtVersion2();
+    const broken = [
+      ...BEFORE_PROJECTS,
+      {
+        version: 3,
+        description: 'rota',
+        rebuildsTables: true,
+        sql: 'CREATE TABLE x (id INTEGER); BOOM;',
+      },
+    ];
+    expect(() => migrate(db, broken)).toThrow();
+    expect(currentVersion(db)).toBe(2);
+    expect((db.query('PRAGMA foreign_keys').get() as { foreign_keys: number }).foreign_keys).toBe(
+      1,
+    );
+  });
+
+  it('should create the default project on a fresh database', () => {
+    const db = openInMemoryDatabase();
+    expect(db.query('SELECT name FROM projects').all()).toEqual([{ name: 'General' }]);
+  });
+
+  it('should allow the same environment name in different projects but not twice in one', () => {
+    const db = openInMemoryDatabase();
+    const now = '2024-01-01T00:00:00.000Z';
+    db.query('INSERT INTO projects (name, created_at, updated_at) VALUES (?, ?, ?)').run(
+      'Tienda',
+      now,
+      now,
+    );
+    const insert = db.query(
+      'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
+    );
+    insert.run(1, 'Local', now, now);
+    insert.run(2, 'Local', now, now);
+    expect(() => insert.run(2, 'LOCAL', now, now)).toThrow();
+  });
+
+  it('should refuse to delete a project that still has environments', () => {
+    const db = openInMemoryDatabase();
+    const now = '2024-01-01T00:00:00.000Z';
+    db.query(
+      'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, ?, ?, ?)',
+    ).run('Local', now, now);
+    expect(() => db.query('DELETE FROM projects WHERE id = 1').run()).toThrow();
+  });
+});
+
+describe('migration 4 (imported mark)', () => {
+  it('should keep existing secrets and leave them unmarked', () => {
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    migrate(
+      db,
+      MIGRATIONS.filter((m) => m.version <= 3),
+    );
+    const now = '2024-01-01T00:00:00.000Z';
+    db.query(
+      'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, ?, ?, ?)',
+    ).run('Local', now, now);
+    db.query(
+      'INSERT INTO secrets (environment_id, name, value_enc, created_at, updated_at) VALUES (1, ?, ?, ?, ?)',
+    ).run('API_KEY', new Uint8Array(32).fill(7), now, now);
+
+    migrate(db);
+
+    expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
+    expect(db.query('SELECT name, imported_at FROM secrets').all()).toEqual([
+      { name: 'API_KEY', imported_at: null },
+    ]);
+  });
+});
+
+describe('migration 5 (manual order)', () => {
+  it('should number existing secrets alphabetically within each environment', () => {
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    migrate(
+      db,
+      MIGRATIONS.filter((m) => m.version <= 4),
+    );
+    const now = '2024-01-01T00:00:00.000Z';
+    const insertEnv = db.query(
+      'INSERT INTO environments (project_id, name, created_at, updated_at) VALUES (1, ?, ?, ?)',
+    );
+    insertEnv.run('Local', now, now);
+    insertEnv.run('Prod', now, now);
+    const insertSecret = db.query(
+      'INSERT INTO secrets (environment_id, name, value_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+    );
+    for (const [env, name] of [
+      [1, 'gamma'],
+      [1, 'Alfa'],
+      [1, 'beta'],
+      [2, 'zeta'],
+      [2, 'eta'],
+    ] as const) {
+      insertSecret.run(env, name, new Uint8Array(32).fill(7), now, now);
+    }
+
+    migrate(db);
+
+    expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
+    expect(
+      db
+        .query('SELECT environment_id AS env, name, position FROM secrets ORDER BY env, position')
+        .all(),
+    ).toEqual([
+      { env: 1, name: 'Alfa', position: 0 },
+      { env: 1, name: 'beta', position: 1 },
+      { env: 1, name: 'gamma', position: 2 },
+      { env: 2, name: 'eta', position: 0 },
+      { env: 2, name: 'zeta', position: 1 },
+    ]);
   });
 });

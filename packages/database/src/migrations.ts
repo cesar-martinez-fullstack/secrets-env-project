@@ -13,6 +13,12 @@ export interface Migration {
   version: number;
   description: string;
   sql: string;
+  /**
+   * La migración reconstruye una tabla referenciada por otras. Un `DROP TABLE` con claves foráneas
+   * activas borraría en cascada a las filas hijas, así que el ejecutor las desactiva mientras
+   * dura (procedimiento oficial de SQLite), verifica `foreign_key_check` y las reactiva.
+   */
+  rebuildsTables?: boolean;
 }
 
 export const MIGRATIONS: readonly Migration[] = [
@@ -60,6 +66,95 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_audit_created ON audit_log(created_at);
     `,
   },
+  {
+    version: 2,
+    description: 'cifrado de envoltura: clave de datos envuelta y clave de recuperación',
+    // SQLite no permite añadir un CHECK entre columnas con ALTER: se reconstruye la tabla.
+    // Las bóvedas existentes quedan en formato 1 y se actualizan al desbloquearlas.
+    // COALESCE: un CHECK con NULL se considera cumplido, así que NULL debe contar como 0.
+    sql: `
+      CREATE TABLE vault_meta_v2 (
+        id                   INTEGER PRIMARY KEY CHECK (id = 1),
+        salt                 BLOB    NOT NULL CHECK (length(salt) >= 16),
+        iterations           INTEGER NOT NULL CHECK (iterations >= 100000),
+        verifier             BLOB    NOT NULL CHECK (length(verifier) >= 28),
+        format_version       INTEGER NOT NULL DEFAULT 1 CHECK (format_version IN (1, 2)),
+        wrapped_dek          BLOB,
+        recovery_salt        BLOB,
+        recovery_wrapped_dek BLOB,
+        created_at           TEXT    NOT NULL,
+        updated_at           TEXT    NOT NULL,
+        CHECK (
+          format_version = 1
+          OR (
+            COALESCE(length(wrapped_dek), 0) >= 60
+            AND COALESCE(length(recovery_salt), 0) >= 16
+            AND COALESCE(length(recovery_wrapped_dek), 0) >= 60
+          )
+        )
+      );
+
+      INSERT INTO vault_meta_v2 (id, salt, iterations, verifier, created_at, updated_at)
+        SELECT id, salt, iterations, verifier, created_at, updated_at FROM vault_meta;
+
+      DROP TABLE vault_meta;
+      ALTER TABLE vault_meta_v2 RENAME TO vault_meta;
+    `,
+  },
+  {
+    version: 3,
+    description: 'proyectos: los ambientes pertenecen a un proyecto',
+    rebuildsTables: true,
+    sql: `
+      CREATE TABLE projects (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL UNIQUE COLLATE NOCASE CHECK (length(trim(name)) > 0),
+        created_at TEXT    NOT NULL,
+        updated_at TEXT    NOT NULL
+      );
+
+      INSERT INTO projects (name, created_at, updated_at) VALUES (
+        'General',
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      );
+
+      CREATE TABLE environments_v3 (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+        name       TEXT    NOT NULL COLLATE NOCASE CHECK (length(trim(name)) > 0),
+        created_at TEXT    NOT NULL,
+        updated_at TEXT    NOT NULL,
+        UNIQUE (project_id, name)
+      );
+
+      INSERT INTO environments_v3 (id, project_id, name, created_at, updated_at)
+        SELECT id, (SELECT id FROM projects WHERE name = 'General'), name, created_at, updated_at
+        FROM environments;
+
+      DROP TABLE environments;
+      ALTER TABLE environments_v3 RENAME TO environments;
+      CREATE INDEX idx_environments_project ON environments(project_id);
+    `,
+  },
+  {
+    version: 4,
+    description: 'secretos: marca de origen para los recibidos por un archivo compartido',
+    sql: 'ALTER TABLE secrets ADD COLUMN imported_at TEXT;',
+  },
+  {
+    version: 5,
+    description: 'secretos: posición para el orden manual dentro de cada ambiente',
+    sql: `
+      ALTER TABLE secrets ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+      UPDATE secrets SET position = (
+        SELECT COUNT(*) FROM secrets other
+        WHERE other.environment_id = secrets.environment_id
+          AND (other.name COLLATE NOCASE < secrets.name COLLATE NOCASE
+            OR (other.name COLLATE NOCASE = secrets.name COLLATE NOCASE AND other.id < secrets.id))
+      );
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {
@@ -72,28 +167,71 @@ export class SchemaTooNewError extends Error {
   }
 }
 
+/**
+ * Base de datos creada antes de existir las migraciones (esquema sin versionar y formato
+ * cifrado anterior). No se puede migrar: se rechaza con un mensaje accionable.
+ */
+export class LegacyDatabaseError extends Error {
+  constructor() {
+    super(
+      'La base de datos fue creada por una versión anterior a v0.1.0 (sin migraciones) y su ' +
+        'formato cifrado ya no es compatible. Muévela o bórrala (carpeta SV_DATA_DIR) para crear ' +
+        'una bóveda nueva; no se modificó nada.',
+    );
+    this.name = 'LegacyDatabaseError';
+  }
+}
+
+function hasTable(db: Database, name: string): boolean {
+  return (
+    db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name) != null
+  );
+}
+
 export function currentVersion(db: Database): number {
   return db.query<{ user_version: number }, []>('PRAGMA user_version').get()!.user_version;
 }
 
+/** Rechaza (sin tocar nada) bases que esta versión no puede ni debe migrar. */
+function assertMigratable(db: Database, from: number, latest: number): void {
+  if (from > latest) throw new SchemaTooNewError(from, latest);
+  if (from === 0 && hasTable(db, 'vault_meta')) throw new LegacyDatabaseError();
+}
+
+function foreignKeysEnabled(db: Database): boolean {
+  return db.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()!.foreign_keys === 1;
+}
+
+function assertNoForeignKeyViolations(db: Database): void {
+  if (db.query('PRAGMA foreign_key_check').all().length > 0) {
+    throw new Error('La migración dejó filas que violan claves foráneas; se revierte.');
+  }
+}
+
+function applyMigration(db: Database, migration: Migration): void {
+  const suspendForeignKeys = migration.rebuildsTables === true && foreignKeysEnabled(db);
+  // PRAGMA foreign_keys no tiene efecto dentro de una transacción.
+  if (suspendForeignKeys) db.exec('PRAGMA foreign_keys = OFF');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.exec(migration.sql);
+    if (suspendForeignKeys) assertNoForeignKeyViolations(db);
+    db.exec(`PRAGMA user_version = ${migration.version}`);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  } finally {
+    if (suspendForeignKeys) db.exec('PRAGMA foreign_keys = ON');
+  }
+}
+
 /** Aplica las migraciones pendientes. Devuelve las versiones aplicadas. */
 export function migrate(db: Database, migrations: readonly Migration[] = MIGRATIONS): number[] {
-  const latest = migrations.at(-1)?.version ?? 0;
   const from = currentVersion(db);
-  if (from > latest) throw new SchemaTooNewError(from, latest);
+  assertMigratable(db, from, migrations.at(-1)?.version ?? 0);
 
-  const applied: number[] = [];
-  for (const migration of migrations.filter((m) => m.version > from)) {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      db.exec(migration.sql);
-      db.exec(`PRAGMA user_version = ${migration.version}`);
-      db.exec('COMMIT');
-      applied.push(migration.version);
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-  }
-  return applied;
+  const pending = migrations.filter((m) => m.version > from);
+  for (const migration of pending) applyMigration(db, migration);
+  return pending.map((m) => m.version);
 }

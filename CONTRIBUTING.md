@@ -33,6 +33,12 @@ Full details in [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md). In short:
    `type(scope): short description` — subject ≤ 72 chars, lowercase, imperative.
 3. Open a Pull Request against **`develop`**. Fill in the template.
 
+## Pull request size
+
+Prefer one PR per vertical slice: a user-visible behaviour delivered end to end (UI, API, data and
+tests). It should be reviewable in one sitting (roughly under 400 diff lines, excluding lockfiles) and
+use 1 to 5 coherent commits that each leave the repository green.
+
 ## Before you open a PR
 
 ```bash

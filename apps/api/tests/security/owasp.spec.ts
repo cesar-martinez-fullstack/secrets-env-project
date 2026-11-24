@@ -173,7 +173,7 @@ describe('A03 · Injection', () => {
     const created = await vault.app.request('/api/environments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: `sv_session=${sessionId}` },
-      body: JSON.stringify({ name: "QA'); DROP TABLE environments;--" }),
+      body: JSON.stringify({ projectId: 1, name: "QA'); DROP TABLE environments;--" }),
     });
     expect(created.status).toBe(201);
 

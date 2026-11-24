@@ -3,13 +3,14 @@
  * y exportación multiformato (.env / CSV / PDF).
  */
 import { Hono } from 'hono';
-import { stringifyEnv } from '@secretvault/shared';
 import type {
   CreateSecretRequestDto,
-  ExportFormat,
+  DeleteSecretsRequestDto,
+  DeleteSecretsResultDto,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
+  ReorderSecretsRequestDto,
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
@@ -17,15 +18,17 @@ import type {
 import type { SecretSummary } from '@secretvault/core';
 import {
   jsonResponse,
+  parseExportFormat,
   parseIdParam,
   readJsonBody,
+  requireIdList,
+  requireImportEntries,
   requireInt,
   requireString,
 } from '../http/helpers';
 import { requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
-import { buildCsvExport } from '../export/csv';
-import { buildPdfExport } from '../export/pdf';
+import { EXPORT_FORMATTERS, exportFilename } from '../export/formatters';
 
 export function secretRoutes(container: Container): Hono<AppEnv> {
   const { secretService, config } = container;
@@ -37,9 +40,12 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     id: s.id,
     environmentId: s.environmentId,
     environmentName: s.environmentName,
+    projectName: s.projectName,
     name: s.name,
     maskedValue: s.maskedValue,
     hasNote: s.hasNote,
+    importedAt: s.importedAt?.toISOString() ?? null,
+    position: s.position,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
   });
@@ -85,6 +91,18 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     return jsonResponse<OkDto>(c, { ok: true });
   });
 
+  app.put('/order', async (c) => {
+    const body = await readJsonBody<ReorderSecretsRequestDto>(c);
+    await secretService.reorder(requireInt(body, 'environmentId'), requireIdList(body, 'ids'));
+    return jsonResponse<OkDto>(c, { ok: true });
+  });
+
+  app.post('/bulk-delete', async (c) => {
+    const body = await readJsonBody<DeleteSecretsRequestDto>(c);
+    const deleted = await secretService.removeMany(requireIdList(body, 'ids'));
+    return jsonResponse<DeleteSecretsResultDto>(c, { deleted });
+  });
+
   // Reveal: desencripta bajo demanda y audita el acceso.
   app.post('/:id/reveal', async (c) => {
     const id = parseIdParam(c.req.param('id'));
@@ -102,77 +120,41 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
   // Importación masiva desde contenido .env.
   app.post('/import', async (c) => {
     const body = await readJsonBody<ImportSecretsRequestDto>(c);
-    const result = await secretService.import(
-      c.get('session').key,
-      requireInt(body, 'environmentId'),
-      requireString(body, 'content'),
-      body.overwrite === true,
-    );
+    const { key } = c.get('session');
+    const environmentId = requireInt(body, 'environmentId');
+    const overwrite = body.overwrite === true;
+    const result =
+      body.entries === undefined
+        ? await secretService.import(key, environmentId, requireString(body, 'content'), overwrite)
+        : await secretService.importEntries(key, environmentId, {
+            entries: requireImportEntries(body, 'entries'),
+            overwrite,
+          });
     const dto: ImportSecretsResultDto = result;
     return jsonResponse(c, dto);
   });
 
-  // Exportación multiformato.
   app.get('/export', async (c) => {
-    const envParam = c.req.query('environmentId');
-    const format = (c.req.query('format') ?? 'env') as ExportFormat;
-    if (!['env', 'csv', 'pdf'].includes(format)) {
-      const { ValidationFailedError } = await import('@secretvault/core');
-      throw new ValidationFailedError([{ field: 'format', message: 'Formato inválido.' }]);
-    }
-    const environmentId = parseIdParam(envParam ?? '');
-
+    const format = parseExportFormat(c.req.query('format') ?? 'env');
+    const environmentId = parseIdParam(c.req.query('environmentId') ?? '');
     const { entries, environmentName } = await secretService.exportEntries(
       c.get('session').key,
       environmentId,
       format,
     );
 
-    const dateTag = new Date().toISOString().slice(0, 10);
-    const slug =
-      environmentName
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') || 'ambiente';
-    const filename = `secretvault-${slug}-${dateTag}.${format}`;
-
-    if (format === 'env') {
-      const header = [
-        `SecretVault — Ambiente: ${environmentName}`,
-        `Generado: ${new Date().toISOString()}`,
-        'ADVERTENCIA: este archivo contiene secretos en texto claro.',
-      ].join('\n');
-      const content = stringifyEnv(entries, { header });
-      return new Response(content, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    }
-
-    if (format === 'csv') {
-      return new Response(buildCsvExport(entries), {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    }
-
-    const pdf = buildPdfExport({
+    const generatedAt = new Date();
+    const formatter = EXPORT_FORMATTERS[format];
+    const body = formatter.build({
       environmentName,
-      generatedAt: new Date(),
+      generatedAt,
       entries,
       iterations: config.iterations,
     });
-    return new Response(pdf, {
+    const filename = exportFilename(environmentName, generatedAt, format);
+    return new Response(body, {
       headers: {
-        'Content-Type': 'application/pdf',
+        'Content-Type': formatter.contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-store',
       },

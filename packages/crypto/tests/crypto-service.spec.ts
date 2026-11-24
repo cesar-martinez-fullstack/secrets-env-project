@@ -138,3 +138,66 @@ describe('zeroKey', () => {
     expect(key.every((b) => b === 0)).toBe(true);
   });
 });
+
+describe('NodeCryptoService envelope encryption (DEK + recovery key)', () => {
+  const service = new NodeCryptoService();
+
+  it('should generate unique 256-bit keys', () => {
+    const a = service.generateKey();
+    const b = service.generateKey();
+    expect(a).toHaveLength(32);
+    expect(Buffer.from(a).equals(Buffer.from(b))).toBe(false);
+  });
+
+  it('should derive a deterministic recovery KEK, different per key and per salt', async () => {
+    const recovery = service.generateKey();
+    const a = await service.deriveRecoveryKek(recovery, SALT);
+    const b = await service.deriveRecoveryKek(recovery, SALT);
+    const otherSalt = await service.deriveRecoveryKek(recovery, new Uint8Array(16).fill(2));
+    const otherKey = await service.deriveRecoveryKek(service.generateKey(), SALT);
+
+    expect(a).toHaveLength(32);
+    expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true);
+    expect(Buffer.from(a).equals(Buffer.from(otherSalt))).toBe(false);
+    expect(Buffer.from(a).equals(Buffer.from(otherKey))).toBe(false);
+  });
+
+  it('should reject recovery keys that are not 256 bits and weak salts', async () => {
+    await expect(service.deriveRecoveryKek(new Uint8Array(16), SALT)).rejects.toThrow('256 bits');
+    await expect(
+      service.deriveRecoveryKek(service.generateKey(), new Uint8Array(8)),
+    ).rejects.toThrow('sal');
+  });
+
+  it('should wrap and unwrap a key round-trip', async () => {
+    const dek = service.generateKey();
+    const wrapped = await service.wrapKey(KEY, dek, 'aad:dek');
+    expect(wrapped.length).toBe(12 + 16 + 32); // IV + tag + clave
+    const unwrapped = await service.unwrapKey(KEY, wrapped, 'aad:dek');
+    expect(Buffer.from(unwrapped).equals(Buffer.from(dek))).toBe(true);
+  });
+
+  it('should not unwrap with the wrong KEK, the wrong AAD or a tampered blob', async () => {
+    const dek = service.generateKey();
+    const wrapped = await service.wrapKey(KEY, dek, 'aad:dek');
+
+    await expect(
+      service.unwrapKey(new Uint8Array(32).fill(7), wrapped, 'aad:dek'),
+    ).rejects.toThrow();
+    await expect(service.unwrapKey(KEY, wrapped, 'aad:otro')).rejects.toThrow();
+    const tampered = new Uint8Array(wrapped);
+    tampered.set([(tampered.at(-1) ?? 0) ^ 1], tampered.length - 1);
+    await expect(service.unwrapKey(KEY, tampered, 'aad:dek')).rejects.toThrow();
+  });
+
+  it('should only wrap 256-bit keys', async () => {
+    await expect(service.wrapKey(KEY, new Uint8Array(16), 'aad:dek')).rejects.toThrow('256 bits');
+  });
+
+  it('should produce a different wrapped blob each time (random IV)', async () => {
+    const dek = service.generateKey();
+    const a = await service.wrapKey(KEY, dek, 'aad:dek');
+    const b = await service.wrapKey(KEY, dek, 'aad:dek');
+    expect(Buffer.from(a).equals(Buffer.from(b))).toBe(false);
+  });
+});

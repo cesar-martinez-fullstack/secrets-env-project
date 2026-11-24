@@ -1,19 +1,32 @@
 /**
- * Store de tema: claro / oscuro / según sistema operativo.
- * Persistido en localStorage; evita el flash gracias al script inline del index.html.
+ * Store de tema. La elección de la persona (guardada en el navegador) manda; sin ella se usa el
+ * tema por defecto de la instancia, y "system" sigue al sistema operativo.
  */
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect } from 'vue';
+import { isThemeMode } from '@secretvault/shared';
+import type { ThemeMode } from '@secretvault/shared';
+import { useSettingsStore } from '@/stores/settings';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type { ThemeMode };
+
+const STORAGE_KEY = 'sv-theme';
+
+function readStoredMode(): ThemeMode | null {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return isThemeMode(stored) ? stored : null;
+}
 
 function detectSystemDark(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 export const useThemeStore = defineStore('theme', () => {
-  const mode = ref<ThemeMode>((localStorage.getItem('sv-theme') as ThemeMode) ?? 'system');
+  const settings = useSettingsStore();
+  const chosen = ref<ThemeMode | null>(readStoredMode());
   const systemDark = ref(detectSystemDark());
+
+  const mode = computed<ThemeMode>(() => chosen.value ?? settings.current.defaultTheme);
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
     systemDark.value = event.matches;
@@ -28,14 +41,13 @@ export const useThemeStore = defineStore('theme', () => {
   });
 
   function setMode(next: ThemeMode): void {
-    mode.value = next;
-    localStorage.setItem('sv-theme', next);
+    chosen.value = next;
+    localStorage.setItem(STORAGE_KEY, next);
   }
 
-  /** Cicla: system → light → dark → system */
-  function cycle(): void {
-    setMode(mode.value === 'system' ? 'light' : mode.value === 'light' ? 'dark' : 'system');
+  function toggle(): void {
+    setMode(isDark.value ? 'light' : 'dark');
   }
 
-  return { mode, isDark, setMode, cycle };
+  return { mode, isDark, systemDark, setMode, toggle };
 });

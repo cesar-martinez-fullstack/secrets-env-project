@@ -7,7 +7,10 @@
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Etapa 1: compilación ──────────────────────────────────────────────
-FROM oven/bun:1.4.4 AS build
+# Corre siempre en la arquitectura del equipo que construye (rápido, sin emulación) y
+# compila el binario para la arquitectura de destino con `--target` (amd64 o arm64).
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.5 AS build
+ARG TARGETARCH
 WORKDIR /app
 # El contenedor no es un repo git: evita que `bun install` ejecute husky.
 ENV HUSKY=0
@@ -32,13 +35,23 @@ RUN bun run --cwd apps/web build
 
 # 4. Backend: binario ejecutable autocontenido (runtime Bun + SQLite embebidos,
 #    ~115 MB) — no requiere bun ni node instalados en producción.
-RUN bun build --compile --minify --sourcemap=none \
-      --target bun \
+RUN arch="${TARGETARCH:-$(uname -m)}" && \
+    case "$arch" in \
+      amd64|x86_64) target=bun-linux-x64 ;; \
+      arm64|aarch64) target=bun-linux-arm64 ;; \
+      *) echo "arquitectura no soportada: $arch" >&2; exit 1 ;; \
+    esac && \
+    bun build --compile --minify --sourcemap=none \
+      --target "$target" \
       apps/api/src/index.ts \
       --outfile /out/secretvault
 
+# Carpeta de datos vacía: se copia con su dueño en la etapa final para no ejecutar nada allí
+# (los `RUN` de la etapa final correrían emulados al construir para otra arquitectura).
+RUN mkdir -p /out/data
+
 # ── Etapa 2: producción ───────────────────────────────────────────────
-FROM oven/bun:1.4.4-slim AS production
+FROM oven/bun:1.4.5-slim AS production
 
 WORKDIR /app
 
@@ -55,7 +68,7 @@ ENV NODE_ENV=production \
     SV_PUBLIC_DIR=/app/public
 
 # Usuario sin privilegios (la imagen oficial de Bun trae el usuario `bun`).
-RUN mkdir -p /app/data && chown -R bun:bun /app
+COPY --from=build --chown=bun:bun /out/data /app/data
 USER bun
 
 VOLUME ["/app/data"]

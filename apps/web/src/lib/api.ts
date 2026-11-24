@@ -6,14 +6,33 @@ import type {
   ApiErrorBody,
   AuditQueryResultDto,
   CreateEnvironmentRequestDto,
+  CreateProjectRequestDto,
+  RenameEnvironmentRequestDto,
+  RenameProjectRequestDto,
   CreateSecretRequestDto,
   EnvironmentDto,
+  ProjectDto,
+  DeleteSecretsResultDto,
+  UpdateCheckDto,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
+  RecoverVaultResponseDto,
+  RecoveryKeyDto,
+  ShareExportRequestDto,
+  ShareFileDto,
+  ShareImportRequestDto,
+  ShareImportResultDto,
+  SharePreviewDto,
+  SharePreviewRequestDto,
   RevealSecretDto,
   SecretDto,
   UpdateSecretRequestDto,
+  SetLogoRequestDto,
+  SettingsDto,
+  UpdateAppearanceRequestDto,
+  SetupVaultResponseDto,
+  UnlockVaultResponseDto,
   ValidationIssue,
   VaultStatusDto,
 } from '@secretvault/shared';
@@ -76,15 +95,27 @@ export const api = {
   getVaultStatus: () => request<VaultStatusDto>('/api/vault/status'),
 
   setupVault: (masterPassword: string) =>
-    request<OkDto>('/api/vault/setup', {
+    request<SetupVaultResponseDto>('/api/vault/setup', {
       method: 'POST',
       body: JSON.stringify({ masterPassword }),
     }),
 
   unlockVault: (masterPassword: string) =>
-    request<OkDto>('/api/vault/unlock', {
+    request<UnlockVaultResponseDto>('/api/vault/unlock', {
       method: 'POST',
       body: JSON.stringify({ masterPassword }),
+    }),
+
+  recoverVault: (recoveryKey: string, newPassword: string) =>
+    request<RecoverVaultResponseDto>('/api/vault/recover', {
+      method: 'POST',
+      body: JSON.stringify({ recoveryKey, newPassword }),
+    }),
+
+  regenerateRecoveryKey: (currentPassword: string) =>
+    request<RecoveryKeyDto>('/api/vault/recovery-key', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword }),
     }),
 
   lockVault: () => request<OkDto>('/api/vault/lock', { method: 'POST' }),
@@ -95,19 +126,36 @@ export const api = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
+  // ── Proyectos ─────────────────────────────────────────────────────────
+  listProjects: () => request<ProjectDto[]>('/api/projects'),
+
+  createProject: (name: string) =>
+    request<ProjectDto>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({ name } satisfies CreateProjectRequestDto),
+    }),
+
+  renameProject: (id: number, name: string) =>
+    request<ProjectDto>(`/api/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name } satisfies RenameProjectRequestDto),
+    }),
+
+  deleteProject: (id: number) => request<OkDto>(`/api/projects/${id}`, { method: 'DELETE' }),
+
   // ── Ambientes ─────────────────────────────────────────────────────────
   listEnvironments: () => request<EnvironmentDto[]>('/api/environments'),
 
-  createEnvironment: (name: string) =>
+  createEnvironment: (projectId: number, name: string) =>
     request<EnvironmentDto>('/api/environments', {
       method: 'POST',
-      body: JSON.stringify({ name } satisfies CreateEnvironmentRequestDto),
+      body: JSON.stringify({ projectId, name } satisfies CreateEnvironmentRequestDto),
     }),
 
   renameEnvironment: (id: number, name: string) =>
     request<EnvironmentDto>(`/api/environments/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name } satisfies CreateEnvironmentRequestDto),
+      body: JSON.stringify({ name } satisfies RenameEnvironmentRequestDto),
     }),
 
   deleteEnvironment: (id: number) =>
@@ -131,11 +179,61 @@ export const api = {
 
   deleteSecret: (id: number) => request<OkDto>(`/api/secrets/${id}`, { method: 'DELETE' }),
 
+  checkForUpdate: () => request<UpdateCheckDto>('/api/update/check', { method: 'POST' }),
+
+  reorderSecrets: (environmentId: number, ids: number[]) =>
+    request<OkDto>('/api/secrets/order', {
+      method: 'PUT',
+      body: JSON.stringify({ environmentId, ids }),
+    }),
+
+  deleteSecrets: (ids: number[]) =>
+    request<DeleteSecretsResultDto>('/api/secrets/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+
   revealSecret: (id: number) =>
     request<RevealSecretDto>(`/api/secrets/${id}/reveal`, { method: 'POST' }),
 
   importSecrets: (payload: ImportSecretsRequestDto) =>
     request<ImportSecretsResultDto>('/api/secrets/import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  // ── Ajustes ───────────────────────────────────────────────────────────
+  getSettings: () => request<SettingsDto>('/api/settings'),
+
+  setLogo: (data: string) =>
+    request<SettingsDto>('/api/settings/logo', {
+      method: 'PUT',
+      body: JSON.stringify({ data } satisfies SetLogoRequestDto),
+    }),
+
+  updateAppearance: (appearance: UpdateAppearanceRequestDto) =>
+    request<SettingsDto>('/api/settings/appearance', {
+      method: 'PUT',
+      body: JSON.stringify(appearance),
+    }),
+
+  removeLogo: () => request<SettingsDto>('/api/settings/logo', { method: 'DELETE' }),
+
+  // ── Compartir ─────────────────────────────────────────────────────────
+  exportShare: (target: 'projects' | 'environments', id: number, passphrase: string) =>
+    request<ShareFileDto>(`/api/share/${target}/${id}/export`, {
+      method: 'POST',
+      body: JSON.stringify({ passphrase } satisfies ShareExportRequestDto),
+    }),
+
+  previewShare: (payload: SharePreviewRequestDto) =>
+    request<SharePreviewDto>('/api/share/preview', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  importShare: (payload: ShareImportRequestDto) =>
+    request<ShareImportResultDto>('/api/share/import', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

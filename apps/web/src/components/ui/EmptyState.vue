@@ -1,9 +1,9 @@
 <script setup lang="ts">
-/**
- * Estado vacío elegante con icono, título y acción opcional.
- */
+import AppIcon from '@/components/AppIcon.vue';
+import type { IconName } from '@/components/icons';
+
 defineProps<{
-  icon: string;
+  icon: IconName;
   title: string;
   description?: string;
 }>();

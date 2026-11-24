@@ -82,6 +82,8 @@ export interface ApiConfig {
   maxBodyBytes: number;
   /** Vida máxima ABSOLUTA de una sesión, aunque haya actividad (minutos). */
   sessionMaxMinutes: number;
+  /** Permite el botón «Comprobar actualizaciones» (única petición saliente de la app). */
+  updateCheckEnabled: boolean;
   isProduction: boolean;
 }
 
@@ -95,6 +97,15 @@ function parseHostList(raw: string | undefined): string[] {
     .filter((h) => h.length > 0);
 }
 
+/**
+ * Carpeta del SPA compilado cuando no se fija `SV_PUBLIC_DIR`: `./public` (binario y Docker)
+ * o `./apps/api/public` (salida de `bun run build:web` al correr desde la raíz del monorepo).
+ */
+function defaultPublicDir(): string {
+  const candidates = [resolve('public'), resolve('apps', 'api', 'public')];
+  return candidates.find((dir) => existsSync(join(dir, 'index.html'))) ?? candidates[0]!;
+}
+
 function toInt(value: string | undefined, fallback: number): number {
   const n = Number.parseInt(value ?? '', 10);
   return Number.isFinite(n) ? n : fallback;
@@ -102,6 +113,27 @@ function toInt(value: string | undefined, fallback: number): number {
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Detecta la combinación peligrosa de apartarse de loopback (bind o `Host` aceptado)
+ * sin exigir `Secure` en la cookie de sesión: la sesión viajaría en texto plano por
+ * esa red. No bloquea el arranque (hay usos válidos tras un proxy sin TLS en una red
+ * propia de confianza), pero no debe pasar en silencio.
+ */
+export function insecureExposureWarning(
+  config: Pick<ApiConfig, 'host' | 'allowedHosts' | 'cookieSecure'>,
+): string | null {
+  if (config.cookieSecure) return null;
+  const loopback = new Set<string>(LOOPBACK_HOSTS);
+  const exposedHost = !loopback.has(config.host.toLowerCase());
+  const exposedAllowedHost = config.allowedHosts.some((h) => !loopback.has(h));
+  if (!exposedHost && !exposedAllowedHost) return null;
+  return (
+    'La cookie de sesión no tiene el flag Secure (SV_COOKIE_SECURE=false) pero la app ' +
+    'acepta un host fuera de loopback. La sesión viajaría sin cifrar en esa red. ' +
+    'Activa SV_COOKIE_SECURE=true detrás de HTTPS, o vuelve HOST/SV_ALLOWED_HOSTS a loopback.'
+  );
 }
 
 export function loadConfig(env: Record<string, string | undefined> = Bun.env): ApiConfig {
@@ -112,7 +144,7 @@ export function loadConfig(env: Record<string, string | undefined> = Bun.env): A
     // Solo loopback por defecto: la bóveda no debe ser alcanzable desde la red.
     host: env.HOST ?? '127.0.0.1',
     dataDir: env.SV_DATA_DIR ? resolve(env.SV_DATA_DIR) : resolve('data'),
-    publicDir: env.SV_PUBLIC_DIR ? resolve(env.SV_PUBLIC_DIR) : resolve('public'),
+    publicDir: env.SV_PUBLIC_DIR ? resolve(env.SV_PUBLIC_DIR) : defaultPublicDir(),
     autoLockMinutes: clamp(toInt(env.SV_AUTO_LOCK_MINUTES, DEFAULT_AUTO_LOCK_MINUTES), 1, 1440),
     iterations: clamp(
       toInt(env.SV_PBKDF2_ITERATIONS, DEFAULT_PBKDF2_ITERATIONS),
@@ -124,6 +156,7 @@ export function loadConfig(env: Record<string, string | undefined> = Bun.env): A
     allowedHosts: [...new Set([...LOOPBACK_HOSTS, ...parseHostList(env.SV_ALLOWED_HOSTS)])],
     maxBodyBytes: clamp(toInt(env.SV_MAX_BODY_KB, 2048), 16, 20_480) * 1024,
     sessionMaxMinutes: clamp(toInt(env.SV_SESSION_MAX_HOURS, 12), 1, 168) * 60,
+    updateCheckEnabled: env.SV_UPDATE_CHECK !== 'false',
     isProduction,
   };
 }

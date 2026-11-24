@@ -10,6 +10,7 @@ import {
   SecretNameTakenError,
   SecretNotFoundError,
   SecretValueRequiredError,
+  ValidationFailedError,
 } from '../../src/domain/errors';
 import { SecretService } from '../../src/usecases/secret-service';
 import {
@@ -31,6 +32,7 @@ function secretWithMeta(overrides: Record<string, unknown> = {}) {
     id: 1,
     environmentId: 1,
     environmentName: 'Local',
+    projectName: 'General',
     name: 'DATABASE_URL',
     valueEnc: new TextEncoder().encode('enc:postgres://x'),
     noteEnc: null,
@@ -252,11 +254,32 @@ describe('SecretService', () => {
         name: 'RENAMED_KEY',
         valueEnc: expect.any(Uint8Array),
         noteEnc: undefined,
+        importedAt: null,
       });
       expect(audit.record).toHaveBeenCalledWith(
         'secret.updated',
         expect.stringContaining('RENAMED_KEY'),
       );
+    });
+
+    it('should drop the imported mark when the value is edited', async () => {
+      secrets.findById.mockResolvedValue(secretWithMeta({ importedAt: new Date('2024-02-01') }));
+
+      await service.update(KEY, 1, { value: 'mio' });
+
+      expect(secrets.update).toHaveBeenCalledWith(1, expect.objectContaining({ importedAt: null }));
+    });
+
+    it('should keep the imported mark when only the note or the name changes', async () => {
+      secrets.findById.mockResolvedValue(secretWithMeta({ importedAt: new Date('2024-02-01') }));
+      secrets.findByName.mockResolvedValue(null);
+
+      await service.update(KEY, 1, { note: 'una nota' });
+      await service.update(KEY, 1, { name: 'OTHER_KEY' });
+
+      for (const call of secrets.update.mock.calls) {
+        expect((call[1] as { importedAt?: Date | null }).importedAt).toBeUndefined();
+      }
     });
 
     it('should clear the note when null is sent', async () => {
@@ -300,6 +323,180 @@ describe('SecretService', () => {
       secrets.findById.mockResolvedValue(null);
       await expect(service.remove(404)).rejects.toThrow(SecretNotFoundError);
       expect(secrets.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reorder', () => {
+    beforeEach(() => {
+      envs.findById.mockResolvedValue({ id: 1, name: 'Local' });
+      secrets.list.mockResolvedValue([
+        secretWithMeta({ id: 1 }),
+        secretWithMeta({ id: 2 }),
+        secretWithMeta({ id: 3 }),
+      ]);
+    });
+
+    it('should store the new order when the ids are a permutation of the environment', async () => {
+      await service.reorder(1, [3, 1, 2]);
+
+      expect(secrets.setPositions).toHaveBeenCalledWith(1, [3, 1, 2]);
+    });
+
+    it('should reject missing, extra, repeated or foreign ids without writing', async () => {
+      for (const ids of [
+        [1, 2],
+        [1, 2, 3, 4],
+        [1, 1, 2],
+        [1, 2, 9],
+      ]) {
+        await expect(service.reorder(1, ids)).rejects.toThrow(ValidationFailedError);
+      }
+      expect(secrets.setPositions).not.toHaveBeenCalled();
+    });
+
+    it('should throw EnvironmentNotFoundError for unknown environments', async () => {
+      envs.findById.mockResolvedValue(null);
+
+      await expect(service.reorder(9, [1])).rejects.toThrow(EnvironmentNotFoundError);
+    });
+  });
+
+  describe('removeMany', () => {
+    it('should delete every secret once and audit a single event with the names', async () => {
+      secrets.findById.mockImplementation(async (id: number) =>
+        secretWithMeta({ id, name: `KEY_${id}` }),
+      );
+
+      const deleted = await service.removeMany([1, 2, 2, 3]);
+
+      expect(deleted).toBe(3);
+      expect(secrets.delete).toHaveBeenCalledTimes(3);
+      expect(audit.record).toHaveBeenCalledTimes(1);
+      expect(audit.record).toHaveBeenCalledWith(
+        'secret.deleted',
+        '3 secretos eliminados: «KEY_1», «KEY_2», «KEY_3».',
+      );
+    });
+
+    it('should cap the names listed in the audit message', async () => {
+      secrets.findById.mockImplementation(async (id: number) =>
+        secretWithMeta({ id, name: `KEY_${id}` }),
+      );
+      const ids = Array.from({ length: 12 }, (_, index) => index + 1);
+
+      await service.removeMany(ids);
+
+      expect(audit.record).toHaveBeenCalledWith(
+        'secret.deleted',
+        expect.stringContaining('y 2 más'),
+      );
+    });
+
+    it('should throw SecretNotFoundError and audit nothing when one id is missing', async () => {
+      secrets.findById.mockImplementation(async (id: number) =>
+        id === 2 ? null : secretWithMeta({ id }),
+      );
+
+      await expect(service.removeMany([1, 2])).rejects.toThrow(SecretNotFoundError);
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('should reject an empty list and a list above the limit', async () => {
+      const tooMany = Array.from({ length: 201 }, (_, index) => index + 1);
+
+      await expect(service.removeMany([])).rejects.toThrow(ValidationFailedError);
+      await expect(service.removeMany(tooMany)).rejects.toThrow(ValidationFailedError);
+      expect(secrets.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('importEntries', () => {
+    const env = { id: 1, name: 'QA', createdAt: new Date(), updatedAt: new Date() };
+    const stored = {
+      id: 7,
+      environmentId: 1,
+      name: 'Api_Key',
+      valueEnc: new Uint8Array(4),
+      noteEnc: null,
+      importedAt: null,
+      position: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    beforeEach(() => {
+      envs.findById.mockResolvedValue(env);
+      secrets.findByName.mockResolvedValue(null);
+      secrets.create.mockResolvedValue(stored);
+    });
+
+    it('should encrypt the note with the note AAD when the entry has one', async () => {
+      const result = await service.importEntries(KEY, 1, {
+        entries: [{ name: 'API_KEY', value: 'v', note: 'una nota' }],
+        overwrite: false,
+      });
+
+      expect(result.imported).toBe(1);
+      expect(crypto.encrypt).toHaveBeenCalledWith(KEY, 'una nota', secretNoteAad(1, 'API_KEY'));
+      expect(secrets.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'API_KEY', noteEnc: expect.any(Uint8Array) }),
+      );
+    });
+
+    it('should count entries that fail validation instead of importing them', async () => {
+      const result = await service.importEntries(KEY, 1, {
+        entries: [
+          { name: 'OK', value: 'v', note: null },
+          { name: '1MALO', value: 'v', note: null },
+          { name: 'VACIO', value: '', note: null },
+        ],
+        overwrite: false,
+        invalidLines: 2,
+      });
+
+      expect(result).toEqual({ imported: 1, updated: 0, skipped: 0, invalidLines: 4 });
+    });
+
+    it('should overwrite with the stored name as AAD and keep the note when none comes', async () => {
+      secrets.findByName.mockResolvedValue(stored);
+
+      const result = await service.importEntries(KEY, 1, {
+        entries: [{ name: 'API_KEY', value: 'nuevo', note: null }],
+        overwrite: true,
+      });
+
+      expect(result.updated).toBe(1);
+      expect(crypto.encrypt).toHaveBeenCalledWith(KEY, 'nuevo', secretValueAad(1, 'Api_Key'));
+      expect(secrets.update).toHaveBeenCalledWith(7, { valueEnc: expect.any(Uint8Array) });
+    });
+
+    it('should skip existing entries without overwrite and audit nothing when nothing changed', async () => {
+      secrets.findByName.mockResolvedValue(stored);
+
+      const result = await service.importEntries(KEY, 1, {
+        entries: [{ name: 'API_KEY', value: 'v', note: null }],
+        overwrite: false,
+      });
+
+      expect(result.skipped).toBe(1);
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('should reject more entries than the limit and unknown environments', async () => {
+      const tooMany = Array.from({ length: 2_001 }, (_, index) => ({
+        name: `K${index}`,
+        value: 'v',
+        note: null,
+      }));
+
+      await expect(
+        service.importEntries(KEY, 1, { entries: tooMany, overwrite: false }),
+      ).rejects.toThrow(ValidationFailedError);
+
+      envs.findById.mockResolvedValue(null);
+      await expect(
+        service.importEntries(KEY, 9, { entries: [], overwrite: false }),
+      ).rejects.toThrow(EnvironmentNotFoundError);
     });
   });
 

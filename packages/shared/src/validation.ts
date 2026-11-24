@@ -6,6 +6,7 @@ import {
   MASTER_PASSWORD_MAX,
   MASTER_PASSWORD_MIN,
   MAX_ENVIRONMENT_NAME_LENGTH,
+  MAX_PROJECT_NAME_LENGTH,
   MAX_SECRET_NAME_LENGTH,
   MAX_SECRET_NOTE_LENGTH,
   MAX_SECRET_VALUE_LENGTH,
@@ -83,6 +84,10 @@ export function validateSecretNote(note: string): ValidationIssue[] {
   return issues;
 }
 
+const CONTROL_CHARACTERS = /\p{Cc}/u;
+
+const CONTROL_CHARACTERS_MESSAGE = 'No puede contener saltos de línea ni caracteres de control.';
+
 export function validateEnvironmentName(name: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = name.trim();
@@ -93,7 +98,24 @@ export function validateEnvironmentName(name: string): ValidationIssue[] {
   if (trimmed.length > MAX_ENVIRONMENT_NAME_LENGTH) {
     issues.push({ field: 'name', message: `Máximo ${MAX_ENVIRONMENT_NAME_LENGTH} caracteres.` });
   }
+  if (CONTROL_CHARACTERS.test(trimmed)) {
+    issues.push({ field: 'name', message: CONTROL_CHARACTERS_MESSAGE });
+  }
   return issues;
+}
+
+export function validateProjectName(name: string): ValidationIssue[] {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return [{ field: 'name', message: 'El nombre del proyecto es obligatorio.' }];
+  }
+  if (trimmed.length > MAX_PROJECT_NAME_LENGTH) {
+    return [{ field: 'name', message: `Máximo ${MAX_PROJECT_NAME_LENGTH} caracteres.` }];
+  }
+  if (CONTROL_CHARACTERS.test(trimmed)) {
+    return [{ field: 'name', message: CONTROL_CHARACTERS_MESSAGE }];
+  }
+  return [];
 }
 
 /** Normaliza un nombre para comparar duplicados (trim + casefold simple). */

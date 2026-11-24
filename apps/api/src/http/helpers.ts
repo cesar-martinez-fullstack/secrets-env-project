@@ -4,8 +4,13 @@
  */
 import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { SESSION_COOKIE } from '@secretvault/shared';
-import { ValidationFailedError } from '@secretvault/core';
+import {
+  SESSION_COOKIE,
+  isExportFormat,
+  type ExportFormat,
+  type ImportEntry,
+} from '@secretvault/shared';
+import { DomainError, ValidationFailedError } from '@secretvault/core';
 import type { ApiConfig } from '../config';
 
 /** Respuesta JSON estándar (nunca cacheable: datos sensibles). */
@@ -72,6 +77,58 @@ export function requireInt(body: object, field: string): number {
   return value;
 }
 
+/** Campo entero opcional: ausente o `null` valen `null`. */
+export function optionalInt(body: object, field: string): number | null {
+  const value = (body as Record<string, unknown>)[field];
+  return value === undefined || value === null ? null : requireInt(body, field);
+}
+
+/** Exige un campo booleano en el body. */
+export function requireBoolean(body: object, field: string): boolean {
+  const value = (body as Record<string, unknown>)[field];
+  if (typeof value !== 'boolean') {
+    throw new ValidationFailedError([{ field, message: 'Campo requerido y debe ser booleano.' }]);
+  }
+  return value;
+}
+
+/** Exige una lista de textos en el body. */
+export function requireStringList(body: object, field: string): string[] {
+  const value = (body as Record<string, unknown>)[field];
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw new ValidationFailedError([{ field, message: 'Debe ser una lista de textos.' }]);
+  }
+  return value;
+}
+
+/** Exige una lista de entradas de importación `{ name, value, note? }`. */
+export function requireImportEntries(body: object, field: string): ImportEntry[] {
+  const value = (body as Record<string, unknown>)[field];
+  const entries = Array.isArray(value) ? value.map(toImportEntry) : null;
+  if (entries === null || entries.includes(null)) {
+    throw new ValidationFailedError([{ field, message: 'Debe ser una lista de entradas.' }]);
+  }
+  return entries as ImportEntry[];
+}
+
+function toImportEntry(item: unknown): ImportEntry | null {
+  if (typeof item !== 'object' || item === null) return null;
+  const { name, value, note } = item as Record<string, unknown>;
+  if (typeof name !== 'string' || typeof value !== 'string') return null;
+  return { name, value, note: typeof note === 'string' ? note : null };
+}
+
+/** Exige una lista de enteros positivos en el body. */
+export function requireIdList(body: object, field: string): number[] {
+  const value = (body as Record<string, unknown>)[field];
+  const valid =
+    Array.isArray(value) && value.every((item) => Number.isInteger(item) && (item as number) > 0);
+  if (!valid) {
+    throw new ValidationFailedError([{ field, message: 'Debe ser una lista de identificadores.' }]);
+  }
+  return value as number[];
+}
+
 /** Convierte y valida un :id de ruta. */
 export function parseIdParam(raw: string): number {
   const id = Number.parseInt(raw, 10);
@@ -79,4 +136,19 @@ export function parseIdParam(raw: string): number {
     throw new ValidationFailedError([{ field: 'id', message: 'Identificador inválido.' }]);
   }
   return id;
+}
+
+export function parseExportFormat(raw: string): ExportFormat {
+  if (!isExportFormat(raw)) {
+    throw new ValidationFailedError([{ field: 'format', message: 'Formato inválido.' }]);
+  }
+  return raw;
+}
+
+export function rateLimited(retryAfterSeconds: number): DomainError {
+  return new DomainError(
+    'RATE_LIMITED',
+    `Demasiados intentos. Espera ${retryAfterSeconds}s antes de reintentar.`,
+    429,
+  );
 }

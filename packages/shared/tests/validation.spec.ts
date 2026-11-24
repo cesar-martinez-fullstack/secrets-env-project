@@ -6,6 +6,7 @@ import {
   normalizeName,
   passwordStrength,
   validateEnvironmentName,
+  validateProjectName,
   validateMasterPassword,
   validateSecretName,
   validateSecretNote,
@@ -120,6 +121,22 @@ describe('validateEnvironmentName', () => {
 
   it('should reject oversized names', () => {
     expect(validateEnvironmentName('E'.repeat(41)).length).toBeGreaterThan(0);
+  });
+
+  it('should reject line breaks and other control characters', () => {
+    expect(validateEnvironmentName('QA\n[FAKE] vault.unlock').length).toBeGreaterThan(0);
+    expect(validateEnvironmentName('QA\u0000').length).toBeGreaterThan(0);
+  });
+});
+
+describe('validateProjectName', () => {
+  it('should accept normal project names', () => {
+    expect(validateProjectName('Tienda online')).toEqual([]);
+  });
+
+  it('should reject line breaks and other control characters', () => {
+    expect(validateProjectName('x\r\n[FAKE] vault.unlock').length).toBeGreaterThan(0);
+    expect(validateProjectName('tab\there').length).toBeGreaterThan(0);
   });
 });
 
