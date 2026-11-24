@@ -13,6 +13,7 @@ import type {
   EnvironmentDto,
   ProjectDto,
   DeleteSecretsResultDto,
+  UpdateCheckDto,
   ImportSecretsRequestDto,
   ImportSecretsResultDto,
   OkDto,
@@ -177,6 +178,8 @@ export const api = {
     request<SecretDto>(`/api/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteSecret: (id: number) => request<OkDto>(`/api/secrets/${id}`, { method: 'DELETE' }),
+
+  checkForUpdate: () => request<UpdateCheckDto>('/api/update/check', { method: 'POST' }),
 
   reorderSecrets: (environmentId: number, ids: number[]) =>
     request<OkDto>('/api/secrets/order', {

@@ -9,6 +9,7 @@ import { useTourStore } from '@/stores/tour';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import AppearancePreview from '@/components/vault/AppearancePreview.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
+import UpdateCheck from '@/components/vault/UpdateCheck.vue';
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -189,6 +190,8 @@ const fieldLabel = 'block text-xs font-medium text-zinc-600 dark:text-zinc-400';
             {{ t('settings.saveAppearance') }}
           </button>
         </form>
+
+        <UpdateCheck />
 
         <section class="space-y-2" data-testid="settings-tour">
           <h3 :class="heading">{{ t('settings.tourTitle') }}</h3>
