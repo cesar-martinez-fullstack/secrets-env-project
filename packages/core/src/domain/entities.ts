@@ -115,6 +115,15 @@ export interface ImportResult {
   invalidLines: number;
 }
 
+/** Resultado de comprobar si hay una versión nueva. */
+export interface UpdateCheck {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseUrl: string;
+  checkedAt: Date;
+}
+
 /** Sesión activa: la clave vive SOLO en RAM, ligada a un token opaco. */
 export interface VaultSession {
   sessionId: string;

@@ -10,7 +10,7 @@
  *     y olvida actualizar el manifest, el test falla el build.
  */
 import { beforeAll, afterAll, describe, expect, it } from 'bun:test';
-import { readFileSync, rmSync, mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, readdirSync, rmSync, mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../../src/app';
@@ -65,6 +65,7 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/share/import',
   'GET /api/secrets/export',
   'GET /api/audit',
+  'POST /api/update/check',
   'GET /api/settings',
   'GET /api/settings/logo',
   'PUT /api/settings/appearance',
@@ -74,6 +75,18 @@ export const ROUTE_MANIFEST: string[] = [
 
 const SRC_ROUTES = join(import.meta.dir, '..', '..', 'src', 'routes');
 
+/** Archivo de rutas → prefijo montado en `app.ts`. Un archivo nuevo debe añadirse aquí. */
+const ROUTE_FILES: Record<string, string> = {
+  'vault.routes.ts': '/api/vault',
+  'projects.routes.ts': '/api/projects',
+  'environments.routes.ts': '/api/environments',
+  'secrets.routes.ts': '/api/secrets',
+  'share.routes.ts': '/api/share',
+  'audit.routes.ts': '/api/audit',
+  'settings.routes.ts': '/api/settings',
+  'update.routes.ts': '/api/update',
+};
+
 function scanRouteFiles(): string[] {
   const found: string[] = [];
   // app.ts registra /api/health fuera del directorio routes/ — se escanea también.
@@ -82,31 +95,9 @@ function scanRouteFiles(): string[] {
     if (match[2] === '*') continue; // catch-all del SPA, no es una ruta del API
     found.push(`${match[1]!.toUpperCase()} ${match[2]!}`);
   }
-  for (const file of [
-    'vault.routes.ts',
-    'projects.routes.ts',
-    'environments.routes.ts',
-    'secrets.routes.ts',
-    'share.routes.ts',
-    'audit.routes.ts',
-    'settings.routes.ts',
-  ]) {
+  for (const [file, prefix] of Object.entries(ROUTE_FILES)) {
     const source = readFileSync(join(SRC_ROUTES, file), 'utf8');
     for (const match of source.matchAll(/app\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
-      const prefix =
-        file === 'vault.routes.ts'
-          ? '/api/vault'
-          : file === 'projects.routes.ts'
-            ? '/api/projects'
-            : file === 'environments.routes.ts'
-              ? '/api/environments'
-              : file === 'share.routes.ts'
-                ? '/api/share'
-                : file === 'secrets.routes.ts'
-                  ? '/api/secrets'
-                  : file === 'settings.routes.ts'
-                    ? '/api/settings'
-                    : '/api/audit';
       const sub = match[2] === '/' ? '' : match[2]!;
       found.push(`${match[1]!.toUpperCase()} ${prefix}${sub}`);
     }
@@ -139,6 +130,14 @@ describe('security: route coverage', () => {
     const scanned = scanRouteFiles().sort();
     const manifest = [...ROUTE_MANIFEST].sort();
     expect(scanned).toEqual(manifest);
+  });
+
+  it('el escáner conoce todos los archivos *.routes.ts (ninguna ruta se escapa del manifest)', () => {
+    const files = readdirSync(SRC_ROUTES)
+      .filter((file) => file.endsWith('.routes.ts'))
+      .sort();
+
+    expect(Object.keys(ROUTE_FILES).sort()).toEqual(files);
   });
 
   it('toda ruta del manifest está clasificada como pública o protegida', () => {

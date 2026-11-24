@@ -35,6 +35,10 @@ export const common = {
   'error.SHARE_PACKAGE_INVALID':
     'No se pudo abrir el archivo: la frase de paso es incorrecta o el archivo no es válido.',
   'error.LOGO_INVALID': 'El logo debe ser una imagen PNG, JPEG o WebP de hasta 256 KB.',
+  'error.UPDATE_CHECK_FAILED':
+    'No se pudo comprobar si hay una versión nueva. Revisa la conexión e inténtalo de nuevo.',
+  'error.UPDATE_CHECK_DISABLED':
+    'La comprobación de actualizaciones está desactivada en esta instalación.',
   'error.VALIDATION_FAILED': 'Algún dato no es válido.',
   'error.RATE_LIMITED': 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
   'error.NOT_FOUND': 'No se encontró lo que buscabas.',

@@ -10,7 +10,9 @@ import {
   SecretService,
   SettingsService,
   ShareService,
+  UpdateService,
   VaultService,
+  type ReleaseSource,
   type SessionStore,
 } from '@secretvault/core';
 import { NodeCryptoService } from '@secretvault/crypto';
@@ -24,6 +26,8 @@ import {
 } from '@secretvault/database';
 import { InMemorySessionStore } from './session-store';
 import { RateLimiter } from './rate-limiter';
+import { GithubReleaseSource } from './update/github-release-source';
+import { APP_VERSION } from './version';
 import type { ApiConfig } from './config';
 
 export interface Container {
@@ -36,6 +40,7 @@ export interface Container {
   secretService: SecretService;
   shareService: ShareService;
   settingsService: SettingsService;
+  updateService: UpdateService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
@@ -43,10 +48,15 @@ export interface Container {
     changePassword: RateLimiter;
     recover: RateLimiter;
     share: RateLimiter;
+    update: RateLimiter;
   };
 }
 
-export function createContainer(config: ApiConfig): Container {
+export interface ContainerOverrides {
+  releaseSource?: ReleaseSource;
+}
+
+export function createContainer(config: ApiConfig, overrides: ContainerOverrides = {}): Container {
   const { db } = openDatabase(config.dataDir);
   const repositories = createRepositories(db);
   const unitOfWork = new SqliteUnitOfWork(db);
@@ -98,6 +108,12 @@ export function createContainer(config: ApiConfig): Container {
     audit: repositories.audit,
   });
 
+  const updateService = new UpdateService({
+    source: overrides.releaseSource ?? new GithubReleaseSource(),
+    audit: repositories.audit,
+    currentVersion: APP_VERSION,
+  });
+
   const auditService = new AuditService({ audit: repositories.audit });
 
   return {
@@ -110,6 +126,7 @@ export function createContainer(config: ApiConfig): Container {
     secretService,
     shareService,
     settingsService,
+    updateService,
     auditService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).
@@ -118,6 +135,7 @@ export function createContainer(config: ApiConfig): Container {
       changePassword: new RateLimiter(10, 15 * 60_000),
       recover: new RateLimiter(10, 15 * 60_000),
       share: new RateLimiter(10, 5 * 60_000),
+      update: new RateLimiter(5, 10 * 60_000),
     },
   };
 }

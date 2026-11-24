@@ -49,7 +49,8 @@ git push -u origin feature/export-strategy
 ## Releasing
 
 1. Branch off `develop`: `git switch -c release/0.2.0`.
-2. Bump `version` in the root `package.json`, update `CHANGELOG.md` (see below). Only release
+2. Bump `version` in the root `package.json` **and** `APP_VERSION` in `apps/api/src/version.ts` (a test checks
+   they match), update `CHANGELOG.md` (see below). Only release
    fixes land on this branch — no new features.
 3. Run the full checks: `bun test && bun run typecheck && bun run lint:check && bun audit`.
 4. Open a PR `release/0.2.0 -> main`. After merge, tag **on `main`**:

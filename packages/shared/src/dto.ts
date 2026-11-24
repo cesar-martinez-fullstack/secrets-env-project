@@ -239,6 +239,14 @@ export interface SetLogoRequestDto {
   data: string;
 }
 
+export interface UpdateCheckDto {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseUrl: string;
+  checkedAt: string;
+}
+
 export interface ShareFileDto {
   filename: string;
   content: string;

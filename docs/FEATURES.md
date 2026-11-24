@@ -38,10 +38,11 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Auditoría y experiencia
 
-| ID    | Funcionalidad                                            | Estado | Versión |
-| ----- | -------------------------------------------------------- | ------ | ------- |
-| F-020 | Historial de auditoría local (sin valores de secretos)   | Hecho  | 0.1.0   |
-| F-021 | Tema claro, oscuro o del sistema, sin parpadeo al cargar | Hecho  | 0.1.0   |
+| ID    | Funcionalidad                                                                                           | Estado      | Versión |
+| ----- | ------------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-020 | Historial de auditoría local (sin valores de secretos)                                                  | Hecho       | 0.1.0   |
+| F-021 | Tema claro, oscuro o del sistema, sin parpadeo al cargar                                                | Hecho       | 0.1.0   |
+| F-150 | Botón «Comprobar actualizaciones» en Ajustes: informa si hay versión nueva y cómo instalarla (ADR-0010) | En revisión | 0.2.0   |
 
 ## Despliegue
 

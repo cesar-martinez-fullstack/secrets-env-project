@@ -82,6 +82,8 @@ export interface ApiConfig {
   maxBodyBytes: number;
   /** Vida máxima ABSOLUTA de una sesión, aunque haya actividad (minutos). */
   sessionMaxMinutes: number;
+  /** Permite el botón «Comprobar actualizaciones» (única petición saliente de la app). */
+  updateCheckEnabled: boolean;
   isProduction: boolean;
 }
 
@@ -154,6 +156,7 @@ export function loadConfig(env: Record<string, string | undefined> = Bun.env): A
     allowedHosts: [...new Set([...LOOPBACK_HOSTS, ...parseHostList(env.SV_ALLOWED_HOSTS)])],
     maxBodyBytes: clamp(toInt(env.SV_MAX_BODY_KB, 2048), 16, 20_480) * 1024,
     sessionMaxMinutes: clamp(toInt(env.SV_SESSION_MAX_HOURS, 12), 1, 168) * 60,
+    updateCheckEnabled: env.SV_UPDATE_CHECK !== 'false',
     isProduction,
   };
 }

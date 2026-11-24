@@ -33,6 +33,18 @@ export const settings = {
   'settings.tourTitle': 'Tour guiado',
   'settings.tourBody': 'Repasa las funciones principales de la aplicación.',
   'settings.tourReplay': 'Repetir el tour',
+  'updates.title': 'Actualizaciones',
+  'updates.body':
+    'Comprueba si hay una versión nueva. Solo se conecta a GitHub cuando pulsas el botón y no envía ningún dato de tu bóveda.',
+  'updates.check': 'Comprobar actualizaciones',
+  'updates.checking': 'Comprobando…',
+  'updates.upToDate': 'Estás al día: versión {version}.',
+  'updates.available': 'Hay una versión nueva: {latest} (instalada: {current}).',
+  'updates.notes': 'Ver novedades de la versión',
+  'updates.how':
+    'Para actualizar, ejecuta esto en la carpeta del proyecto (conserva tus secretos):',
+  'updates.copy': 'Copiar',
+  'updates.copied': 'Comando copiado',
   'settings.appearanceSaved': 'Apariencia actualizada',
   'settings.appearanceFailed': 'No se pudo guardar la apariencia',
   'settings.preview.title': 'Vista previa',
