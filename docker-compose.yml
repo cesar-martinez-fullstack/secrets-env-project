@@ -36,6 +36,8 @@ services:
     environment:
       # Minutos de inactividad antes de bloquear la bóveda (borra la clave de RAM).
       SV_AUTO_LOCK_MINUTES: '15'
+      # Botón «Comprobar actualizaciones»: única petición saliente, solo al pulsarlo ('false' la desactiva).
+      SV_UPDATE_CHECK: 'true'
       # Iteraciones PBKDF2 (sube el valor si tu máquina lo permite).
       SV_PBKDF2_ITERATIONS: '600000'
       # Activa 'true' si publicas detrás de un proxy con HTTPS.
