@@ -72,6 +72,7 @@ export type AuditEventType =
   | 'secret.imported'
   | 'secret.exported'
   | 'share.exported'
+  | 'update.checked'
   | 'share.imported'
   | 'settings.logo_changed'
   | 'settings.logo_removed'
@@ -100,6 +101,7 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'secret.imported',
   'secret.exported',
   'share.exported',
+  'update.checked',
   'share.imported',
   'settings.logo_changed',
   'settings.logo_removed',
