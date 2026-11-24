@@ -159,6 +159,16 @@ export class LogoInvalidError extends DomainError {
   }
 }
 
+export class UpdateCheckFailedError extends DomainError {
+  constructor() {
+    super(
+      'UPDATE_CHECK_FAILED',
+      'No se pudo comprobar si hay una versión nueva. Revisa la conexión e inténtalo de nuevo.',
+      502,
+    );
+  }
+}
+
 export class SharePackageInvalidError extends DomainError {
   constructor() {
     super(
