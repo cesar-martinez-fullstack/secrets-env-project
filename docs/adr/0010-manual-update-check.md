@@ -23,8 +23,12 @@ Es la **única** petición saliente de la aplicación, y está acotada:
 - **Sin datos ni credenciales:** `GET` sin cuerpo, sin cookies (`credentials: 'omit'`), solo `Accept` y
   `User-Agent: SecretVault`.
 - **Límites:** timeout de 5 s, sin seguir redirecciones, respuesta de hasta 100 KB.
+- **Transporte:** el destino es fijo, pero el `fetch` de Bun hereda del entorno del proceso un posible proxy
+  (`HTTPS_PROXY`/`NO_PROXY`). Quien controle el entorno ya controla el equipo o el contenedor; el `Dockerfile` y el
+  compose no definen proxy y deben seguir sin hacerlo. La respuesta pasa igualmente por la validación siguiente.
 - **Respuesta validada:** solo releases estables (se ignoran borradores y pre-releases), etiqueta `X.Y.Z` estricta y
-  enlace obligatoriamente de `https://github.com/<repo oficial>/releases/…`. Cualquier otra cosa es un error.
+  enlace obligatoriamente de `https://github.com/<repo oficial>/releases/…`; lo que se emite es la URL ya
+  normalizada, no el texto original. Cualquier otra cosa es un error.
 - **Acceso:** ruta tras `requireUnlocked`, con límite de 5 comprobaciones cada 10 minutos, y registrada en el
   manifest de rutas.
 - **Auditable:** cada comprobación queda en el historial (`update.checked`), sin datos sensibles.

@@ -1,4 +1,4 @@
-import { isNewerVersion, isOfficialReleaseUrl, normalizeVersion } from '@secretvault/shared';
+import { isNewerVersion, normalizeReleaseUrl, normalizeVersion } from '@secretvault/shared';
 import type { AuditRepository } from '../ports/repositories';
 import type { ReleaseSource } from '../ports/release-source';
 import { UpdateCheckFailedError } from '../domain/errors';
@@ -19,9 +19,8 @@ export class UpdateService {
     const { currentVersion, source, audit } = this.deps;
     const latest = await source.latestRelease();
     const latestVersion = latest ? normalizeVersion(latest.tag) : null;
-    if (!latest || latestVersion === null || !isOfficialReleaseUrl(latest.url)) {
-      throw new UpdateCheckFailedError();
-    }
+    const releaseUrl = latest ? normalizeReleaseUrl(latest.url) : null;
+    if (latestVersion === null || releaseUrl === null) throw new UpdateCheckFailedError();
 
     await audit.record(
       'update.checked',
@@ -31,7 +30,7 @@ export class UpdateService {
       currentVersion,
       latestVersion,
       updateAvailable: isNewerVersion(latestVersion, currentVersion),
-      releaseUrl: latest.url,
+      releaseUrl,
       checkedAt: (this.deps.now ?? (() => new Date()))(),
     };
   }

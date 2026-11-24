@@ -24,19 +24,22 @@ export function isNewerVersion(candidate: string, current: string): boolean {
   return difference >= 0 && (next[difference] ?? 0) > (installed[difference] ?? 0);
 }
 
-/** Solo se muestran enlaces `https://github.com/<repo oficial>/releases/...`. */
-export function isOfficialReleaseUrl(raw: string): boolean {
+/**
+ * Solo se aceptan enlaces `https://github.com/<repo oficial>/releases/...`. Devuelve la URL ya
+ * normalizada (`href`), para emitir exactamente lo que se validó, o `null` si no es oficial.
+ */
+export function normalizeReleaseUrl(raw: string): string | null {
   try {
     const url = new URL(raw);
-    return (
+    const official =
       url.protocol === 'https:' &&
       url.hostname === 'github.com' &&
       url.port === '' &&
       url.username === '' &&
       url.password === '' &&
-      url.pathname.startsWith(`/${RELEASES_REPOSITORY}/releases/`)
-    );
+      url.pathname.startsWith(`/${RELEASES_REPOSITORY}/releases/`);
+    return official ? url.href : null;
   } catch {
-    return false;
+    return null;
   }
 }

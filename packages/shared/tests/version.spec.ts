@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { isNewerVersion, isOfficialReleaseUrl, normalizeVersion } from '../src/version';
+import { isNewerVersion, normalizeReleaseUrl, normalizeVersion } from '../src/version';
 
 describe('normalizeVersion', () => {
   it('should accept stable versions with or without the v prefix', () => {
@@ -34,11 +34,19 @@ describe('isNewerVersion', () => {
   });
 });
 
-describe('isOfficialReleaseUrl', () => {
+describe('normalizeReleaseUrl', () => {
   const base = 'https://github.com/cesar-martinez-fullstack/secrets-env-project/releases';
 
   it('should accept the release pages of the official repository', () => {
-    expect(isOfficialReleaseUrl(`${base}/tag/v0.2.0`)).toBe(true);
+    expect(normalizeReleaseUrl(`${base}/tag/v0.2.0`)).toBe(`${base}/tag/v0.2.0`);
+  });
+
+  it('should return the normalized URL, so what is validated is exactly what is emitted', () => {
+    expect(normalizeReleaseUrl(`${base}/tag/v0.2.0/../v0.3.0`)).toBe(`${base}/tag/v0.3.0`);
+    expect(normalizeReleaseUrl(`${base}/tag/v0.2.0\n`)).toBe(`${base}/tag/v0.2.0`);
+    expect(normalizeReleaseUrl(`HTTPS://GitHub.com${base.slice(18)}/tag/v1`)).toBe(
+      `${base}/tag/v1`,
+    );
   });
 
   it('should reject other hosts, schemes, repositories and look-alike URLs', () => {
@@ -55,7 +63,7 @@ describe('isOfficialReleaseUrl', () => {
       'no es una url',
       '',
     ]) {
-      expect(isOfficialReleaseUrl(url)).toBe(false);
+      expect(normalizeReleaseUrl(url)).toBeNull();
     }
   });
 });
