@@ -4,6 +4,7 @@
 import { Hono } from 'hono';
 import type {
   ChangeMasterPasswordRequestDto,
+  CreateBackupRequestDto,
   OkDto,
   RecoverVaultRequestDto,
   RecoverVaultResponseDto,
@@ -26,6 +27,11 @@ import {
 } from '../http/helpers';
 import { clientIp, requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
+
+function backupFilename(createdAt: Date): string {
+  const stamp = createdAt.toISOString().replace(/\D/g, '').slice(0, 14);
+  return `secretvault-backup-${stamp}.db`;
+}
 
 export function vaultRoutes(container: Container): Hono<AppEnv> {
   const { vaultService, sessionStore, config } = container;
@@ -113,6 +119,27 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
     );
     container.rateLimiters.changePassword.reset(key);
     return jsonResponse<RecoveryKeyDto>(c, { recoveryKey });
+  });
+
+  // POST (no GET): la contraseña viaja en el cuerpo, nunca en la URL. El binario no pasa por jsonResponse.
+  app.post('/backup', requireUnlocked(container), async (c) => {
+    const key = `backup:${clientIp(c, config.trustProxy)}`;
+    const attempt = container.rateLimiters.changePassword.hit(key);
+    if (!attempt.allowed) throw rateLimited(attempt.retryAfterSeconds);
+
+    const body = await readJsonBody<CreateBackupRequestDto>(c);
+    const file = await container.backupService.create(
+      c.get('session').sessionId,
+      requireString(body, 'currentPassword'),
+    );
+    container.rateLimiters.changePassword.reset(key);
+    return new Response(file.bytes, {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${backupFilename(file.createdAt)}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
   });
 
   app.post('/change-password', requireUnlocked(container), async (c) => {

@@ -43,6 +43,7 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/vault/change-password',
   'POST /api/vault/recover',
   'POST /api/vault/recovery-key',
+  'POST /api/vault/backup',
   'GET /api/projects',
   'POST /api/projects',
   'PATCH /api/projects/:id',

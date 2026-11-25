@@ -663,6 +663,34 @@ describe('API integration — ciclo de vida completo', () => {
     expect((await post('/api/share/secrets/export', { ids: 'no', passphrase })).status).toBe(400);
   });
 
+  it('POST /api/vault/backup exige la contraseña y entrega la base sin valores en claro', async () => {
+    const plaintext = 'VALOR-EN-CLARO-NO-DEBE-APARECER-EN-LA-COPIA';
+    const current = 'RecuperadaSegura2026!'; // la deja vigente la prueba de recuperación anterior
+    const mistaken = `${current}-mal`;
+    await post('/api/secrets', { environmentId: 1, name: 'PARA_COPIA', value: plaintext });
+
+    const wrong = await post('/api/vault/backup', { currentPassword: mistaken });
+    expect(wrong.status).toBe(401);
+    expect((await post('/api/vault/backup', {})).status).toBe(400);
+    expect((await post('/api/vault/backup', { currentPassword: current }, false)).status).toBe(401);
+
+    const res = await post('/api/vault/backup', { currentPassword: current });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('application/octet-stream');
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('Content-Disposition')).toMatch(
+      /^attachment; filename="secretvault-backup-\d{14}\.db"$/,
+    );
+    const bytes = Buffer.from(await res.arrayBuffer());
+    expect(bytes.subarray(0, 15).toString('latin1')).toBe('SQLite format 3');
+    expect(bytes.includes(plaintext)).toBe(false);
+
+    const audit = await json<{ events: { type: string; message: string }[] }>(
+      await get('/api/audit?limit=20'),
+    );
+    expect(audit.events.some((event) => event.type === 'vault.backup_created')).toBe(true);
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);
