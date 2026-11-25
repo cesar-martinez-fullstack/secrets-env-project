@@ -18,6 +18,7 @@ import type { SqliteDatabase } from './sqlite';
 export * from './sqlite';
 export * from './migrations';
 export { SqliteUnitOfWork } from './unit-of-work';
+export { SqliteVaultBackup } from './backup';
 export { FileSettingsRepository } from './settings/file-settings-repository';
 
 export interface Repositories {

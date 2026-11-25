@@ -62,6 +62,10 @@ export interface RecoverVaultResponseDto {
   recoveryKey: string;
 }
 
+export interface CreateBackupRequestDto {
+  currentPassword: string;
+}
+
 export interface RegenerateRecoveryKeyRequestDto {
   currentPassword: string;
 }

@@ -115,6 +115,12 @@ export interface ImportResult {
   invalidLines: number;
 }
 
+/** Copia de la base completa: los bytes del archivo SQLite, con el cifrado en reposo intacto. */
+export interface BackupFile {
+  bytes: Uint8Array;
+  createdAt: Date;
+}
+
 /** Resultado de comprobar si hay una versión nueva. */
 export interface UpdateCheck {
   currentVersion: string;
