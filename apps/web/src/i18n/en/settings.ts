@@ -37,7 +37,7 @@ export const settings: Record<keyof typeof base, string> = {
   'settings.tourReplay': 'Repeat the tour',
   'auditSettings.title': 'Audit history',
   'auditSettings.body':
-    'The history records what was done and when, never secret values. When it fills up, the oldest events are deleted. Changing the retention or clearing it asks for your master password and is recorded.',
+    'The history records what was done and when, never secret values. When it fills up, the oldest events are deleted; failed attempts and changes to the history itself are kept apart, so they neither displace nor get displaced. Changing the retention or clearing it asks for your master password and is recorded.',
   'auditSettings.retention': 'Events kept',
   'auditSettings.option': '{count} events',
   'auditSettings.password': 'Master password',
