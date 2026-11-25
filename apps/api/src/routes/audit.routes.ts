@@ -2,9 +2,21 @@
  * Rutas de auditoría: historial paginado de eventos de la bóveda.
  */
 import { Hono } from 'hono';
-import type { AuditQueryResultDto } from '@secretvault/shared';
-import { jsonResponse } from '../http/helpers';
-import { requireUnlocked, type AppEnv } from '../middleware/auth';
+import type {
+  AuditQueryResultDto,
+  AuditRetentionDto,
+  ClearAuditRequestDto,
+  ClearAuditResultDto,
+  UpdateAuditRetentionRequestDto,
+} from '@secretvault/shared';
+import {
+  jsonResponse,
+  rateLimited,
+  readJsonBody,
+  requireInt,
+  requireString,
+} from '../http/helpers';
+import { clientIp, requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
 
 export function auditRoutes(container: Container): Hono<AppEnv> {
@@ -30,6 +42,44 @@ export function auditRoutes(container: Container): Hono<AppEnv> {
       total,
     };
     return jsonResponse(c, dto);
+  });
+
+  const retention = async (): Promise<AuditRetentionDto> => {
+    const { maxEvents, options } = await auditService.retention();
+    return { maxEvents, options: [...options] };
+  };
+
+  // Reautenticación: mismo presupuesto de intentos que el cambio de contraseña (clave `change:`).
+  const guardAttempts = (ip: string): string => {
+    const key = `change:${ip}`;
+    const attempt = container.rateLimiters.changePassword.hit(key);
+    if (!attempt.allowed) throw rateLimited(attempt.retryAfterSeconds);
+    return key;
+  };
+
+  app.get('/retention', async (c) => jsonResponse<AuditRetentionDto>(c, await retention()));
+
+  app.put('/retention', async (c) => {
+    const key = guardAttempts(clientIp(c, container.config.trustProxy));
+    const body = await readJsonBody<UpdateAuditRetentionRequestDto>(c);
+    await auditService.setRetention(
+      c.get('session').sessionId,
+      requireString(body, 'currentPassword'),
+      requireInt(body, 'maxEvents'),
+    );
+    container.rateLimiters.changePassword.reset(key);
+    return jsonResponse<AuditRetentionDto>(c, await retention());
+  });
+
+  app.post('/clear', async (c) => {
+    const key = guardAttempts(clientIp(c, container.config.trustProxy));
+    const body = await readJsonBody<ClearAuditRequestDto>(c);
+    const deleted = await auditService.clear(
+      c.get('session').sessionId,
+      requireString(body, 'currentPassword'),
+    );
+    container.rateLimiters.changePassword.reset(key);
+    return jsonResponse<ClearAuditResultDto>(c, { deleted });
   });
 
   return app;

@@ -60,6 +60,8 @@ export type AuditEventType =
   | 'vault.recovery_failed'
   | 'vault.recovery_key_regenerated'
   | 'vault.backup_created'
+  | 'audit.retention_changed'
+  | 'audit.cleared'
   | 'project.created'
   | 'project.renamed'
   | 'project.deleted'
@@ -90,6 +92,8 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.recovery_failed',
   'vault.recovery_key_regenerated',
   'vault.backup_created',
+  'audit.retention_changed',
+  'audit.cleared',
   'project.created',
   'project.renamed',
   'project.deleted',
@@ -110,5 +114,14 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'settings.appearance_changed',
 ];
 
-/** Máximo de eventos de auditoría retenidos en la base de datos (se podan los más antiguos). */
+/** Eventos de auditoría retenidos por defecto (se podan los más antiguos). */
 export const AUDIT_MAX_EVENTS = 1_000;
+
+/** Opciones de retención que se pueden elegir en Ajustes. */
+export const AUDIT_RETENTION_OPTIONS = [500, 1_000, 5_000, 10_000] as const;
+
+export type AuditRetentionOption = (typeof AUDIT_RETENTION_OPTIONS)[number];
+
+export function isAuditRetention(value: unknown): value is AuditRetentionOption {
+  return (AUDIT_RETENTION_OPTIONS as readonly unknown[]).includes(value);
+}

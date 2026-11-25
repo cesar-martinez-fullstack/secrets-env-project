@@ -6,12 +6,14 @@ import type {
   EnvironmentRepository,
   ProjectRepository,
   SecretRepository,
+  SecuritySettingsRepository,
   VaultRepository,
 } from '@secretvault/core';
 import { SqliteAuditRepository } from './repositories/audit-repository';
 import { SqliteEnvironmentRepository } from './repositories/environment-repository';
 import { SqliteProjectRepository } from './repositories/project-repository';
 import { SqliteSecretRepository } from './repositories/secret-repository';
+import { SqliteSecuritySettingsRepository } from './repositories/security-settings-repository';
 import { SqliteVaultRepository } from './repositories/vault-repository';
 import type { SqliteDatabase } from './sqlite';
 
@@ -27,6 +29,7 @@ export interface Repositories {
   environments: EnvironmentRepository;
   secrets: SecretRepository;
   audit: AuditRepository;
+  securitySettings: SecuritySettingsRepository;
 }
 
 export function createRepositories(db: SqliteDatabase): Repositories {
@@ -36,5 +39,6 @@ export function createRepositories(db: SqliteDatabase): Repositories {
     environments: new SqliteEnvironmentRepository(db),
     secrets: new SqliteSecretRepository(db),
     audit: new SqliteAuditRepository(db),
+    securitySettings: new SqliteSecuritySettingsRepository(db),
   };
 }

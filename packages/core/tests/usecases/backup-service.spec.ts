@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { InvalidMasterPasswordError, VaultLockedError } from '../../src/domain/errors';
-import { BackupService, type PasswordConfirmer } from '../../src/usecases/backup-service';
+import type { PasswordConfirmer } from '../../src/ports/password-confirmer';
+import { BackupService } from '../../src/usecases/backup-service';
 import { mockAuditRepo, type MockAuditRepo } from '../helpers/mocks';
 
 const NOW = new Date('2026-11-25T12:00:00Z');

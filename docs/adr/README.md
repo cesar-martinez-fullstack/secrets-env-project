@@ -23,6 +23,7 @@ paquetes · superficie de red · flujo de trabajo del repositorio. No para decis
 | [0009](0009-share-package.md)                    | Paquete cifrado para compartir proyectos y ambientes            | Aceptado  |
 | [0010](0010-manual-update-check.md)              | Comprobación manual de actualizaciones                          | Aceptado  |
 | [0011](0011-vault-backup.md)                     | Copia de seguridad de la bóveda desde la aplicación             | Aceptado  |
+| [0012](0012-audit-retention.md)                  | Retención y vaciado del historial de auditoría                  | Aceptado  |
 | [0005](0005-git-flow-and-releases.md)            | Git Flow, Conventional Commits y tags SemVer                    | Aceptado  |
 
 ## Plantilla

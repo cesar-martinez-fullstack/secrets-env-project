@@ -169,7 +169,7 @@ describe('migration 2 (envelope encryption)', () => {
        VALUES (1, ?, 310000, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
     ).run(new Uint8Array(16).fill(1), new Uint8Array(48).fill(2));
 
-    expect(migrate(db)).toEqual([2, 3, 4, 5]);
+    expect(migrate(db)).toEqual([2, 3, 4, 5, 6]);
 
     const row = db
       .query<{ format_version: number; wrapped_dek: Uint8Array | null; iterations: number }, []>(
@@ -258,7 +258,7 @@ describe('migration 3 (projects)', () => {
       ).run(env, name, BLOB, now, now);
     }
 
-    expect(migrate(db)).toEqual([3, 4, 5]);
+    expect(migrate(db)).toEqual([3, 4, 5, 6]);
 
     const projects = db.query('SELECT id, name FROM projects').all();
     expect(projects).toEqual([{ id: 1, name: 'General' }]);
@@ -397,6 +397,31 @@ describe('migration 5 (manual order)', () => {
       { env: 1, name: 'gamma', position: 2 },
       { env: 2, name: 'eta', position: 0 },
       { env: 2, name: 'zeta', position: 1 },
+    ]);
+  });
+});
+
+describe('migration 6 (security settings)', () => {
+  it('should keep the existing audit history and start with the default retention', () => {
+    const db = new Database(':memory:');
+    migrate(
+      db,
+      MIGRATIONS.filter((m) => m.version <= 5),
+    );
+    db.query('INSERT INTO audit_log (type, message, created_at) VALUES (?, ?, ?)').run(
+      'vault.lock',
+      'antes de la migración',
+      '2024-01-01T00:00:00.000Z',
+    );
+
+    expect(migrate(db)).toEqual([6]);
+
+    expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
+    expect(db.query('SELECT message FROM audit_log').all()).toEqual([
+      { message: 'antes de la migración' },
+    ]);
+    expect(db.query('SELECT id, audit_max_events FROM security_settings').all()).toEqual([
+      { id: 1, audit_max_events: 1000 },
     ]);
   });
 });

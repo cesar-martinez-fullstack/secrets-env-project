@@ -8,6 +8,7 @@ export * from './ports/repositories';
 export * from './ports/session';
 export * from './ports/release-source';
 export * from './ports/backup';
+export * from './ports/password-confirmer';
 export * from './ports/transaction';
 
 // Use cases

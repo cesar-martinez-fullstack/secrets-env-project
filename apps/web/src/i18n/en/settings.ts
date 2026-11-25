@@ -35,6 +35,20 @@ export const settings: Record<keyof typeof base, string> = {
   'settings.tourTitle': 'Guided tour',
   'settings.tourBody': 'Go over the main features of the application again.',
   'settings.tourReplay': 'Repeat the tour',
+  'auditSettings.title': 'Audit history',
+  'auditSettings.body':
+    'The history records what was done and when, never secret values. When it fills up, the oldest events are deleted. Changing the retention or clearing it asks for your master password and is recorded.',
+  'auditSettings.retention': 'Events kept',
+  'auditSettings.option': '{count} events',
+  'auditSettings.password': 'Master password',
+  'auditSettings.save': 'Save retention',
+  'auditSettings.clear': 'Clear history',
+  'auditSettings.clearWarning':
+    'The whole history will be deleted and this cannot be undone. A single event will remain stating that it was cleared.',
+  'auditSettings.clearConfirm': 'Yes, clear it',
+  'auditSettings.saved': 'Retention saved',
+  'auditSettings.cleared': 'History cleared: {count} events deleted',
+  'auditSettings.failed': 'The action could not be completed',
   'backup.title': 'Backup',
   'backup.body':
     'Download a copy of your whole vault to keep it safe or move it to another machine. Secret values and notes stay encrypted.',

@@ -133,6 +133,7 @@ export interface MockAuditRepo {
   list: ReturnType<typeof jest.fn>;
   count: ReturnType<typeof jest.fn>;
   prune: ReturnType<typeof jest.fn>;
+  clear: ReturnType<typeof jest.fn>;
 }
 
 export function mockAuditRepo(): MockAuditRepo {
@@ -140,12 +141,14 @@ export function mockAuditRepo(): MockAuditRepo {
   const list = jest.fn();
   const count = jest.fn();
   const prune = jest.fn();
+  const clear = jest.fn();
   return {
-    repo: { record, list, count, prune },
+    repo: { record, list, count, prune, clear },
     record,
     list,
     count,
     prune,
+    clear,
   };
 }
 

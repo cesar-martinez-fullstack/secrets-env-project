@@ -33,6 +33,20 @@ export const settings = {
   'settings.tourTitle': 'Tour guiado',
   'settings.tourBody': 'Repasa las funciones principales de la aplicación.',
   'settings.tourReplay': 'Repetir el tour',
+  'auditSettings.title': 'Historial de auditoría',
+  'auditSettings.body':
+    'El historial guarda qué se hizo y cuándo, sin valores de secretos. Cuando se llena, se borran los eventos más antiguos. Cambiar la retención o vaciarlo pide tu contraseña maestra y queda registrado.',
+  'auditSettings.retention': 'Eventos que se conservan',
+  'auditSettings.option': '{count} eventos',
+  'auditSettings.password': 'Contraseña maestra',
+  'auditSettings.save': 'Guardar retención',
+  'auditSettings.clear': 'Vaciar historial',
+  'auditSettings.clearWarning':
+    'Se borrará todo el historial y no se puede deshacer. Quedará un único evento que indica que se vació.',
+  'auditSettings.clearConfirm': 'Sí, vaciar',
+  'auditSettings.saved': 'Retención guardada',
+  'auditSettings.cleared': 'Historial vaciado: {count} eventos eliminados',
+  'auditSettings.failed': 'No se pudo completar la acción',
   'backup.title': 'Copia de seguridad',
   'backup.body':
     'Descarga una copia de toda tu bóveda para guardarla o moverla a otro equipo. Los valores y las notas de los secretos siguen cifrados.',
