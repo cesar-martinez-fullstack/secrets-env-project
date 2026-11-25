@@ -46,7 +46,11 @@ async function submit(): Promise<void> {
   if (!props.target || !canSubmit.value || submitting.value) return;
   submitting.value = true;
   try {
-    const file = await api.exportShare(props.target.kind, props.target.id, passphrase.value);
+    const { target } = props;
+    const file =
+      target.kind === 'secrets'
+        ? await api.exportSharedSecrets(target.ids, passphrase.value)
+        : await api.exportShare(target.kind, target.id, passphrase.value);
     saveTextFile(file.filename, file.content);
     toast.push('success', t('shareExport.doneTitle'), t('shareExport.doneBody'));
     emit('close');
@@ -67,7 +71,11 @@ async function submit(): Promise<void> {
   >
     <form class="space-y-4" data-testid="share-export-form" @submit.prevent="submit">
       <p class="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        {{ t('shareExport.lead', { scope: scopeLabel }) }}
+        {{
+          target?.kind === 'secrets'
+            ? t('shareExport.leadSecrets')
+            : t('shareExport.lead', { scope: scopeLabel })
+        }}
       </p>
 
       <div>

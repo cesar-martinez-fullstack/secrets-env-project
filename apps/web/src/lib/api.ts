@@ -20,6 +20,7 @@ import type {
   RecoverVaultResponseDto,
   RecoveryKeyDto,
   ShareExportRequestDto,
+  ShareSecretsExportRequestDto,
   ShareFileDto,
   ShareImportRequestDto,
   ShareImportResultDto,
@@ -224,6 +225,12 @@ export const api = {
     request<ShareFileDto>(`/api/share/${target}/${id}/export`, {
       method: 'POST',
       body: JSON.stringify({ passphrase } satisfies ShareExportRequestDto),
+    }),
+
+  exportSharedSecrets: (ids: number[], passphrase: string) =>
+    request<ShareFileDto>('/api/share/secrets/export', {
+      method: 'POST',
+      body: JSON.stringify({ ids, passphrase } satisfies ShareSecretsExportRequestDto),
     }),
 
   previewShare: (payload: SharePreviewRequestDto) =>

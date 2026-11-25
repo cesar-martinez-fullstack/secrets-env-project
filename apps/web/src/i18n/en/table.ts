@@ -18,6 +18,7 @@ export const table: Record<keyof typeof base, string> = {
   'table.selectAll': 'Select all',
   'table.selectedCount': '{count} selected',
   'table.deleteSelected': 'Delete selection',
+  'table.shareSelected': 'Share selection',
   'table.clearSelection': 'Cancel',
   'table.sortAsc': 'A → Z',
   'table.sortDesc': 'Z → A',
