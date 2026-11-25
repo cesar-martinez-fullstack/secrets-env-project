@@ -157,6 +157,30 @@ export const useDataStore = defineStore('data', () => {
     return result;
   }
 
+  /** Crea el ambiente e importa en él; si la importación falla, no deja un ambiente vacío. */
+  async function importIntoNewEnvironment(
+    projectId: number,
+    name: string,
+    entries: ImportEntryDto[],
+  ): Promise<ImportSecretsResultDto> {
+    const created = await api.createEnvironment(projectId, name);
+    try {
+      const result = await api.importSecrets({
+        environmentId: created.id,
+        entries,
+        overwrite: false,
+      });
+      activeEnvId.value = created.id;
+      return result;
+    } catch (error) {
+      await api.deleteEnvironment(created.id);
+      throw error;
+    } finally {
+      await refreshEnvironments();
+      await refreshSecrets();
+    }
+  }
+
   async function importShare(request: ShareImportRequestDto): Promise<ShareImportResultDto> {
     const result = await api.importShare(request);
     await refreshEnvironments();
@@ -196,6 +220,7 @@ export const useDataStore = defineStore('data', () => {
     removeSecrets,
     reorderSecrets,
     importSecrets,
+    importIntoNewEnvironment,
     importShare,
     init,
   };
