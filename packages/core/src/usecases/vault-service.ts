@@ -392,8 +392,18 @@ export class VaultService {
   }
 
   private async assertCurrentPassword(password: string, info: VaultInfo): Promise<void> {
-    const check = await this.openWithPassword(password, info);
-    check.fill(0); // solo servía para verificar; la sesión conserva su propia copia de la DEK
+    try {
+      const check = await this.openWithPassword(password, info);
+      check.fill(0); // solo servía para verificar; la sesión conserva su propia copia de la DEK
+    } catch (error) {
+      if (error instanceof InvalidMasterPasswordError) {
+        await this.deps.audit.record(
+          'vault.reauth_failed',
+          'Confirmación de la contraseña maestra fallida.',
+        );
+      }
+      throw error;
+    }
   }
 
   private async requireSessionAndVault(

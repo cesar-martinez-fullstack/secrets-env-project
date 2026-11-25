@@ -73,6 +73,11 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    y es atómico. El historial no puede desaparecer sin rastro: tras vaciarlo queda un único evento
    `audit.cleared` con cuántos eventos se eliminaron; cambiar la retención deja `audit.retention_changed`.
    La retención vive en la base (migración 6), con restricciones, y viaja con las copias.
+   Los cambios sobre el historial (100) y los intentos fallidos (200) se podan **aparte** de la retención,
+   para que nadie pueda expulsarlos generando eventos. **Límite:** con una sesión abierta se pueden
+   generar eventos corrientes y desplazar los corrientes más antiguos sin la contraseña; el historial
+   no es evidencia a prueba de manipulación. Para los límites de intentos, todo el loopback cuenta como
+   un solo cliente.
 
 10. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
     la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en

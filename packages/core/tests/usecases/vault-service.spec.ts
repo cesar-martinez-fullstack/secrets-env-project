@@ -465,12 +465,18 @@ describe('VaultService', () => {
       expect(vault.save).not.toHaveBeenCalled();
     });
 
-    it('should reject a wrong password', async () => {
+    it('should reject a wrong password and leave it in the audit history', async () => {
       await createVault();
       const { session } = await service.unlock(PASSWORD);
+      audit.record.mockClear();
 
       await expect(service.confirmPassword(session.sessionId, 'equivocada')).rejects.toThrow(
         InvalidMasterPasswordError,
+      );
+
+      expect(audit.record).toHaveBeenCalledWith(
+        'vault.reauth_failed',
+        'Confirmación de la contraseña maestra fallida.',
       );
     });
   });

@@ -103,13 +103,13 @@ describe('audit retention', () => {
 });
 
 describe('clearing the audit history', () => {
-  it('should refuse a wrong password and keep the history', async () => {
-    const before = (await auditTypes()).length;
+  it('should refuse a wrong password, keep the history and record the failed attempt', async () => {
+    const before = await auditTypes();
 
     const res = await request('POST', '/api/audit/clear', { currentPassword: WRONG });
 
     expect(res.status).toBe(401);
-    expect((await auditTypes()).length).toBe(before);
+    expect(await auditTypes()).toEqual(['vault.reauth_failed', ...before]);
   });
 
   it('should wipe the history and leave a single event saying it was cleared', async () => {

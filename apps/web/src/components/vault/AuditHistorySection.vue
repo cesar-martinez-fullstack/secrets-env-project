@@ -37,6 +37,11 @@ async function run(work: () => Promise<void>): Promise<void> {
   }
 }
 
+function cancelClear(): void {
+  confirmingClear.value = false;
+  password.value = '';
+}
+
 const saveRetention = () =>
   run(async () => {
     retention.value = await api.updateAuditRetention(chosen.value, password.value);
@@ -136,7 +141,7 @@ const secondaryButton =
         >
           {{ t('auditSettings.clearConfirm') }}
         </button>
-        <button type="button" :class="secondaryButton" @click="confirmingClear = false">
+        <button type="button" :class="secondaryButton" @click="cancelClear">
           {{ t('common.cancel') }}
         </button>
       </div>

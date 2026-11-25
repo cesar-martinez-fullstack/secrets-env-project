@@ -35,7 +35,7 @@ export const settings = {
   'settings.tourReplay': 'Repetir el tour',
   'auditSettings.title': 'Historial de auditoría',
   'auditSettings.body':
-    'El historial guarda qué se hizo y cuándo, sin valores de secretos. Cuando se llena, se borran los eventos más antiguos. Cambiar la retención o vaciarlo pide tu contraseña maestra y queda registrado.',
+    'El historial guarda qué se hizo y cuándo, sin valores de secretos. Cuando se llena, se borran los eventos más antiguos; los intentos fallidos y los cambios sobre el propio historial se guardan aparte, para que no desplacen ni sean desplazados. Cambiar la retención o vaciarlo pide tu contraseña maestra y queda registrado.',
   'auditSettings.retention': 'Eventos que se conservan',
   'auditSettings.option': '{count} eventos',
   'auditSettings.password': 'Contraseña maestra',
