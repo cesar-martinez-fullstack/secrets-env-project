@@ -615,6 +615,34 @@ describe('API integration — ciclo de vida completo', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('POST /api/share/secrets/export comparte solo los secretos elegidos', async () => {
+    const created = await Promise.all(
+      ['COMPARTIR_UNO', 'COMPARTIR_DOS'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'v' })),
+      ),
+    );
+    const [one] = created.map((secret) => secret.id);
+    const passphrase = 'frase-de-prueba-123';
+
+    const res = await post('/api/share/secrets/export', { ids: [one], passphrase });
+    expect(res.status).toBe(200);
+    const file = await json<{ filename: string; content: string }>(res);
+    expect(file.filename.endsWith('.svshare')).toBe(true);
+    expect(file.content).not.toContain('COMPARTIR_UNO');
+
+    const preview = await post('/api/share/preview', { content: file.content, passphrase });
+    expect(await json(preview)).toMatchObject({ secretCount: 1 });
+
+    expect((await post('/api/share/secrets/export', { ids: [], passphrase })).status).toBe(400);
+    expect(
+      (await post('/api/share/secrets/export', { ids: [one], passphrase: 'corta' })).status,
+    ).toBe(400);
+    expect((await post('/api/share/secrets/export', { ids: [999_999], passphrase })).status).toBe(
+      404,
+    );
+    expect((await post('/api/share/secrets/export', { ids: 'no', passphrase })).status).toBe(400);
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);

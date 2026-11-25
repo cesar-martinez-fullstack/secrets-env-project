@@ -23,6 +23,9 @@ export const vault = {
   'vault.bulkDeleteMore': 'y {count} más',
   'vault.bulkDeleteConfirm': 'Eliminar {count} secreto(s)',
   'vault.reorderFailed': 'No se pudo guardar el orden',
+  'vault.shareMixedTitle': 'Elige secretos de un solo proyecto',
+  'vault.shareMixedBody':
+    'Un archivo compartido contiene un único proyecto. Deja marcados solo los secretos del mismo proyecto.',
   'vault.bulkDeleted': 'Secretos eliminados',
   'vault.bulkDeletedBody': '{count} secreto(s) eliminado(s).',
   'vault.secretDeleted': 'Secreto eliminado',
