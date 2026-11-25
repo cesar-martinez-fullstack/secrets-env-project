@@ -240,6 +240,12 @@ export class VaultService {
     return recovery.text;
   }
 
+  /** Comprueba la contraseña maestra de una sesión activa (acciones que piden volver a demostrarla). */
+  async confirmPassword(sessionId: string, password: string): Promise<void> {
+    const { info } = await this.requireSessionAndVault(sessionId);
+    await this.assertCurrentPassword(password, info);
+  }
+
   // ── Envoltura y apertura de la DEK ────────────────────────────────────────
 
   private async wrapForMaster(dek: Uint8Array, password: string): Promise<MasterWrap> {

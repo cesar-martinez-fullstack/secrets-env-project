@@ -448,6 +448,33 @@ describe('VaultService', () => {
     });
   });
 
+  describe('confirmPassword', () => {
+    it('should throw VaultLockedError without an active session', async () => {
+      await createVault();
+
+      await expect(service.confirmPassword('s1', PASSWORD)).rejects.toThrow(VaultLockedError);
+    });
+
+    it('should accept the current password and change nothing', async () => {
+      await createVault();
+      const { session } = await service.unlock(PASSWORD);
+      vault.save.mockClear();
+
+      await service.confirmPassword(session.sessionId, PASSWORD);
+
+      expect(vault.save).not.toHaveBeenCalled();
+    });
+
+    it('should reject a wrong password', async () => {
+      await createVault();
+      const { session } = await service.unlock(PASSWORD);
+
+      await expect(service.confirmPassword(session.sessionId, 'equivocada')).rejects.toThrow(
+        InvalidMasterPasswordError,
+      );
+    });
+  });
+
   describe('regenerateRecoveryKey', () => {
     it('should throw VaultLockedError without an active session', async () => {
       await createVault();

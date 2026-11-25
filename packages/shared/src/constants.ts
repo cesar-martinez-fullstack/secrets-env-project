@@ -59,6 +59,7 @@ export type AuditEventType =
   | 'vault.recovered'
   | 'vault.recovery_failed'
   | 'vault.recovery_key_regenerated'
+  | 'vault.backup_created'
   | 'project.created'
   | 'project.renamed'
   | 'project.deleted'
@@ -88,6 +89,7 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.recovered',
   'vault.recovery_failed',
   'vault.recovery_key_regenerated',
+  'vault.backup_created',
   'project.created',
   'project.renamed',
   'project.deleted',

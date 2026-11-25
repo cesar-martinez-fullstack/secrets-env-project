@@ -63,8 +63,13 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    incorrecta y archivo alterado dan el mismo error. Importar y previsualizar tienen límite de intentos
    por IP. Al mezclar en un proyecto existente, sobrescribir exige una petición explícita (por defecto se
    omite) y los secretos recibidos quedan marcados como importados hasta que se edite su valor.
+8. **Copia de seguridad (ADR-0011)**: `POST /api/vault/backup` entrega la base SQLite completa, sin
+   descifrar nada, y exige volver a escribir la contraseña maestra (mismo punto de verificación y
+   mismo límite de intentos que el cambio de contraseña). Los valores y notas siguen cifrados, pero
+   los nombres de proyectos, ambientes y secretos y la auditoría quedan en claro en el archivo; la
+   interfaz lo avisa. Cada copia queda auditada (`vault.backup_created`).
 
-8. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
+9. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
    la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
    `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
    JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el

@@ -9,6 +9,7 @@ import { useTourStore } from '@/stores/tour';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import AppearancePreview from '@/components/vault/AppearancePreview.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
+import BackupSection from '@/components/vault/BackupSection.vue';
 import UpdateCheck from '@/components/vault/UpdateCheck.vue';
 
 const props = defineProps<{ open: boolean }>();
@@ -190,6 +191,8 @@ const fieldLabel = 'block text-xs font-medium text-zinc-600 dark:text-zinc-400';
             {{ t('settings.saveAppearance') }}
           </button>
         </form>
+
+        <BackupSection />
 
         <UpdateCheck />
 

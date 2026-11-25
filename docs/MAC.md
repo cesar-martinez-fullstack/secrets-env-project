@@ -65,7 +65,21 @@ Si algo falla, no avanza y te dice dónde está la copia.
 Se actualiza solo desde `main`, que recibe únicamente versiones publicadas. Si hay cambios locales sin guardar
 o estás en otra rama, el script se detiene y lo explica.
 
-### Restaurar una copia
+### Copia desde la aplicación
+
+En **Ajustes > Copia de seguridad** puedes descargar una copia de toda la bóveda (pide tu contraseña maestra). Los
+valores y notas van cifrados, pero los nombres de proyectos, ambientes y secretos quedan en claro dentro del archivo:
+guárdala en un lugar seguro. Para restaurarla, con la aplicación detenida:
+
+```bash
+docker compose stop
+docker compose run --rm --no-deps -T --entrypoint sh secretvault -c 'rm -f /app/data/secrets.db* && cat > /app/data/secrets.db' < secretvault-backup-AAAAMMDDHHMMSS.db
+docker compose start
+```
+
+Se abre con la misma contraseña maestra que tenía la bóveda cuando se hizo la copia.
+
+### Restaurar una copia del script
 
 Solo si hiciera falta volver a un estado anterior (con la aplicación detenida):
 
