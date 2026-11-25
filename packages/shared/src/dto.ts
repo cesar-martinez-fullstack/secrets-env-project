@@ -62,6 +62,24 @@ export interface RecoverVaultResponseDto {
   recoveryKey: string;
 }
 
+export interface AuditRetentionDto {
+  maxEvents: number;
+  options: number[];
+}
+
+export interface UpdateAuditRetentionRequestDto {
+  maxEvents: number;
+  currentPassword: string;
+}
+
+export interface ClearAuditRequestDto {
+  currentPassword: string;
+}
+
+export interface ClearAuditResultDto {
+  deleted: number;
+}
+
 export interface CreateBackupRequestDto {
   currentPassword: string;
 }

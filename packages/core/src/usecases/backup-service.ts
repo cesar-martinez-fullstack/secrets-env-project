@@ -1,11 +1,7 @@
 import type { AuditRepository } from '../ports/repositories';
 import type { VaultBackup } from '../ports/backup';
+import type { PasswordConfirmer } from '../ports/password-confirmer';
 import type { BackupFile } from '../domain/entities';
-
-/** Quien comprueba la contraseña maestra de una sesión (un único punto de verificación). */
-export interface PasswordConfirmer {
-  confirmPassword(sessionId: string, password: string): Promise<void>;
-}
 
 export interface BackupServiceDeps {
   passwords: PasswordConfirmer;
