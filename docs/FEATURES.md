@@ -38,11 +38,11 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Auditoría y experiencia
 
-| ID    | Funcionalidad                                                                                           | Estado      | Versión |
-| ----- | ------------------------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-020 | Historial de auditoría local (sin valores de secretos)                                                  | Hecho       | 0.1.0   |
-| F-021 | Tema claro, oscuro o del sistema, sin parpadeo al cargar                                                | Hecho       | 0.1.0   |
-| F-150 | Botón «Comprobar actualizaciones» en Ajustes: informa si hay versión nueva y cómo instalarla (ADR-0010) | En revisión | 0.2.0   |
+| ID    | Funcionalidad                                                                                           | Estado | Versión |
+| ----- | ------------------------------------------------------------------------------------------------------- | ------ | ------- |
+| F-020 | Historial de auditoría local (sin valores de secretos)                                                  | Hecho  | 0.1.0   |
+| F-021 | Tema claro, oscuro o del sistema, sin parpadeo al cargar                                                | Hecho  | 0.1.0   |
+| F-150 | Botón «Comprobar actualizaciones» en Ajustes: informa si hay versión nueva y cómo instalarla (ADR-0010) | Hecho  | 0.2.0   |
 
 ## Despliegue
 
@@ -53,15 +53,15 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Planeado (por rebanadas, en este orden)
 
-| ID    | Rebanada                                                                                          | Estado      | Versión |
-| ----- | ------------------------------------------------------------------------------------------------- | ----------- | ------- |
-| F-100 | Bóvedas múltiples · 1: crear una segunda bóveda y entrar a ella (la actual pasa a ser la primera) | Planeado    | 0.2.0   |
-| F-101 | Bóvedas múltiples · 2: archivar una bóveda perdida (se mueve el archivo, no se destruye)          | Planeado    | 0.2.0   |
-| F-102 | Bóvedas múltiples · 3: renombrar una bóveda                                                       | Planeado    | 0.2.0   |
-| F-103 | Bóvedas múltiples · 4: cambiar de bóveda sin reiniciar                                            | Planeado    | 0.2.0   |
-| F-110 | Importar desde archivo: `.env`/TXT, CSV y JSON (mismo formato que se exporta), con vista previa   | En revisión | 0.2.0   |
-| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | Planeado    | 0.2.0   |
-| F-112 | Paginación por offset del listado de secretos (`limit` y `offset`, con total)                     | Planeado    | 0.2.0   |
+| ID    | Rebanada                                                                                          | Estado   | Versión |
+| ----- | ------------------------------------------------------------------------------------------------- | -------- | ------- |
+| F-100 | Bóvedas múltiples · 1: crear una segunda bóveda y entrar a ella (la actual pasa a ser la primera) | Planeado | 0.2.0   |
+| F-101 | Bóvedas múltiples · 2: archivar una bóveda perdida (se mueve el archivo, no se destruye)          | Planeado | 0.2.0   |
+| F-102 | Bóvedas múltiples · 3: renombrar una bóveda                                                       | Planeado | 0.2.0   |
+| F-103 | Bóvedas múltiples · 4: cambiar de bóveda sin reiniciar                                            | Planeado | 0.2.0   |
+| F-110 | Importar desde archivo: `.env`/TXT, CSV y JSON (mismo formato que se exporta), con vista previa   | Hecho    | 0.2.0   |
+| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | Hecho    | 0.2.0   |
+| F-112 | Paginación por offset del listado de secretos (`limit` y `offset`, con total)                     | Planeado | 0.2.0   |
 
 El resto del backlog (backup y restauración, borrado automático del portapapeles, E2E en CI, etc.) está en
 [TODO.md](TODO.md) y entra aquí cuando se corta como rebanada.
@@ -74,7 +74,7 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 | F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | Hecho    | 0.2.0   |
 | F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | Planeado | 0.2.0   |
 | F-124 | Mover un ambiente a otro proyecto                                                                | Planeado | 0.2.0   |
-| F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                     | Planeado | 0.2.0   |
+| F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                     | Hecho    | 0.2.0   |
 
 ## Planeado · gestión de secretos y ajustes
 
@@ -86,12 +86,13 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 | F-130 | Ajustes · 1: cambiar el logo de la pantalla de entrada (PNG, JPEG o WebP; fuera de la bóveda; se ve antes de desbloquear)                               | Hecho    | 0.2.0   |
 | F-131 | Ajustes · 2: nombre de la app, color de acento y tema por defecto                                                                                       | Hecho    | 0.2.0   |
 | F-132 | Ajustes · 3: seguridad editable (auto-bloqueo, vida de sesión, borrado del portapapeles); pide contraseña                                               | Planeado | 0.2.0   |
-| F-133 | Ajustes · 4: copia de seguridad (exportar el archivo cifrado) y retención o vaciado de la auditoría                                                     | Planeado | 0.2.0   |
+| F-133 | Ajustes · 4: copia de seguridad: descargar la base cifrada desde Ajustes, pidiendo la contraseña maestra (ADR-0011)                                     | Hecho    | 0.2.0   |
 | F-134 | Idioma de la interfaz: español e inglés (selector en la entrada y en la barra; se recuerda en el navegador)                                             | Hecho    | 0.2.0   |
 | F-135 | Tema con vista previa: miniatura de la interfaz a la derecha de Ajustes que cambia al elegir modo y acento; los colores salen de una paleta reasignable | Hecho    | 0.2.0   |
 | F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | Hecho    | 0.2.0   |
 | F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                           | Hecho    | 0.2.0   |
 | F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | Planeado | 0.2.0   |
+| F-139 | Auditoría: retención configurable y vaciado del historial desde Ajustes (pide contraseña)                                                               | Hecho    | 0.2.0   |
 
 Los ajustes son **por instancia** (quien tiene la bóveda abierta los administra, sin roles) y se guardan fuera de
 la bóveda, en la carpeta de datos, para poder leerse antes de desbloquear. El logo solo admite imágenes

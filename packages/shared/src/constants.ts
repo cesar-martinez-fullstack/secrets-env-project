@@ -59,6 +59,10 @@ export type AuditEventType =
   | 'vault.recovered'
   | 'vault.recovery_failed'
   | 'vault.recovery_key_regenerated'
+  | 'vault.backup_created'
+  | 'vault.reauth_failed'
+  | 'audit.retention_changed'
+  | 'audit.cleared'
   | 'project.created'
   | 'project.renamed'
   | 'project.deleted'
@@ -88,6 +92,10 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.recovered',
   'vault.recovery_failed',
   'vault.recovery_key_regenerated',
+  'vault.backup_created',
+  'vault.reauth_failed',
+  'audit.retention_changed',
+  'audit.cleared',
   'project.created',
   'project.renamed',
   'project.deleted',
@@ -108,5 +116,29 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'settings.appearance_changed',
 ];
 
-/** Máximo de eventos de auditoría retenidos en la base de datos (se podan los más antiguos). */
+/** Cambios sobre el propio historial: tienen cuota propia para que ningún otro evento los expulse. */
+export const AUDIT_HISTORY_EVENTS: readonly AuditEventType[] = [
+  'audit.cleared',
+  'audit.retention_changed',
+];
+export const AUDIT_HISTORY_EVENTS_KEPT = 100;
+
+/** Intentos fallidos: se pueden provocar sin credenciales, así que no desplazan al resto. */
+export const AUDIT_FAILURE_EVENTS: readonly AuditEventType[] = [
+  'vault.unlock_failed',
+  'vault.recovery_failed',
+  'vault.reauth_failed',
+];
+export const AUDIT_FAILURE_EVENTS_KEPT = 200;
+
+/** Eventos de auditoría retenidos por defecto (se podan los más antiguos). */
 export const AUDIT_MAX_EVENTS = 1_000;
+
+/** Opciones de retención que se pueden elegir en Ajustes. */
+export const AUDIT_RETENTION_OPTIONS = [500, 1_000, 5_000, 10_000] as const;
+
+export type AuditRetentionOption = (typeof AUDIT_RETENTION_OPTIONS)[number];
+
+export function isAuditRetention(value: unknown): value is AuditRetentionOption {
+  return (AUDIT_RETENTION_OPTIONS as readonly unknown[]).includes(value);
+}

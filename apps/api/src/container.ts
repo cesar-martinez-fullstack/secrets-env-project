@@ -5,6 +5,7 @@
  */
 import {
   AuditService,
+  BackupService,
   EnvironmentService,
   ProjectService,
   SecretService,
@@ -22,6 +23,7 @@ import {
   FileSettingsRepository,
   openDatabase,
   SqliteUnitOfWork,
+  SqliteVaultBackup,
   type SqliteDatabase,
 } from '@secretvault/database';
 import { InMemorySessionStore } from './session-store';
@@ -41,6 +43,7 @@ export interface Container {
   shareService: ShareService;
   settingsService: SettingsService;
   updateService: UpdateService;
+  backupService: BackupService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
@@ -114,7 +117,18 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     currentVersion: APP_VERSION,
   });
 
-  const auditService = new AuditService({ audit: repositories.audit });
+  const backupService = new BackupService({
+    passwords: vaultService,
+    backup: new SqliteVaultBackup(db),
+    audit: repositories.audit,
+  });
+
+  const auditService = new AuditService({
+    audit: repositories.audit,
+    security: repositories.securitySettings,
+    passwords: vaultService,
+    unitOfWork,
+  });
 
   return {
     config,
@@ -127,6 +141,7 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     shareService,
     settingsService,
     updateService,
+    backupService,
     auditService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).

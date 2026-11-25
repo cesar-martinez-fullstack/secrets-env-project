@@ -65,7 +65,21 @@ Si algo falla, no avanza y te dice dónde está la copia.
 Se actualiza solo desde `main`, que recibe únicamente versiones publicadas. Si hay cambios locales sin guardar
 o estás en otra rama, el script se detiene y lo explica.
 
-### Restaurar una copia
+### Copia desde la aplicación
+
+En **Ajustes > Copia de seguridad** puedes descargar una copia de toda la bóveda (pide tu contraseña maestra). Los
+valores y notas van cifrados, pero los nombres de proyectos, ambientes y secretos quedan en claro dentro del archivo:
+guárdala en un lugar seguro. Para restaurarla, con la aplicación detenida:
+
+```bash
+docker compose stop
+docker compose run --rm --no-deps -T --entrypoint sh secretvault -c 'rm -f /app/data/secrets.db* && cat > /app/data/secrets.db' < secretvault-backup-AAAAMMDDHHMMSS.db
+docker compose start
+```
+
+Se abre con la misma contraseña maestra que tenía la bóveda cuando se hizo la copia.
+
+### Restaurar una copia del script
 
 Solo si hiciera falta volver a un estado anterior (con la aplicación detenida):
 
@@ -119,6 +133,8 @@ Un ejecutable compilado en tu propio Mac no muestra el aviso de Gatekeeper. Si d
 1. Quien comparte: en la barra lateral, pasa el cursor sobre un proyecto o un ambiente y pulsa el icono de
    compartir (**Compartir proyecto** / **Compartir ambiente**). Elige una **frase de paso** (mínimo 12
    caracteres) y descarga el archivo cifrado.
+   Para pasar solo algunos secretos, márcalos en la lista y pulsa **Compartir selección** (deben ser de un mismo
+   proyecto).
 2. Envía el archivo por un canal y **la frase por otro distinto** (por ejemplo, el archivo por correo y la frase
    en persona o por mensajería).
 3. Quien recibe: en la barra lateral, el botón **Importar un archivo compartido**; elige el archivo, escribe la

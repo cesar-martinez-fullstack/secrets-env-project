@@ -12,6 +12,11 @@ import type {
   CreateSecretRequestDto,
   EnvironmentDto,
   ProjectDto,
+  AuditRetentionDto,
+  ClearAuditRequestDto,
+  ClearAuditResultDto,
+  CreateBackupRequestDto,
+  UpdateAuditRetentionRequestDto,
   DeleteSecretsResultDto,
   UpdateCheckDto,
   ImportSecretsRequestDto,
@@ -20,6 +25,7 @@ import type {
   RecoverVaultResponseDto,
   RecoveryKeyDto,
   ShareExportRequestDto,
+  ShareSecretsExportRequestDto,
   ShareFileDto,
   ShareImportRequestDto,
   ShareImportResultDto,
@@ -51,6 +57,11 @@ export class ApiError extends Error {
 
 const LOCKED_EVENT = 'sv:locked';
 
+interface DownloadedFile {
+  filename: string;
+  blob: Blob;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
@@ -77,17 +88,46 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
   }
 
-  if (!response.ok) {
-    const errorBody = body as ApiErrorBody | null;
-    const code = errorBody?.error?.code ?? 'INTERNAL_ERROR';
-    const message = errorBody?.error?.message ?? `Error HTTP ${response.status}`;
-    if (code === 'VAULT_LOCKED') {
-      window.dispatchEvent(new Event(LOCKED_EVENT));
-    }
-    throw new ApiError(code, message, response.status, errorBody?.error?.issues);
-  }
+  if (!response.ok) throw toApiError(response.status, body);
 
   return body as T;
+}
+
+function toApiError(status: number, body: unknown): ApiError {
+  const errorBody = body as ApiErrorBody | null;
+  const code = errorBody?.error?.code ?? 'INTERNAL_ERROR';
+  const message = errorBody?.error?.message ?? `Error HTTP ${status}`;
+  if (code === 'VAULT_LOCKED') {
+    window.dispatchEvent(new Event(LOCKED_EVENT));
+  }
+  return new ApiError(code, message, status, errorBody?.error?.issues);
+}
+
+function parseJsonOrNull(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** Respuesta binaria (descarga): los errores siguen llegando como JSON. */
+async function requestFile(path: string, init: RequestInit): Promise<DownloadedFile> {
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      credentials: 'same-origin',
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...init.headers },
+    });
+  } catch {
+    throw new ApiError('NETWORK_ERROR', 'No hay conexión con el servidor.', 0);
+  }
+  if (!response.ok) throw toApiError(response.status, parseJsonOrNull(await response.text()));
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'secretvault-backup.db';
+  return { filename, blob: await response.blob() };
 }
 
 export const api = {
@@ -116,6 +156,12 @@ export const api = {
     request<RecoveryKeyDto>('/api/vault/recovery-key', {
       method: 'POST',
       body: JSON.stringify({ currentPassword }),
+    }),
+
+  downloadBackup: (currentPassword: string) =>
+    requestFile('/api/vault/backup', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword } satisfies CreateBackupRequestDto),
     }),
 
   lockVault: () => request<OkDto>('/api/vault/lock', { method: 'POST' }),
@@ -179,6 +225,20 @@ export const api = {
 
   deleteSecret: (id: number) => request<OkDto>(`/api/secrets/${id}`, { method: 'DELETE' }),
 
+  getAuditRetention: () => request<AuditRetentionDto>('/api/audit/retention'),
+
+  updateAuditRetention: (maxEvents: number, currentPassword: string) =>
+    request<AuditRetentionDto>('/api/audit/retention', {
+      method: 'PUT',
+      body: JSON.stringify({ maxEvents, currentPassword } satisfies UpdateAuditRetentionRequestDto),
+    }),
+
+  clearAudit: (currentPassword: string) =>
+    request<ClearAuditResultDto>('/api/audit/clear', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword } satisfies ClearAuditRequestDto),
+    }),
+
   checkForUpdate: () => request<UpdateCheckDto>('/api/update/check', { method: 'POST' }),
 
   reorderSecrets: (environmentId: number, ids: number[]) =>
@@ -224,6 +284,12 @@ export const api = {
     request<ShareFileDto>(`/api/share/${target}/${id}/export`, {
       method: 'POST',
       body: JSON.stringify({ passphrase } satisfies ShareExportRequestDto),
+    }),
+
+  exportSharedSecrets: (ids: number[], passphrase: string) =>
+    request<ShareFileDto>('/api/share/secrets/export', {
+      method: 'POST',
+      body: JSON.stringify({ ids, passphrase } satisfies ShareSecretsExportRequestDto),
     }),
 
   previewShare: (payload: SharePreviewRequestDto) =>

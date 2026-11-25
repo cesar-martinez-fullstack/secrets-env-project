@@ -615,6 +615,82 @@ describe('API integration — ciclo de vida completo', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('GET /api/secrets/export?ids= exporta solo los secretos elegidos', async () => {
+    const created = await Promise.all(
+      ['SELECCION_UNO', 'SELECCION_DOS'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'v' })),
+      ),
+    );
+    const [one] = created.map((secret) => secret.id);
+
+    const res = await get(`/api/secrets/export?ids=${one}&format=json`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Disposition')).toContain('seleccion');
+    const document = await json<{ secrets: { name: string }[] }>(res);
+    expect(document.secrets.map((secret) => secret.name)).toEqual(['SELECCION_UNO']);
+
+    for (const bad of ['ids=', 'ids=abc', 'ids=1,,2', 'ids=999999']) {
+      const failed = await get(`/api/secrets/export?${bad}&format=json`);
+      expect([400, 404]).toContain(failed.status);
+    }
+  });
+
+  it('POST /api/share/secrets/export comparte solo los secretos elegidos', async () => {
+    const created = await Promise.all(
+      ['COMPARTIR_UNO', 'COMPARTIR_DOS'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'v' })),
+      ),
+    );
+    const [one] = created.map((secret) => secret.id);
+    const passphrase = 'frase-de-prueba-123';
+
+    const res = await post('/api/share/secrets/export', { ids: [one], passphrase });
+    expect(res.status).toBe(200);
+    const file = await json<{ filename: string; content: string }>(res);
+    expect(file.filename.endsWith('.svshare')).toBe(true);
+    expect(file.content).not.toContain('COMPARTIR_UNO');
+
+    const preview = await post('/api/share/preview', { content: file.content, passphrase });
+    expect(await json(preview)).toMatchObject({ secretCount: 1 });
+
+    expect((await post('/api/share/secrets/export', { ids: [], passphrase })).status).toBe(400);
+    expect(
+      (await post('/api/share/secrets/export', { ids: [one], passphrase: 'corta' })).status,
+    ).toBe(400);
+    expect((await post('/api/share/secrets/export', { ids: [999_999], passphrase })).status).toBe(
+      404,
+    );
+    expect((await post('/api/share/secrets/export', { ids: 'no', passphrase })).status).toBe(400);
+  });
+
+  it('POST /api/vault/backup exige la contraseña y entrega la base sin valores en claro', async () => {
+    const plaintext = 'VALOR-EN-CLARO-NO-DEBE-APARECER-EN-LA-COPIA';
+    const current = 'RecuperadaSegura2026!'; // la deja vigente la prueba de recuperación anterior
+    const mistaken = `${current}-mal`;
+    await post('/api/secrets', { environmentId: 1, name: 'PARA_COPIA', value: plaintext });
+
+    const wrong = await post('/api/vault/backup', { currentPassword: mistaken });
+    expect(wrong.status).toBe(401);
+    expect((await post('/api/vault/backup', {})).status).toBe(400);
+    expect((await post('/api/vault/backup', { currentPassword: current }, false)).status).toBe(401);
+
+    const res = await post('/api/vault/backup', { currentPassword: current });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('application/octet-stream');
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('Content-Disposition')).toMatch(
+      /^attachment; filename="secretvault-backup-\d{14}\.db"$/,
+    );
+    const bytes = Buffer.from(await res.arrayBuffer());
+    expect(bytes.subarray(0, 15).toString('latin1')).toBe('SQLite format 3');
+    expect(bytes.includes(plaintext)).toBe(false);
+
+    const audit = await json<{ events: { type: string; message: string }[] }>(
+      await get('/api/audit?limit=20'),
+    );
+    expect(audit.events.some((event) => event.type === 'vault.backup_created')).toBe(true);
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);

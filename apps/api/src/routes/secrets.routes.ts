@@ -19,6 +19,7 @@ import type { SecretSummary } from '@secretvault/core';
 import {
   jsonResponse,
   parseExportFormat,
+  parseIdListParam,
   parseIdParam,
   readJsonBody,
   requireIdList,
@@ -136,12 +137,16 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
 
   app.get('/export', async (c) => {
     const format = parseExportFormat(c.req.query('format') ?? 'env');
-    const environmentId = parseIdParam(c.req.query('environmentId') ?? '');
-    const { entries, environmentName } = await secretService.exportEntries(
-      c.get('session').key,
-      environmentId,
-      format,
-    );
+    const { key } = c.get('session');
+    const idsParam = c.req.query('ids');
+    const { entries, environmentName } =
+      idsParam === undefined
+        ? await secretService.exportEntries(
+            key,
+            parseIdParam(c.req.query('environmentId') ?? ''),
+            format,
+          )
+        : await secretService.exportSelected(key, parseIdListParam(idsParam), format);
 
     const generatedAt = new Date();
     const formatter = EXPORT_FORMATTERS[format];

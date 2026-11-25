@@ -35,6 +35,30 @@ export const settings: Record<keyof typeof base, string> = {
   'settings.tourTitle': 'Guided tour',
   'settings.tourBody': 'Go over the main features of the application again.',
   'settings.tourReplay': 'Repeat the tour',
+  'auditSettings.title': 'Audit history',
+  'auditSettings.body':
+    'The history records what was done and when, never secret values. When it fills up, the oldest events are deleted; failed attempts and changes to the history itself are kept apart, so they neither displace nor get displaced. Changing the retention or clearing it asks for your master password and is recorded.',
+  'auditSettings.retention': 'Events kept',
+  'auditSettings.option': '{count} events',
+  'auditSettings.password': 'Master password',
+  'auditSettings.save': 'Save retention',
+  'auditSettings.clear': 'Clear history',
+  'auditSettings.clearWarning':
+    'The whole history will be deleted and this cannot be undone. A single event will remain stating that it was cleared.',
+  'auditSettings.clearConfirm': 'Yes, clear it',
+  'auditSettings.saved': 'Retention saved',
+  'auditSettings.cleared': 'History cleared: {count} events deleted',
+  'auditSettings.failed': 'The action could not be completed',
+  'backup.title': 'Backup',
+  'backup.body':
+    'Download a copy of your whole vault to keep it safe or move it to another machine. Secret values and notes stay encrypted.',
+  'backup.warning':
+    'Note: project, environment and secret names, and the audit history, are in the clear inside the file. Opening it requires your master password or your recovery key, and whoever holds the file can try to guess the password offline: the stronger it is, the better the copy is protected. Keep it somewhere safe.',
+  'backup.password': 'Master password',
+  'backup.download': 'Download backup',
+  'backup.doneTitle': 'Backup downloaded',
+  'backup.doneBody': 'Keep it off this machine, somewhere safe.',
+  'backup.failed': 'The backup could not be created',
   'updates.title': 'Updates',
   'updates.body':
     'Check whether a new version is available. It only connects to GitHub when you press the button and sends no data from your vault.',

@@ -240,6 +240,12 @@ export class VaultService {
     return recovery.text;
   }
 
+  /** Comprueba la contraseña maestra de una sesión activa (acciones que piden volver a demostrarla). */
+  async confirmPassword(sessionId: string, password: string): Promise<void> {
+    const { info } = await this.requireSessionAndVault(sessionId);
+    await this.assertCurrentPassword(password, info);
+  }
+
   // ── Envoltura y apertura de la DEK ────────────────────────────────────────
 
   private async wrapForMaster(dek: Uint8Array, password: string): Promise<MasterWrap> {
@@ -386,8 +392,18 @@ export class VaultService {
   }
 
   private async assertCurrentPassword(password: string, info: VaultInfo): Promise<void> {
-    const check = await this.openWithPassword(password, info);
-    check.fill(0); // solo servía para verificar; la sesión conserva su propia copia de la DEK
+    try {
+      const check = await this.openWithPassword(password, info);
+      check.fill(0); // solo servía para verificar; la sesión conserva su propia copia de la DEK
+    } catch (error) {
+      if (error instanceof InvalidMasterPasswordError) {
+        await this.deps.audit.record(
+          'vault.reauth_failed',
+          'Confirmación de la contraseña maestra fallida.',
+        );
+      }
+      throw error;
+    }
   }
 
   private async requireSessionAndVault(

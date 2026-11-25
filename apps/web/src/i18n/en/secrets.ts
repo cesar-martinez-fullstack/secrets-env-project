@@ -28,6 +28,7 @@ export const secrets: Record<keyof typeof base, string> = {
   'secretForm.saveFailed': 'Could not save',
 
   'export.button': 'Export',
+  'export.selection': 'Export selection ({count})',
   'export.nothing': 'There are no secrets to export in this environment',
   'export.env': '.env file',
   'export.envHint': 'Standard dotenv format',

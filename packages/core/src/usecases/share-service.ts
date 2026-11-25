@@ -1,4 +1,5 @@
 import {
+  MAX_BULK_SECRETS,
   MAX_ENVIRONMENT_NAME_LENGTH,
   MAX_PROJECT_NAME_LENGTH,
   parseShareEnvelope,
@@ -23,6 +24,7 @@ import type { VaultCryptoService } from '../ports/crypto';
 import type { UnitOfWork } from '../ports/transaction';
 import type {
   Project,
+  SecretWithMeta,
   ShareFile,
   ShareImportPlan,
   ShareImportResult,
@@ -32,6 +34,7 @@ import type {
 import {
   EnvironmentNotFoundError,
   ProjectNotFoundError,
+  SecretNotFoundError,
   SharePackageInvalidError,
   ValidationFailedError,
 } from '../domain/errors';
@@ -94,6 +97,31 @@ export class ShareService {
 
     const payload = { project: project.name, environments: [await this.collect(key, env)] };
     return this.seal(payload, passphrase, env.name);
+  }
+
+  /** Comparte solo los secretos indicados; deben pertenecer al mismo proyecto. */
+  async exportSecrets(
+    key: Uint8Array,
+    secretIds: readonly number[],
+    passphrase: string,
+  ): Promise<ShareFile> {
+    this.assertPassphrase(passphrase);
+    const records = await this.loadSelection(secretIds);
+    const byEnvironment = new Map<number, SecretWithMeta[]>();
+    for (const record of records) {
+      byEnvironment.set(record.environmentId, [
+        ...(byEnvironment.get(record.environmentId) ?? []),
+        record,
+      ]);
+    }
+    const projectName = await this.singleProjectName([...byEnvironment.keys()]);
+
+    const environments = [];
+    for (const group of byEnvironment.values()) {
+      environments.push(await this.collectRecords(key, group[0]!.environmentName, group));
+    }
+    const only = environments.length === 1 ? environments[0]!.name : null;
+    return this.seal({ project: projectName, environments }, passphrase, only);
   }
 
   async preview(
@@ -171,9 +199,48 @@ export class ShareService {
     if (issues.length > 0) throw new ValidationFailedError(issues);
   }
 
+  private async loadSelection(secretIds: readonly number[]): Promise<SecretWithMeta[]> {
+    const ids = [...new Set(secretIds)];
+    if (ids.length === 0 || ids.length > MAX_BULK_SECRETS) {
+      throw new ValidationFailedError([
+        { field: 'ids', message: `Indica entre 1 y ${MAX_BULK_SECRETS} secretos.` },
+      ]);
+    }
+    const records: SecretWithMeta[] = [];
+    for (const id of ids) {
+      const record = await this.deps.secrets.findById(id);
+      if (!record) throw new SecretNotFoundError(id);
+      records.push(record);
+    }
+    return records;
+  }
+
+  private async singleProjectName(environmentIds: readonly number[]): Promise<string> {
+    const projectIds = new Set<number>();
+    for (const id of environmentIds) {
+      const env = await this.deps.environments.findById(id);
+      if (!env) throw new EnvironmentNotFoundError(id);
+      projectIds.add(env.projectId);
+    }
+    if (projectIds.size !== 1) {
+      throw new ValidationFailedError([
+        { field: 'ids', message: 'Los secretos deben ser de un mismo proyecto.' },
+      ]);
+    }
+    return (await this.requireProject([...projectIds][0]!)).name;
+  }
+
   private async collect(key: Uint8Array, env: { id: number; name: string }) {
-    const { crypto } = this.deps;
     const records = await this.deps.secrets.list({ environmentId: env.id });
+    return this.collectRecords(key, env.name, records);
+  }
+
+  private async collectRecords(
+    key: Uint8Array,
+    environmentName: string,
+    records: readonly SecretWithMeta[],
+  ) {
+    const { crypto } = this.deps;
     const secrets = [];
     for (const record of records) {
       const valueAad = secretValueAad(record.environmentId, record.name);
@@ -184,7 +251,7 @@ export class ShareService {
         note: record.noteEnc ? await crypto.decrypt(key, record.noteEnc, noteAad) : null,
       });
     }
-    return { name: env.name, secrets };
+    return { name: environmentName, secrets };
   }
 
   private async seal(

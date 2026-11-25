@@ -11,12 +11,12 @@
   "dependencies": {
     "@secretvault/shared": "workspace:*",
     "pinia": "^4.1.0",
-    "vue": "^3.5.13",
+    "vue": "^3.5.46",
     "vue-router": "^5.5.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
-    "@types/bun": "^1.4.4",
+    "@types/bun": "^1.4.5",
     "@vitejs/plugin-vue": "^6.0.11",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.6.0",

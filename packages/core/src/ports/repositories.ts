@@ -11,6 +11,7 @@ import type {
   ProjectWithCount,
   SecretRecord,
   SecretWithMeta,
+  SecuritySettings,
   VaultInfo,
 } from '../domain/entities';
 import type { AuditEventType } from '@secretvault/shared';
@@ -80,6 +81,14 @@ export interface AuditRepository {
   count(): Promise<number>;
   /** Podar eventos antiguos más allá del máximo retenido. */
   prune(max: number): Promise<void>;
+  /** Borra todo el historial y devuelve cuántos eventos eliminó. */
+  clear(): Promise<number>;
+}
+
+/** Ajustes de seguridad que viven dentro de la base (y por tanto en las copias). */
+export interface SecuritySettingsRepository {
+  get(): Promise<SecuritySettings>;
+  save(settings: SecuritySettings): Promise<void>;
 }
 
 /** Ajustes de la instancia: viven fuera de la bóveda y se leen antes de desbloquearla. */

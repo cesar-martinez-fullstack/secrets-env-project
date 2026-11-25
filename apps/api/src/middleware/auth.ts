@@ -29,15 +29,25 @@ export function requireUnlocked(container: Container): MiddlewareHandler<AppEnv>
   };
 }
 
+const LOOPBACK_ADDRESS = /^(::1|(::ffff:)?127(\.\d{1,3}){3})$/;
+
+/**
+ * Un proceso local puede elegir cualquier dirección 127.x como origen: todo el loopback cuenta
+ * como un solo cliente para que los límites de intentos no se multipliquen.
+ */
+export function normalizeClientAddress(address: string): string {
+  return LOOPBACK_ADDRESS.test(address) ? 'loopback' : address;
+}
+
 /** IP del cliente (respeta X-Forwarded-For solo si SV_TRUST_PROXY=true; usa el último salto). */
 export function clientIp(c: Parameters<MiddlewareHandler>[0], trustProxy: boolean): string {
   if (trustProxy) {
     const forwarded = c.req.header('x-forwarded-for');
     // El ÚLTIMO valor lo añade nuestro proxy de confianza; los anteriores los controla el cliente.
-    if (forwarded) return forwarded.split(',').at(-1)!.trim();
+    if (forwarded) return normalizeClientAddress(forwarded.split(',').at(-1)!.trim());
   }
   try {
-    return getConnInfo(c).remote?.address ?? 'unknown';
+    return normalizeClientAddress(getConnInfo(c).remote?.address ?? 'unknown');
   } catch {
     return 'unknown';
   }

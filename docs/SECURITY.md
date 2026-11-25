@@ -63,15 +63,30 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    incorrecta y archivo alterado dan el mismo error. Importar y previsualizar tienen límite de intentos
    por IP. Al mezclar en un proyecto existente, sobrescribir exige una petición explícita (por defecto se
    omite) y los secretos recibidos quedan marcados como importados hasta que se edite su valor.
+8. **Copia de seguridad (ADR-0011)**: `POST /api/vault/backup` entrega la base SQLite completa, sin
+   descifrar nada, y exige volver a escribir la contraseña maestra (mismo punto de verificación y
+   mismo límite de intentos que el cambio de contraseña). Los valores y notas siguen cifrados, pero
+   los nombres de proyectos, ambientes y secretos y la auditoría quedan en claro en el archivo; la
+   interfaz lo avisa. Cada copia queda auditada (`vault.backup_created`).
+9. **Historial de auditoría (ADR-0012)**: cambiar la retención o vaciar el historial exige la contraseña
+   maestra (mismo punto de verificación y mismo presupuesto de intentos que las demás reautenticaciones)
+   y es atómico. El historial no puede desaparecer sin rastro: tras vaciarlo queda un único evento
+   `audit.cleared` con cuántos eventos se eliminaron; cambiar la retención deja `audit.retention_changed`.
+   La retención vive en la base (migración 6), con restricciones, y viaja con las copias.
+   Los cambios sobre el historial (100) y los intentos fallidos (200) se podan **aparte** de la retención,
+   para que nadie pueda expulsarlos generando eventos. **Límite:** con una sesión abierta se pueden
+   generar eventos corrientes y desplazar los corrientes más antiguos sin la contraseña; el historial
+   no es evidencia a prueba de manipulación. Para los límites de intentos, todo el loopback cuenta como
+   un solo cliente.
 
-8. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
-   la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
-   `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
-   JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
-   archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
-   Lo mismo vale para el nombre, el acento y el tema por defecto (F-131): `GET /api/settings` los devuelve sin
-   sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
-   control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
+10. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
+    la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
+    `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
+    JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
+    archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
+    Lo mismo vale para el nombre, el acento y el tema por defecto (F-131): `GET /api/settings` los devuelve sin
+    sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
+    control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 

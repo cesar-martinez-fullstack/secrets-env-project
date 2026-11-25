@@ -5,7 +5,13 @@
 import type { AuditRepository } from '@secretvault/core';
 import type { AuditEvent } from '@secretvault/core';
 import type { AuditEventType } from '@secretvault/shared';
-import { AUDIT_MAX_EVENTS } from '@secretvault/shared';
+import {
+  AUDIT_FAILURE_EVENTS,
+  AUDIT_FAILURE_EVENTS_KEPT,
+  AUDIT_HISTORY_EVENTS,
+  AUDIT_HISTORY_EVENTS_KEPT,
+  AUDIT_MAX_EVENTS,
+} from '@secretvault/shared';
 import type { SqliteDatabase } from '../sqlite';
 
 interface AuditRow {
@@ -22,7 +28,17 @@ export class SqliteAuditRepository implements AuditRepository {
     this.db
       .query('INSERT INTO audit_log (type, message, created_at) VALUES (?, ?, ?)')
       .run(type, message, new Date().toISOString());
-    await this.prune(AUDIT_MAX_EVENTS);
+    await this.prune(this.retention());
+  }
+
+  /** La retención vive en la misma base (tabla `security_settings`). */
+  private retention(): number {
+    const row = this.db
+      .query<{ audit_max_events: number }, []>(
+        'SELECT audit_max_events FROM security_settings WHERE id = 1',
+      )
+      .get();
+    return row?.audit_max_events ?? AUDIT_MAX_EVENTS;
   }
 
   async list(limit: number, offset: number): Promise<AuditEvent[]> {
@@ -46,11 +62,28 @@ export class SqliteAuditRepository implements AuditRepository {
     return row?.total ?? 0;
   }
 
+  async clear(): Promise<number> {
+    return this.db.query('DELETE FROM audit_log').run().changes;
+  }
+
+  /** `max` limita los eventos corrientes; los del historial y los fallidos tienen su propia cuota. */
   async prune(max: number): Promise<void> {
+    this.pruneGroup('IN', AUDIT_HISTORY_EVENTS, AUDIT_HISTORY_EVENTS_KEPT);
+    this.pruneGroup('IN', AUDIT_FAILURE_EVENTS, AUDIT_FAILURE_EVENTS_KEPT);
+    this.pruneGroup('NOT IN', [...AUDIT_HISTORY_EVENTS, ...AUDIT_FAILURE_EVENTS], max);
+  }
+
+  private pruneGroup(
+    membership: 'IN' | 'NOT IN',
+    types: readonly AuditEventType[],
+    keep: number,
+  ): void {
+    const group = `type ${membership} (${types.map(() => '?').join(', ')})`;
     this.db
       .query(
-        'DELETE FROM audit_log WHERE id NOT IN (SELECT id FROM audit_log ORDER BY id DESC LIMIT ?)',
+        `DELETE FROM audit_log WHERE ${group} AND id NOT IN
+           (SELECT id FROM audit_log WHERE ${group} ORDER BY id DESC LIMIT ?)`,
       )
-      .run(max);
+      .run(...types, ...types, keep);
   }
 }

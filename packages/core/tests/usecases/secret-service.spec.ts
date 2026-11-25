@@ -361,6 +361,54 @@ describe('SecretService', () => {
     });
   });
 
+  describe('exportSelected', () => {
+    const stored = (id: number, environmentId: number, name: string) => ({
+      ...secretWithMeta({
+        id,
+        environmentId,
+        name,
+        environmentName: environmentId === 1 ? 'Local' : 'QA',
+      }),
+      valueEnc: new TextEncoder().encode(`enc:valor-${name}`),
+    });
+
+    beforeEach(() => {
+      const records = [stored(1, 1, 'ALFA'), stored(2, 1, 'BETA'), stored(3, 2, 'GAMMA')];
+      secrets.findById.mockImplementation(
+        async (id: number) => records.find((record) => record.id === id) ?? null,
+      );
+    });
+
+    it('should decrypt only the chosen secrets and audit the count and the format', async () => {
+      const result = await service.exportSelected(KEY, [2, 1, 2], 'csv');
+
+      expect(result.environmentName).toBe('Local (selección)');
+      expect(result.entries.map((entry) => entry.name)).toEqual(['BETA', 'ALFA']);
+      expect(audit.record).toHaveBeenCalledWith(
+        'secret.exported',
+        expect.stringContaining('2 secreto(s) seleccionados del ambiente «Local» (formato csv)'),
+      );
+    });
+
+    it('should refuse secrets of different environments without decrypting or auditing', async () => {
+      await expect(service.exportSelected(KEY, [1, 3], 'json')).rejects.toThrow(
+        ValidationFailedError,
+      );
+      expect(crypto.decrypt).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('should reject an empty or oversized selection and unknown ids', async () => {
+      const tooMany = Array.from({ length: 201 }, (_, index) => index + 1);
+
+      await expect(service.exportSelected(KEY, [], 'env')).rejects.toThrow(ValidationFailedError);
+      await expect(service.exportSelected(KEY, tooMany, 'env')).rejects.toThrow(
+        ValidationFailedError,
+      );
+      await expect(service.exportSelected(KEY, [999], 'env')).rejects.toThrow(SecretNotFoundError);
+    });
+  });
+
   describe('removeMany', () => {
     it('should delete every secret once and audit a single event with the names', async () => {
       secrets.findById.mockImplementation(async (id: number) =>

@@ -24,6 +24,9 @@ export const vault: Record<keyof typeof base, string> = {
   'vault.bulkDeleteMore': 'and {count} more',
   'vault.bulkDeleteConfirm': 'Delete {count} secret(s)',
   'vault.reorderFailed': 'The order could not be saved',
+  'vault.shareMixedTitle': 'Pick secrets from a single project',
+  'vault.shareMixedBody':
+    'A shared file contains a single project. Keep only the secrets of the same project selected.',
   'vault.bulkDeleted': 'Secrets deleted',
   'vault.bulkDeletedBody': '{count} secret(s) deleted.',
   'vault.secretDeleted': 'Secret deleted',

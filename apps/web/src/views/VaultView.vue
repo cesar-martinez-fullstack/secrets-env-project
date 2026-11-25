@@ -224,6 +224,19 @@ function askDeleteSecret(secret: SecretDto): void {
   };
 }
 
+function shareSelected(): void {
+  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
+  if (new Set(chosen.map((secret) => secret.projectName)).size > 1) {
+    toast.push('info', t('vault.shareMixedTitle'), t('vault.shareMixedBody'));
+    return;
+  }
+  shareTarget.value = {
+    kind: 'secrets',
+    ids: chosen.map((secret) => secret.id),
+    name: t('shareExport.selection', { count: chosen.length }),
+  };
+}
+
 function askDeleteSelected(): void {
   const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
   const names = chosen.map((secret) =>
@@ -357,6 +370,7 @@ async function runConfirm(): Promise<void> {
             @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
             @clear-selection="selection.clear()"
             @remove-selected="askDeleteSelected"
+            @share-selected="shareSelected"
             @create-first="openCreateSecret"
           />
         </div>
