@@ -25,6 +25,7 @@ export const secrets = {
   'secretForm.saveFailed': 'No se pudo guardar',
 
   'export.button': 'Exportar',
+  'export.selection': 'Exportar selección ({count})',
   'export.nothing': 'No hay secretos para exportar en este ambiente',
   'export.env': 'Archivo .env',
   'export.envHint': 'Formato dotenv estándar',

@@ -7,15 +7,18 @@ import { EXPORT_FORMATS } from '@secretvault/shared';
 import type { ExportFormat } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
 import { useDataStore } from '@/stores/data';
+import { useSelectionStore } from '@/stores/selection';
 import { useI18n } from '@/i18n/use-i18n';
 import type { MessageKey } from '@/i18n/catalogs';
 
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 const data = useDataStore();
+const selection = useSelectionStore();
 const { t } = useI18n();
 
-const canExport = computed(() => (data.activeEnv?.secretCount ?? 0) > 0);
+const exportsSelection = computed(() => selection.count > 0);
+const canExport = computed(() => exportsSelection.value || (data.activeEnv?.secretCount ?? 0) > 0);
 
 watch(canExport, (allowed) => {
   if (!allowed) open.value = false;
@@ -34,8 +37,10 @@ const META: Record<
 
 function exportAs(format: ExportFormat): void {
   if (!canExport.value || data.activeEnvId === null) return;
-  const url = `/api/secrets/export?environmentId=${data.activeEnvId}&format=${format}`;
-  window.location.assign(url);
+  const scope = exportsSelection.value
+    ? `ids=${[...selection.ids].join(',')}`
+    : `environmentId=${data.activeEnvId}`;
+  window.location.assign(`/api/secrets/export?${scope}&format=${format}`);
   open.value = false;
 }
 
@@ -59,7 +64,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
       @click="open = !open"
     >
       <AppIcon name="download" :size="15" />
-      {{ t('export.button') }}
+      {{
+        exportsSelection ? t('export.selection', { count: selection.count }) : t('export.button')
+      }}
     </button>
 
     <Transition name="menu">

@@ -60,7 +60,7 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 | F-102 | Bóvedas múltiples · 3: renombrar una bóveda                                                       | Planeado    | 0.2.0   |
 | F-103 | Bóvedas múltiples · 4: cambiar de bóveda sin reiniciar                                            | Planeado    | 0.2.0   |
 | F-110 | Importar desde archivo: `.env`/TXT, CSV y JSON (mismo formato que se exporta), con vista previa   | En revisión | 0.2.0   |
-| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | Planeado    | 0.2.0   |
+| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | En revisión | 0.2.0   |
 | F-112 | Paginación por offset del listado de secretos (`limit` y `offset`, con total)                     | Planeado    | 0.2.0   |
 
 El resto del backlog (backup y restauración, borrado automático del portapapeles, E2E en CI, etc.) está en
