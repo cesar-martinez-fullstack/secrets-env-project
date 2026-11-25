@@ -129,6 +129,17 @@ export function requireIdList(body: object, field: string): number[] {
   return value as number[];
 }
 
+/** Lista de ids separados por comas en un query param (`?ids=1,2,3`). */
+export function parseIdListParam(raw: string): number[] {
+  const ids = raw.split(',').map((part) => (/^\d{1,9}$/.test(part) ? Number(part) : 0));
+  if (ids.length === 0 || ids.length > 1000 || ids.includes(0)) {
+    throw new ValidationFailedError([
+      { field: 'ids', message: 'Lista de identificadores inválida.' },
+    ]);
+  }
+  return ids;
+}
+
 /** Convierte y valida un :id de ruta. */
 export function parseIdParam(raw: string): number {
   const id = Number.parseInt(raw, 10);

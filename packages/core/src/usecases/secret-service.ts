@@ -294,12 +294,7 @@ export class SecretService {
     if (!env) throw new EnvironmentNotFoundError(environmentId);
 
     const records = await this.deps.secrets.list({ environmentId });
-    const entries: ExportEntry[] = [];
-    for (const record of records) {
-      const value = await this.decryptValue(key, record);
-      const note = await this.decryptNote(key, record);
-      entries.push({ name: record.name, value, note });
-    }
+    const entries = await this.decryptEntries(key, records);
 
     await this.deps.audit.record(
       'secret.exported',
@@ -308,7 +303,58 @@ export class SecretService {
     return { entries, environmentName: env.name };
   }
 
+  /** Exporta solo los secretos indicados; deben pertenecer a un mismo ambiente. */
+  async exportSelected(
+    key: Uint8Array,
+    ids: readonly number[],
+    format: ExportFormat,
+  ): Promise<{ entries: ExportEntry[]; environmentName: string }> {
+    const records = await this.loadByIds(ids);
+    if (new Set(records.map((record) => record.environmentId)).size !== 1) {
+      throw new ValidationFailedError([
+        { field: 'ids', message: 'Los secretos deben ser de un mismo ambiente.' },
+      ]);
+    }
+    const entries = await this.decryptEntries(key, records);
+    const environmentName = records[0]!.environmentName;
+
+    await this.deps.audit.record(
+      'secret.exported',
+      `Exportación de ${entries.length} secreto(s) seleccionados del ambiente «${environmentName}» (formato ${format}).`,
+    );
+    return { entries, environmentName: `${environmentName} (selección)` };
+  }
+
   // ── Helpers privados ──────────────────────────────────────────────────────
+
+  private async loadByIds(ids: readonly number[]): Promise<SecretWithMeta[]> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0 || unique.length > MAX_BULK_SECRETS) {
+      throw new ValidationFailedError([
+        { field: 'ids', message: `Indica entre 1 y ${MAX_BULK_SECRETS} secretos.` },
+      ]);
+    }
+    const records: SecretWithMeta[] = [];
+    for (const id of unique) {
+      const record = await this.deps.secrets.findById(id);
+      if (!record) throw new SecretNotFoundError(id);
+      records.push(record);
+    }
+    return records;
+  }
+
+  private async decryptEntries(
+    key: Uint8Array,
+    records: readonly SecretRecord[],
+  ): Promise<ExportEntry[]> {
+    const entries: ExportEntry[] = [];
+    for (const record of records) {
+      const value = await this.decryptValue(key, record);
+      const note = await this.decryptNote(key, record);
+      entries.push({ name: record.name, value, note });
+    }
+    return entries;
+  }
 
   private decryptValue(key: Uint8Array, s: SecretRecord): Promise<string> {
     return this.deps.crypto.decrypt(key, s.valueEnc, secretValueAad(s.environmentId, s.name));
