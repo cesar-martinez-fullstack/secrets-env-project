@@ -123,7 +123,12 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     audit: repositories.audit,
   });
 
-  const auditService = new AuditService({ audit: repositories.audit });
+  const auditService = new AuditService({
+    audit: repositories.audit,
+    security: repositories.securitySettings,
+    passwords: vaultService,
+    unitOfWork,
+  });
 
   return {
     config,
