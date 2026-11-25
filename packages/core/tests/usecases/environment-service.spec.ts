@@ -1,5 +1,5 @@
 /**
- * Tests unitarios de EnvironmentService y AuditService.
+ * Tests unitarios de EnvironmentService.
  */
 import { beforeEach, describe, expect, it } from 'bun:test';
 import {
@@ -9,7 +9,6 @@ import {
   ProjectNotFoundError,
 } from '../../src/domain/errors';
 import { EnvironmentService } from '../../src/usecases/environment-service';
-import { AuditService } from '../../src/usecases/audit-service';
 import {
   mockAuditRepo,
   mockEnvRepo,
@@ -171,34 +170,5 @@ describe('EnvironmentService', () => {
       await expect(service.delete(99)).rejects.toThrow(EnvironmentNotFoundError);
       expect(envs.delete).not.toHaveBeenCalled();
     });
-  });
-});
-
-describe('AuditService', () => {
-  let audit: MockAuditRepo;
-  let service: AuditService;
-
-  beforeEach(() => {
-    audit = mockAuditRepo();
-    service = new AuditService({ audit: audit.repo });
-  });
-
-  it('should return paginated events with the total', async () => {
-    const event = { id: 1, type: 'secret.created' as const, message: 'm', createdAt: new Date() };
-    audit.list.mockResolvedValue([event]);
-    audit.count.mockResolvedValue(42);
-
-    const result = await service.list(50, 0);
-
-    expect(audit.list).toHaveBeenCalledWith(50, 0);
-    expect(result.total).toBe(42);
-    expect(result.events[0]?.type).toBe('secret.created');
-  });
-
-  it('should pass through limit and offset to the repository', async () => {
-    audit.list.mockResolvedValue([]);
-    audit.count.mockResolvedValue(0);
-    await service.list(10, 20);
-    expect(audit.list).toHaveBeenCalledWith(10, 20);
   });
 });

@@ -115,6 +115,17 @@ export interface ImportResult {
   invalidLines: number;
 }
 
+/** Ajustes de seguridad guardados dentro de la base. */
+export interface SecuritySettings {
+  auditMaxEvents: number;
+}
+
+/** Retención del historial de auditoría y las opciones entre las que se puede elegir. */
+export interface AuditRetention {
+  maxEvents: number;
+  options: readonly number[];
+}
+
 /** Copia de la base completa: los bytes del archivo SQLite, con el cifrado en reposo intacto. */
 export interface BackupFile {
   bytes: Uint8Array;
