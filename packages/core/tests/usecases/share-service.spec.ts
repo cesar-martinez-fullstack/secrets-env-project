@@ -5,6 +5,7 @@ import type { ShareImportPlan } from '../../src/domain/entities';
 import {
   EnvironmentNotFoundError,
   ProjectNotFoundError,
+  SecretNotFoundError,
   SharePackageInvalidError,
   ValidationFailedError,
 } from '../../src/domain/errors';
@@ -137,6 +138,93 @@ describe('ShareService', () => {
       await expect(service.exportEnvironment(KEY, 9, PASSPHRASE)).rejects.toThrow(
         EnvironmentNotFoundError,
       );
+    });
+  });
+
+  describe('exportSecrets', () => {
+    const record = async (id: number, environmentId: number, name: string, value: string) => ({
+      id,
+      environmentId,
+      environmentName: environmentId === 10 ? 'Local' : 'QA',
+      projectName: 'Checkout',
+      name,
+      valueEnc: await crypto.service.encrypt(KEY, value, secretValueAad(environmentId, name)),
+      noteEnc: null,
+    });
+
+    beforeEach(async () => {
+      const stored = [
+        await record(1, 10, 'API_KEY', 'valor-uno'),
+        await record(2, 10, 'DEBUG', 'valor-dos'),
+        await record(3, 11, 'QA_TOKEN', 'valor-tres'),
+      ];
+      secrets.findById.mockImplementation(
+        async (id: number) => stored.find((item) => item.id === id) ?? null,
+      );
+    });
+
+    it('should seal only the chosen secrets', async () => {
+      const file = await service.exportSecrets(KEY, [1], PASSPHRASE);
+      const preview = await service.preview(file.content, PASSPHRASE);
+
+      expect(file.projectName).toBe('Checkout');
+      expect(file.environmentName).toBe('Local');
+      expect(preview.secretCount).toBe(1);
+      expect(preview.environments).toEqual([
+        { name: 'Local', secretCount: 1, exists: false, conflicts: [] },
+      ]);
+    });
+
+    it('should group secrets of several environments of the same project', async () => {
+      const file = await service.exportSecrets(KEY, [1, 3, 2, 1], PASSPHRASE);
+      const preview = await service.preview(file.content, PASSPHRASE);
+
+      expect(file.environmentName).toBeNull();
+      expect(preview.secretCount).toBe(3);
+      expect(preview.environments.map((env) => [env.name, env.secretCount])).toEqual([
+        ['Local', 2],
+        ['QA', 1],
+      ]);
+    });
+
+    it('should not leave names or values in the clear and audit only the counts', async () => {
+      const file = await service.exportSecrets(KEY, [1, 2], PASSPHRASE);
+
+      for (const leaked of ['API_KEY', 'valor-uno', 'Checkout', PASSPHRASE]) {
+        expect(file.content).not.toContain(leaked);
+      }
+      const [type, message] = audit.record.mock.calls[0] as [string, string];
+      expect(type).toBe('share.exported');
+      expect(message).toContain('1 ambiente(s), 2 secreto(s)');
+      expect(message).not.toContain('valor-uno');
+    });
+
+    it('should refuse secrets that belong to different projects', async () => {
+      envs.findById.mockImplementation(async (id: number) => ({
+        ...environment(id, id === 10 ? 'Local' : 'QA'),
+        projectId: id === 10 ? 1 : 2,
+      }));
+
+      await expect(service.exportSecrets(KEY, [1, 3], PASSPHRASE)).rejects.toThrow(
+        ValidationFailedError,
+      );
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('should reject an empty or oversized selection, unknown ids and a short passphrase', async () => {
+      const tooMany = Array.from({ length: 201 }, (_, index) => index + 1);
+
+      await expect(service.exportSecrets(KEY, [], PASSPHRASE)).rejects.toThrow(
+        ValidationFailedError,
+      );
+      await expect(service.exportSecrets(KEY, tooMany, PASSPHRASE)).rejects.toThrow(
+        ValidationFailedError,
+      );
+      await expect(service.exportSecrets(KEY, [999], PASSPHRASE)).rejects.toThrow(
+        SecretNotFoundError,
+      );
+      await expect(service.exportSecrets(KEY, [1], 'short')).rejects.toThrow(ValidationFailedError);
+      expect(audit.record).not.toHaveBeenCalled();
     });
   });
 

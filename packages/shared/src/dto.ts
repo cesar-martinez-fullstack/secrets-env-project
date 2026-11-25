@@ -192,6 +192,11 @@ export interface ShareExportRequestDto {
   passphrase: string;
 }
 
+export interface ShareSecretsExportRequestDto {
+  ids: number[];
+  passphrase: string;
+}
+
 export interface SharePreviewRequestDto {
   content: string;
   passphrase: string;
