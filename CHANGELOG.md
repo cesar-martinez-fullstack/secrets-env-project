@@ -11,9 +11,9 @@ listed under **Changed** with upgrade notes — back up your vault before upgrad
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-11-24
+## [0.2.0] - 2026-11-25
 
-Upgrading from 0.1.0 migrates the database automatically and in a transaction (schema v5). Back up your
+Upgrading from 0.1.0 migrates the database automatically and in a transaction (schema v6). Back up your
 vault before upgrading (from this version on, `./scripts/update.sh` takes a backup for you).
 
 ### Added
@@ -26,6 +26,11 @@ vault before upgrading (from this version on, `./scripts/update.sh` takes a back
 - Import variables from `.env`/TXT, CSV and JSON files (the same formats the app exports) with a preview,
   notes included. JSON is shown formatted and syntax highlighted.
 - Export an environment as JSON and as a Postman Environment (every variable as `secret`).
+- Share or export only the secrets you select.
+- Download a backup of the whole vault from Settings, after typing the master password again. Values and
+  notes stay encrypted inside the file; project, environment and secret names and the audit history do not.
+- Choose how many audit events are kept (500, 1,000, 5,000 or 10,000) or clear the history from Settings,
+  both with the master password. Clearing it always leaves an event saying so.
 - Select several secrets and delete them at once (atomic, with a confirmation that lists the names).
 - Sort secrets A to Z or Z to A, or manually per environment with drag and drop or up and down buttons.
 - Personalization: application name, logo, accent color and default theme, with a live preview in Settings.
@@ -40,8 +45,8 @@ vault before upgrading (from this version on, `./scripts/update.sh` takes a back
 
 ### Changed
 
-- The database schema moves from v1 to v5: projects, "imported" mark and manual order. Migrations are
-  automatic; the vault cannot be opened by an older version afterwards.
+- The database schema moves from v1 to v6: projects, "imported" mark, manual order and audit retention.
+  Migrations are automatic; the vault cannot be opened by an older version afterwards.
 - Instance settings (name, logo, accent, theme) are stored in `settings.json` inside the data directory,
   outside the vault, so they can be shown before unlocking.
 
@@ -56,6 +61,12 @@ vault before upgrading (from this version on, `./scripts/update.sh` takes a back
 - Shared files use PBKDF2 and AES-256-GCM with authenticated data, and a generic error for a wrong passphrase
   or a damaged file.
 - Bulk and manual-order operations are atomic and validate that the ids belong to the environment.
+- Backup, audit retention and history clearing ask for the master password again and share one attempt
+  budget with password and recovery key changes. Failed confirmations are recorded in the audit history.
+- Failed attempts and changes to the audit history are retained apart from other events, so they cannot be
+  pushed out by generating more events. With an unlocked session, ordinary events can still displace older
+  ordinary ones.
+- For attempt limits, every loopback address counts as the same client.
 
 ## [0.1.0] - 2026-11-09
 

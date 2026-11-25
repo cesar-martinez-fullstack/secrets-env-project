@@ -31,6 +31,27 @@ Detalles:
 - **Rutas:** `GET /api/audit/retention`, `PUT /api/audit/retention` y `POST /api/audit/clear`, todas tras
   `requireUnlocked` y en el manifest.
 
+## Cuotas: qué puede expulsar a qué
+
+La poda es «se va lo más antiguo», así que sin cuotas cualquiera que genere muchos eventos podría expulsar la
+evidencia (incluidos `audit.cleared` y `audit.retention_changed`). La revisión de seguridad lo demostró con intentos
+de recuperación fallidos, que no requieren credenciales. Por eso el historial se poda por grupos:
+
+| Grupo                                                                   | Se conservan         |
+| ----------------------------------------------------------------------- | -------------------- |
+| Cambios sobre el historial (`audit.cleared`, `audit.retention_changed`) | 100, aparte          |
+| Intentos fallidos (`unlock_failed`, `recovery_failed`, `reauth_failed`) | 200, aparte          |
+| Todo lo demás                                                           | la retención elegida |
+
+Además, una confirmación de contraseña fallida queda registrada (`vault.reauth_failed`), el cambio de retención
+anota el valor anterior y cuántos eventos eliminó, y para los límites de intentos todo el loopback (`127.0.0.0/8` y
+`::1`) cuenta como un solo cliente.
+
+**Límite que permanece:** quien tenga una **sesión abierta** puede generar eventos corrientes (por ejemplo, revelando
+una y otra vez) y expulsar los eventos corrientes más antiguos, sin necesitar la contraseña. No puede expulsar la
+constancia de los vaciados ni de los cambios de retención. El historial es un registro local para la persona dueña, no
+una evidencia a prueba de manipulación: quien controle el equipo puede editar la base.
+
 ## Alternativas descartadas
 
 - **Guardar la retención en `settings.json`:** ese archivo se lee antes de desbloquear y es editable a mano; un ajuste
