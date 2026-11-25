@@ -68,15 +68,20 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
    mismo límite de intentos que el cambio de contraseña). Los valores y notas siguen cifrados, pero
    los nombres de proyectos, ambientes y secretos y la auditoría quedan en claro en el archivo; la
    interfaz lo avisa. Cada copia queda auditada (`vault.backup_created`).
+9. **Historial de auditoría (ADR-0012)**: cambiar la retención o vaciar el historial exige la contraseña
+   maestra (mismo punto de verificación y mismo presupuesto de intentos que las demás reautenticaciones)
+   y es atómico. El historial no puede desaparecer sin rastro: tras vaciarlo queda un único evento
+   `audit.cleared` con cuántos eventos se eliminaron; cambiar la retención deja `audit.retention_changed`.
+   La retención vive en la base (migración 6), con restricciones, y viaja con las copias.
 
-9. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
-   la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
-   `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
-   JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
-   archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
-   Lo mismo vale para el nombre, el acento y el tema por defecto (F-131): `GET /api/settings` los devuelve sin
-   sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
-   control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
+10. **Logo de la instancia (F-130)**: `GET /api/settings` y `GET /api/settings/logo` son públicas a propósito, porque
+    la pantalla de entrada muestra la marca antes de desbloquear; no devuelven nada de la bóveda. El logo vive en
+    `settings.json` (fuera de la bóveda, sin cifrar) y solo se cambia con la bóveda abierta. Defensas: solo PNG,
+    JPEG o WebP decididos por la firma de los bytes (nunca SVG ni HTML), máximo 256 KB, `nosniff`, `no-store`, y el
+    archivo se revalida al leerlo por si se editó a mano. Quien tenga acceso al disco puede ver o cambiar el logo.
+    Lo mismo vale para el nombre, el acento y el tema por defecto (F-131): `GET /api/settings` los devuelve sin
+    sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
+    control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
 
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 

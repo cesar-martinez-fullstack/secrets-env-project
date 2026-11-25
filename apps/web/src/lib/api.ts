@@ -12,7 +12,11 @@ import type {
   CreateSecretRequestDto,
   EnvironmentDto,
   ProjectDto,
+  AuditRetentionDto,
+  ClearAuditRequestDto,
+  ClearAuditResultDto,
   CreateBackupRequestDto,
+  UpdateAuditRetentionRequestDto,
   DeleteSecretsResultDto,
   UpdateCheckDto,
   ImportSecretsRequestDto,
@@ -220,6 +224,20 @@ export const api = {
     request<SecretDto>(`/api/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteSecret: (id: number) => request<OkDto>(`/api/secrets/${id}`, { method: 'DELETE' }),
+
+  getAuditRetention: () => request<AuditRetentionDto>('/api/audit/retention'),
+
+  updateAuditRetention: (maxEvents: number, currentPassword: string) =>
+    request<AuditRetentionDto>('/api/audit/retention', {
+      method: 'PUT',
+      body: JSON.stringify({ maxEvents, currentPassword } satisfies UpdateAuditRetentionRequestDto),
+    }),
+
+  clearAudit: (currentPassword: string) =>
+    request<ClearAuditResultDto>('/api/audit/clear', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword } satisfies ClearAuditRequestDto),
+    }),
 
   checkForUpdate: () => request<UpdateCheckDto>('/api/update/check', { method: 'POST' }),
 

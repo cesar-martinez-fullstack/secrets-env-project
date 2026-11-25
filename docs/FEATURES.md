@@ -92,7 +92,7 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 | F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | Hecho       | 0.2.0   |
 | F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                           | Hecho       | 0.2.0   |
 | F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | Planeado    | 0.2.0   |
-| F-139 | Auditoría: retención configurable y vaciado del historial desde Ajustes (pide contraseña)                                                               | Planeado    | 0.2.0   |
+| F-139 | Auditoría: retención configurable y vaciado del historial desde Ajustes (pide contraseña)                                                               | En revisión | 0.2.0   |
 
 Los ajustes son **por instancia** (quien tiene la bóveda abierta los administra, sin roles) y se guardan fuera de
 la bóveda, en la carpeta de datos, para poder leerse antes de desbloquear. El logo solo admite imágenes
