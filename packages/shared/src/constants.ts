@@ -60,6 +60,7 @@ export type AuditEventType =
   | 'vault.recovery_failed'
   | 'vault.recovery_key_regenerated'
   | 'vault.backup_created'
+  | 'vault.reauth_failed'
   | 'audit.retention_changed'
   | 'audit.cleared'
   | 'project.created'
@@ -92,6 +93,7 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.recovery_failed',
   'vault.recovery_key_regenerated',
   'vault.backup_created',
+  'vault.reauth_failed',
   'audit.retention_changed',
   'audit.cleared',
   'project.created',
@@ -113,6 +115,21 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'settings.logo_removed',
   'settings.appearance_changed',
 ];
+
+/** Cambios sobre el propio historial: tienen cuota propia para que ningún otro evento los expulse. */
+export const AUDIT_HISTORY_EVENTS: readonly AuditEventType[] = [
+  'audit.cleared',
+  'audit.retention_changed',
+];
+export const AUDIT_HISTORY_EVENTS_KEPT = 100;
+
+/** Intentos fallidos: se pueden provocar sin credenciales, así que no desplazan al resto. */
+export const AUDIT_FAILURE_EVENTS: readonly AuditEventType[] = [
+  'vault.unlock_failed',
+  'vault.recovery_failed',
+  'vault.reauth_failed',
+];
+export const AUDIT_FAILURE_EVENTS_KEPT = 200;
 
 /** Eventos de auditoría retenidos por defecto (se podan los más antiguos). */
 export const AUDIT_MAX_EVENTS = 1_000;

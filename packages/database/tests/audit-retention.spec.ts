@@ -59,6 +59,40 @@ describe('audit retention (migration 6 and repositories)', () => {
     expect(await audit.count()).toBe(100);
   });
 
+  const countOf = (type: string) =>
+    db
+      .query<{ total: number }, [string]>('SELECT COUNT(*) AS total FROM audit_log WHERE type = ?')
+      .get(type)!.total;
+
+  it('should keep the proof of a clearing however many other events arrive afterwards', async () => {
+    await security.save({ auditMaxEvents: 100 });
+    await audit.record('audit.cleared', 'vaciado');
+
+    for (let index = 0; index < 300; index++) await audit.record('secret.revealed', 'revelado');
+    for (let index = 0; index < 300; index++) await audit.record('vault.recovery_failed', 'fallo');
+
+    expect(countOf('audit.cleared')).toBe(1);
+  });
+
+  it('should cap failed attempts apart, so they never push out ordinary events', async () => {
+    await security.save({ auditMaxEvents: 100 });
+    for (let index = 0; index < 100; index++) await audit.record('secret.exported', 'export');
+
+    for (let index = 0; index < 150; index++) await audit.record('vault.unlock_failed', 'fallo');
+    for (let index = 0; index < 150; index++) await audit.record('vault.recovery_failed', 'fallo');
+
+    expect(countOf('secret.exported')).toBe(100);
+    expect(countOf('vault.unlock_failed') + countOf('vault.recovery_failed')).toBe(200);
+  });
+
+  it('should cap the history changes at their own quota', async () => {
+    for (let index = 0; index < 120; index++) {
+      await audit.record('audit.retention_changed', 'cambio');
+    }
+
+    expect(countOf('audit.retention_changed')).toBe(100);
+  });
+
   it('should clear the whole history and report how many events it removed', async () => {
     for (let index = 1; index <= 12; index++) await audit.record('vault.lock', `evento ${index}`);
 

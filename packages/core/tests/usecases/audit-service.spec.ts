@@ -79,12 +79,14 @@ describe('AuditService', () => {
 
   describe('setRetention', () => {
     it('should confirm the password, save, prune at once and audit the change, in that order', async () => {
+      audit.count.mockResolvedValueOnce(900).mockResolvedValueOnce(500);
+
       await service.setRetention('s1', 'correcta', 500);
 
       expect(calls).toEqual(['confirm:s1', 'save:500', 'prune:500']);
       expect(audit.record).toHaveBeenCalledWith(
         'audit.retention_changed',
-        'Retención del historial fijada en 500 eventos.',
+        'Retención del historial: de 1000 a 500 eventos (400 eliminados).',
       );
     });
 

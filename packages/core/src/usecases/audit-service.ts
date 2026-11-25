@@ -40,11 +40,14 @@ export class AuditService {
     }
     await this.deps.passwords.confirmPassword(sessionId, password);
     await this.deps.unitOfWork.run(async () => {
+      const { auditMaxEvents: previous } = await this.deps.security.get();
+      const before = await this.deps.audit.count();
       await this.deps.security.save({ auditMaxEvents: maxEvents });
       await this.deps.audit.prune(maxEvents);
+      const removed = before - (await this.deps.audit.count());
       await this.deps.audit.record(
         'audit.retention_changed',
-        `Retención del historial fijada en ${maxEvents} eventos.`,
+        `Retención del historial: de ${previous} a ${maxEvents} eventos (${removed} eliminados).`,
       );
     });
   }
