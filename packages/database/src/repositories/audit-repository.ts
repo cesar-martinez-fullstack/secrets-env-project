@@ -22,7 +22,17 @@ export class SqliteAuditRepository implements AuditRepository {
     this.db
       .query('INSERT INTO audit_log (type, message, created_at) VALUES (?, ?, ?)')
       .run(type, message, new Date().toISOString());
-    await this.prune(AUDIT_MAX_EVENTS);
+    await this.prune(this.retention());
+  }
+
+  /** La retención vive en la misma base (tabla `security_settings`). */
+  private retention(): number {
+    const row = this.db
+      .query<{ audit_max_events: number }, []>(
+        'SELECT audit_max_events FROM security_settings WHERE id = 1',
+      )
+      .get();
+    return row?.audit_max_events ?? AUDIT_MAX_EVENTS;
   }
 
   async list(limit: number, offset: number): Promise<AuditEvent[]> {
@@ -44,6 +54,10 @@ export class SqliteAuditRepository implements AuditRepository {
       .query<{ total: number }, []>('SELECT COUNT(*) AS total FROM audit_log')
       .get();
     return row?.total ?? 0;
+  }
+
+  async clear(): Promise<number> {
+    return this.db.query('DELETE FROM audit_log').run().changes;
   }
 
   async prune(max: number): Promise<void> {

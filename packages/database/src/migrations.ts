@@ -155,6 +155,18 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 6,
+    description: 'ajustes de seguridad: cuántos eventos de auditoría se conservan',
+    sql: `
+      CREATE TABLE security_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        audit_max_events INTEGER NOT NULL DEFAULT 1000
+          CHECK (audit_max_events BETWEEN 100 AND 100000)
+      );
+      INSERT INTO security_settings (id) VALUES (1);
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {
