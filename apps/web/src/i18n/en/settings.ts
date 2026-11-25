@@ -35,6 +35,16 @@ export const settings: Record<keyof typeof base, string> = {
   'settings.tourTitle': 'Guided tour',
   'settings.tourBody': 'Go over the main features of the application again.',
   'settings.tourReplay': 'Repeat the tour',
+  'backup.title': 'Backup',
+  'backup.body':
+    'Download a copy of your whole vault to keep it safe or move it to another machine. Secret values and notes stay encrypted.',
+  'backup.warning':
+    'Note: project, environment and secret names, and the audit history, are in the clear inside the file. Opening it requires your master password or your recovery key; keep it somewhere safe.',
+  'backup.password': 'Master password',
+  'backup.download': 'Download backup',
+  'backup.doneTitle': 'Backup downloaded',
+  'backup.doneBody': 'Keep it off this machine, somewhere safe.',
+  'backup.failed': 'The backup could not be created',
   'updates.title': 'Updates',
   'updates.body':
     'Check whether a new version is available. It only connects to GitHub when you press the button and sends no data from your vault.',

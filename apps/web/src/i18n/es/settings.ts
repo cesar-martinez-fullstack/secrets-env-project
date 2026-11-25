@@ -33,6 +33,16 @@ export const settings = {
   'settings.tourTitle': 'Tour guiado',
   'settings.tourBody': 'Repasa las funciones principales de la aplicación.',
   'settings.tourReplay': 'Repetir el tour',
+  'backup.title': 'Copia de seguridad',
+  'backup.body':
+    'Descarga una copia de toda tu bóveda para guardarla o moverla a otro equipo. Los valores y las notas de los secretos siguen cifrados.',
+  'backup.warning':
+    'Atención: los nombres de proyectos, ambientes y secretos, y el historial de auditoría, quedan en claro dentro del archivo. Para abrirla hacen falta tu contraseña maestra o tu clave de recuperación; guárdala en un lugar seguro.',
+  'backup.password': 'Contraseña maestra',
+  'backup.download': 'Descargar copia',
+  'backup.doneTitle': 'Copia descargada',
+  'backup.doneBody': 'Guárdala fuera de este equipo, en un lugar seguro.',
+  'backup.failed': 'No se pudo crear la copia',
   'updates.title': 'Actualizaciones',
   'updates.body':
     'Comprueba si hay una versión nueva. Solo se conecta a GitHub cuando pulsas el botón y no envía ningún dato de tu bóveda.',
