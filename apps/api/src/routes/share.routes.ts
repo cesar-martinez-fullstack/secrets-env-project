@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { SHARE_FILE_EXTENSION } from '@secretvault/shared';
 import type {
   ShareImportRequestDto,
+  ShareSecretsExportRequestDto,
   SharePreviewRequestDto,
   ShareExportRequestDto,
   ShareFileDto,
@@ -16,6 +17,7 @@ import {
   rateLimited,
   readJsonBody,
   requireBoolean,
+  requireIdList,
   requireString,
   requireStringList,
 } from '../http/helpers';
@@ -59,6 +61,16 @@ export function shareRoutes(container: Container): Hono<AppEnv> {
     const file = await shareService.exportEnvironment(
       c.get('session').key,
       parseIdParam(c.req.param('id')),
+      requireString(body, 'passphrase'),
+    );
+    return jsonResponse<ShareFileDto>(c, toDto(file));
+  });
+
+  app.post('/secrets/export', async (c) => {
+    const body = await readJsonBody<ShareSecretsExportRequestDto>(c);
+    const file = await shareService.exportSecrets(
+      c.get('session').key,
+      requireIdList(body, 'ids'),
       requireString(body, 'passphrase'),
     );
     return jsonResponse<ShareFileDto>(c, toDto(file));

@@ -17,6 +17,7 @@ export const table = {
   'table.selectAll': 'Seleccionar todos',
   'table.selectedCount': '{count} seleccionado(s)',
   'table.deleteSelected': 'Eliminar selección',
+  'table.shareSelected': 'Compartir selección',
   'table.clearSelection': 'Cancelar',
   'table.sortAsc': 'A → Z',
   'table.sortDesc': 'Z → A',

@@ -35,6 +35,9 @@ export const io = {
   'shareExport.title': 'Compartir «{name}»',
   'shareExport.scopeProject': 'el proyecto completo',
   'shareExport.scopeEnv': 'este ambiente',
+  'shareExport.leadSecrets':
+    'Se genera un archivo cifrado solo con los secretos seleccionados. Quien lo reciba necesita la frase de paso para abrirlo en su SecretVault.',
+  'shareExport.selection': '{count} secreto(s) seleccionado(s)',
   'shareExport.lead':
     'Se genera un archivo cifrado con {scope}, sus ambientes y sus secretos. Quien lo reciba necesita la frase de paso para abrirlo en su SecretVault.',
   'shareExport.passphrase': 'Frase de paso',

@@ -37,6 +37,9 @@ export const io: Record<keyof typeof base, string> = {
   'shareExport.title': 'Share «{name}»',
   'shareExport.scopeProject': 'the whole project',
   'shareExport.scopeEnv': 'this environment',
+  'shareExport.leadSecrets':
+    'An encrypted file is generated with only the selected secrets. Whoever receives it needs the passphrase to open it in their SecretVault.',
+  'shareExport.selection': '{count} selected secret(s)',
   'shareExport.lead':
     'An encrypted file is generated with {scope}, its environments and its secrets. Whoever receives it needs the passphrase to open it in their SecretVault.',
   'shareExport.passphrase': 'Passphrase',

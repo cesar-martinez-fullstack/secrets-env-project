@@ -61,6 +61,7 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/secrets/import',
   'POST /api/share/projects/:id/export',
   'POST /api/share/environments/:id/export',
+  'POST /api/share/secrets/export',
   'POST /api/share/preview',
   'POST /api/share/import',
   'GET /api/secrets/export',

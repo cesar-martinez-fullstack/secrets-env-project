@@ -119,6 +119,8 @@ Un ejecutable compilado en tu propio Mac no muestra el aviso de Gatekeeper. Si d
 1. Quien comparte: en la barra lateral, pasa el cursor sobre un proyecto o un ambiente y pulsa el icono de
    compartir (**Compartir proyecto** / **Compartir ambiente**). Elige una **frase de paso** (mínimo 12
    caracteres) y descarga el archivo cifrado.
+   Para pasar solo algunos secretos, márcalos en la lista y pulsa **Compartir selección** (deben ser de un mismo
+   proyecto).
 2. Envía el archivo por un canal y **la frase por otro distinto** (por ejemplo, el archivo por correo y la frase
    en persona o por mensajería).
 3. Quien recibe: en la barra lateral, el botón **Importar un archivo compartido**; elige el archivo, escribe la

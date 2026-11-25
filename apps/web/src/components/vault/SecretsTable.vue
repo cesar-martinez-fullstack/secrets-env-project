@@ -33,6 +33,7 @@ const emit = defineEmits<{
   reorder: [ids: number[]];
   'clear-selection': [];
   'remove-selected': [];
+  'share-selected': [];
   'create-first': [];
 }>();
 
@@ -204,6 +205,14 @@ async function copySecret(secret: SecretDto): Promise<void> {
           @click="emit('clear-selection')"
         >
           {{ t('table.clearSelection') }}
+        </button>
+        <button
+          type="button"
+          class="rounded-lg px-2.5 py-1 font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          data-testid="share-selected"
+          @click="emit('share-selected')"
+        >
+          {{ t('table.shareSelected') }}
         </button>
         <button
           type="button"
