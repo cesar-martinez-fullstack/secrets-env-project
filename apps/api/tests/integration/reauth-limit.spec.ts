@@ -18,8 +18,8 @@ let container: Container;
 let app: ReturnType<typeof createApp>;
 let headers: Record<string, string>;
 
-const call = (path: string, body: object) =>
-  app.request(path, { method: 'POST', headers, body: JSON.stringify(body) });
+const call = (path: string, body: object, method = 'POST') =>
+  app.request(path, { method, headers, body: JSON.stringify(body) });
 
 beforeAll(async () => {
   rootDir = mkdtempSync(join(tmpdir(), 'sv-reauth-'));
@@ -58,7 +58,14 @@ describe('reauthentication attempts', () => {
       newPassword: `${MASTER}-nueva`,
     });
     const recovery = await call('/api/vault/recovery-key', { currentPassword: MASTER });
+    const retention = await call(
+      '/api/audit/retention',
+      { maxEvents: 500, currentPassword: MASTER },
+      'PUT',
+    );
+    const clear = await call('/api/audit/clear', { currentPassword: MASTER });
 
-    expect([backup.status, change.status, recovery.status]).toEqual([429, 429, 429]);
+    const statuses = [backup, change, recovery, retention, clear].map((res) => res.status);
+    expect(statuses).toEqual([429, 429, 429, 429, 429]);
   });
 });
