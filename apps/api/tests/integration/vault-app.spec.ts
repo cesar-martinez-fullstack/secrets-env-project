@@ -615,6 +615,26 @@ describe('API integration — ciclo de vida completo', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('GET /api/secrets/export?ids= exporta solo los secretos elegidos', async () => {
+    const created = await Promise.all(
+      ['SELECCION_UNO', 'SELECCION_DOS'].map(async (name) =>
+        json<{ id: number }>(await post('/api/secrets', { environmentId: 1, name, value: 'v' })),
+      ),
+    );
+    const [one] = created.map((secret) => secret.id);
+
+    const res = await get(`/api/secrets/export?ids=${one}&format=json`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Disposition')).toContain('seleccion');
+    const document = await json<{ secrets: { name: string }[] }>(res);
+    expect(document.secrets.map((secret) => secret.name)).toEqual(['SELECCION_UNO']);
+
+    for (const bad of ['ids=', 'ids=abc', 'ids=1,,2', 'ids=999999']) {
+      const failed = await get(`/api/secrets/export?${bad}&format=json`);
+      expect([400, 404]).toContain(failed.status);
+    }
+  });
+
   it('rutas /api/* desconocidas → 404 JSON; rutas de la SPA → index.html', async () => {
     const api404 = await get('/api/no-existe', false);
     expect(api404.status).toBe(404);
