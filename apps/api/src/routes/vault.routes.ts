@@ -123,7 +123,7 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
 
   // POST (no GET): la contraseña viaja en el cuerpo, nunca en la URL. El binario no pasa por jsonResponse.
   app.post('/backup', requireUnlocked(container), async (c) => {
-    const key = `backup:${clientIp(c, config.trustProxy)}`;
+    const key = `change:${clientIp(c, config.trustProxy)}`; // mismo presupuesto que las demás reautenticaciones
     const attempt = container.rateLimiters.changePassword.hit(key);
     if (!attempt.allowed) throw rateLimited(attempt.retryAfterSeconds);
 

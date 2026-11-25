@@ -39,7 +39,7 @@ export const settings: Record<keyof typeof base, string> = {
   'backup.body':
     'Download a copy of your whole vault to keep it safe or move it to another machine. Secret values and notes stay encrypted.',
   'backup.warning':
-    'Note: project, environment and secret names, and the audit history, are in the clear inside the file. Opening it requires your master password or your recovery key; keep it somewhere safe.',
+    'Note: project, environment and secret names, and the audit history, are in the clear inside the file. Opening it requires your master password or your recovery key, and whoever holds the file can try to guess the password offline: the stronger it is, the better the copy is protected. Keep it somewhere safe.',
   'backup.password': 'Master password',
   'backup.download': 'Download backup',
   'backup.doneTitle': 'Backup downloaded',

@@ -17,7 +17,9 @@ Un botón **«Descargar copia»** en Ajustes. `POST /api/vault/backup` entrega e
 - **Reautenticación:** exige volver a escribir la contraseña maestra, que se verifica con el mismo punto de
   comprobación de siempre (`VaultService.confirmPassword`, que reutiliza `openWithPassword`). Una sesión robada sin
   la contraseña no puede descargar la base para atacarla fuera de línea. Va por `POST` con la contraseña en el cuerpo
-  (nunca en la URL), tras `requireUnlocked` y con el mismo límite de intentos que el cambio de contraseña.
+  (nunca en la URL), tras `requireUnlocked` y **compartiendo el mismo presupuesto de intentos** (misma clave de
+  límite) que el cambio de contraseña y la regeneración de la clave de recuperación, para que probar contraseñas por
+  una u otra ruta no multiplique los intentos.
 - **Copia consistente:** `db.serialize()` (puerto `VaultBackup` en `core`, adaptador `SqliteVaultBackup` en
   `database`) devuelve la base tal como la ve la conexión, incluido lo confirmado en el WAL; no se copian
   archivos a mano mientras se escribe.
@@ -26,12 +28,13 @@ Un botón **«Descargar copia»** en Ajustes. `POST /api/vault/backup` entrega e
 
 ## Qué contiene la copia (y qué no)
 
-Es la base tal cual. Los **valores y notas** de los secretos van cifrados (AES-256-GCM) y la clave de datos va
+Es la base tal cual, incluidos la sal, las iteraciones, el verificador de la contraseña y la clave de datos envuelta (con la contraseña y con la clave de recuperación). Los **valores y notas** de los secretos van cifrados (AES-256-GCM) y la clave de datos va
 envuelta por la contraseña maestra y por la clave de recuperación. Pero los **nombres de proyectos, ambientes y
 secretos y el historial de auditoría están en claro** dentro del archivo, igual que en el disco. La interfaz lo
 avisa antes de descargar. Quien tenga el archivo no ve los valores, pero sí cómo se llama lo que guardas, y puede
-intentar adivinar la contraseña maestra fuera de línea (de ahí PBKDF2 con 600.000 iteraciones y la exigencia de una
-contraseña fuerte).
+intentar adivinar la contraseña maestra fuera de línea con el verificador (de ahí PBKDF2 con 600.000 iteraciones y la
+exigencia de una contraseña fuerte; la clave de recuperación, de 256 bits, no es atacable por fuerza bruta). La
+interfaz lo advierte.
 
 ## Restaurar
 

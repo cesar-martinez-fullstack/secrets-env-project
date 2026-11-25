@@ -19,10 +19,10 @@ async function download(): Promise<void> {
     const file = await api.downloadBackup(password.value);
     saveBlob(file.filename, file.blob);
     toast.push('success', t('backup.doneTitle'), t('backup.doneBody'));
-    password.value = '';
   } catch (error) {
     toast.push('error', t('backup.failed'), describeError(error));
   } finally {
+    password.value = '';
     busy.value = false;
   }
 }

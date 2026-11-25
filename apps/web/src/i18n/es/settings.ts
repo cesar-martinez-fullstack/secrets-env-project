@@ -37,7 +37,7 @@ export const settings = {
   'backup.body':
     'Descarga una copia de toda tu bóveda para guardarla o moverla a otro equipo. Los valores y las notas de los secretos siguen cifrados.',
   'backup.warning':
-    'Atención: los nombres de proyectos, ambientes y secretos, y el historial de auditoría, quedan en claro dentro del archivo. Para abrirla hacen falta tu contraseña maestra o tu clave de recuperación; guárdala en un lugar seguro.',
+    'Atención: los nombres de proyectos, ambientes y secretos, y el historial de auditoría, quedan en claro dentro del archivo. Para abrirla hacen falta tu contraseña maestra o tu clave de recuperación, y quien tenga el archivo puede intentar adivinar la contraseña sin conexión: cuanto más fuerte sea, mejor protege la copia. Guárdala en un lugar seguro.',
   'backup.password': 'Contraseña maestra',
   'backup.download': 'Descargar copia',
   'backup.doneTitle': 'Copia descargada',
