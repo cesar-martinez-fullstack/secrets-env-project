@@ -11,6 +11,52 @@ listed under **Changed** with upgrade notes — back up your vault before upgrad
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-24
+
+Upgrading from 0.1.0 migrates the database automatically and in a transaction (schema v5). Back up your
+vault before upgrading (from this version on, `./scripts/update.sh` takes a backup for you).
+
+### Added
+
+- Projects: environments are grouped into projects, with create, rename and delete for empty projects.
+- Sharing: export a project or an environment as an encrypted `.svshare` file protected by a passphrase
+  (at least 12 characters) and import it as a new project or merge it into an existing one, choosing for
+  each repeated environment whether to merge or keep it apart, and whether to skip or overwrite variables.
+  Received secrets are marked "Imported" until their value is edited.
+- Import variables from `.env`/TXT, CSV and JSON files (the same formats the app exports) with a preview,
+  notes included. JSON is shown formatted and syntax highlighted.
+- Export an environment as JSON and as a Postman Environment (every variable as `secret`).
+- Select several secrets and delete them at once (atomic, with a confirmation that lists the names).
+- Sort secrets A to Z or Z to A, or manually per environment with drag and drop or up and down buttons.
+- Personalization: application name, logo, accent color and default theme, with a live preview in Settings.
+- First-run wizard and guided tour, which can be replayed from Settings.
+- Spanish and English interface.
+- "Check for updates" button in Settings. It only connects to GitHub when pressed, sends no data and never
+  installs anything. It is the only outbound request the app makes; set `SV_UPDATE_CHECK=false` to disable
+  it (see ADR-0010).
+- Docker image published for `linux/amd64` and `linux/arm64` (Apple Silicon Macs), `scripts/update.sh` to
+  update from `main` keeping the data and taking a backup first, and a macOS installation guide
+  (`docs/MAC.md`).
+
+### Changed
+
+- The database schema moves from v1 to v5: projects, "imported" mark and manual order. Migrations are
+  automatic; the vault cannot be opened by an older version afterwards.
+- Instance settings (name, logo, accent, theme) are stored in `settings.json` inside the data directory,
+  outside the vault, so they can be shown before unlocking.
+
+### Fixed
+
+- `.dockerignore` now excludes every `node_modules` and `dist` directory, so building the image on a machine
+  where `bun install` was already run no longer breaks.
+
+### Security
+
+- Logo uploads accept only PNG, JPEG and WebP, validated by content (never SVG), up to 256 KB.
+- Shared files use PBKDF2 and AES-256-GCM with authenticated data, and a generic error for a wrong passphrase
+  or a damaged file.
+- Bulk and manual-order operations are atomic and validate that the ids belong to the environment.
+
 ## [0.1.0] - 2026-11-09
 
 First public release.
@@ -52,5 +98,6 @@ First public release.
   (`synchronous=FULL`) and secure deletion.
 - Container runs as a non-root user from pinned base images.
 
-[Unreleased]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cesar-martinez-fullstack/secrets-env-project/releases/tag/v0.1.0
