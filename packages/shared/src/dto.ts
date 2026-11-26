@@ -62,6 +62,21 @@ export interface RecoverVaultResponseDto {
   recoveryKey: string;
 }
 
+export interface SessionSecurityValuesDto {
+  autoLockMinutes: number;
+  sessionMaxMinutes: number;
+  /** 0 desactiva la limpieza del portapapeles. */
+  clipboardClearSeconds: number;
+}
+
+export interface SessionSecurityDto extends SessionSecurityValuesDto {
+  options: Record<keyof SessionSecurityValuesDto, number[]>;
+}
+
+export interface UpdateSessionSecurityRequestDto extends SessionSecurityValuesDto {
+  currentPassword: string;
+}
+
 export interface AuditRetentionDto {
   maxEvents: number;
   options: number[];

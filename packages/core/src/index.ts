@@ -21,3 +21,4 @@ export * from './usecases/share-service';
 export * from './usecases/settings-service';
 export * from './usecases/update-service';
 export * from './usecases/backup-service';
+export * from './usecases/session-security-service';

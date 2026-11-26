@@ -71,6 +71,8 @@ export const ROUTE_MANIFEST: string[] = [
   'GET /api/audit/retention',
   'PUT /api/audit/retention',
   'POST /api/audit/clear',
+  'GET /api/security-settings',
+  'PUT /api/security-settings',
   'POST /api/update/check',
   'GET /api/settings',
   'GET /api/settings/logo',
@@ -89,6 +91,7 @@ const ROUTE_FILES: Record<string, string> = {
   'secrets.routes.ts': '/api/secrets',
   'share.routes.ts': '/api/share',
   'audit.routes.ts': '/api/audit',
+  'security.routes.ts': '/api/security-settings',
   'settings.routes.ts': '/api/settings',
   'update.routes.ts': '/api/update',
 };

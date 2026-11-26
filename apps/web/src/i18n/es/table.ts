@@ -33,6 +33,7 @@ export const table = {
   'table.revealFailed': 'No se pudo revelar',
   'table.copyFailed': 'No se pudo copiar',
   'table.copied': '{name} copiado al portapapeles',
+  'table.copiedClears': 'Se intentará vaciar el portapapeles en {seconds} segundos.',
   'table.copiedBody': 'El valor está disponible para pegar.',
   'table.clipboardBlocked': 'Tu navegador bloqueó el acceso al portapapeles.',
 } as const;

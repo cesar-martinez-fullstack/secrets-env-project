@@ -220,22 +220,23 @@ describe('Integridad del almacenamiento', () => {
 });
 
 describe('Sesiones', () => {
+  const LIMITS = { idleMinutes: 15, maxMinutes: 60 };
   const crypto = new NodeCryptoService();
 
   it('should cap the session lifetime even with constant activity (absolute expiry)', async () => {
     let now = 1_000_000;
-    const store = new InMemorySessionStore(crypto, 60, () => now);
-    const session = await store.create(new Uint8Array(32).fill(1), 15);
+    const store = new InMemorySessionStore(crypto, () => now);
+    const session = await store.create(new Uint8Array(32).fill(1), LIMITS);
 
     now += 14 * 60_000;
-    await store.touch(session.sessionId, 15); // actividad: ventana deslizante
+    await store.touch(session.sessionId, LIMITS); // actividad: ventana deslizante
     now += 14 * 60_000;
-    await store.touch(session.sessionId, 15);
+    await store.touch(session.sessionId, LIMITS);
     now += 14 * 60_000;
-    await store.touch(session.sessionId, 15);
+    await store.touch(session.sessionId, LIMITS);
     now += 14 * 60_000; // t = 56 min: aún viva
     expect(await store.get(session.sessionId)).not.toBeNull();
-    const touched = await store.touch(session.sessionId, 15);
+    const touched = await store.touch(session.sessionId, LIMITS);
     expect(touched!.expiresAt.getTime()).toBe(session.createdAt.getTime() + 60 * 60_000);
 
     now += 5 * 60_000; // t = 61 min: el tope absoluto la mata pese a la actividad
@@ -245,7 +246,7 @@ describe('Sesiones', () => {
   it('should destroy every session key on clear() (process shutdown)', async () => {
     const store = new InMemorySessionStore(crypto);
     const key = new Uint8Array(32).fill(9);
-    await store.create(key, 15);
+    await store.create(key, LIMITS);
     await store.clear();
     expect(await store.count()).toBe(0);
     expect(key.every((b) => b === 0)).toBe(true);

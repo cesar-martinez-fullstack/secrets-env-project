@@ -8,6 +8,7 @@ import type {
   EnvironmentRepository,
   ProjectRepository,
   SecretRepository,
+  SecuritySettingsRepository,
   VaultRepository,
 } from '../../src/ports/repositories';
 import type { VaultCryptoService } from '../../src/ports/crypto';
@@ -276,6 +277,7 @@ export interface MockSessions {
   create: ReturnType<typeof jest.fn>;
   get: ReturnType<typeof jest.fn>;
   touch: ReturnType<typeof jest.fn>;
+  applyLimits: ReturnType<typeof jest.fn>;
   remove: ReturnType<typeof jest.fn>;
   purgeExpired: ReturnType<typeof jest.fn>;
   clear: ReturnType<typeof jest.fn>;
@@ -286,15 +288,17 @@ export function mockSessions(): MockSessions {
   const create = jest.fn();
   const get = jest.fn();
   const touch = jest.fn();
+  const applyLimits = jest.fn().mockResolvedValue(undefined);
   const remove = jest.fn();
   const purgeExpired = jest.fn().mockResolvedValue(0);
   const clear = jest.fn().mockResolvedValue(undefined);
   const count = jest.fn().mockResolvedValue(0);
   return {
-    store: { create, get, touch, remove, purgeExpired, clear, count },
+    store: { create, get, touch, applyLimits, remove, purgeExpired, clear, count },
     create,
     get,
     touch,
+    applyLimits,
     remove,
     purgeExpired,
     clear,
@@ -303,6 +307,18 @@ export function mockSessions(): MockSessions {
 }
 
 /** UnitOfWork simulado: ejecuta el trabajo directamente (sin transaccion real). */
+export interface MockSecurityRepo {
+  repo: SecuritySettingsRepository;
+  get: ReturnType<typeof jest.fn>;
+  save: ReturnType<typeof jest.fn>;
+}
+
+export function mockSecurityRepo(): MockSecurityRepo {
+  const get = jest.fn();
+  const save = jest.fn().mockResolvedValue(undefined);
+  return { repo: { get, save }, get, save };
+}
+
 export function mockUnitOfWork(): UnitOfWork {
   return { run: async (work) => work() };
 }

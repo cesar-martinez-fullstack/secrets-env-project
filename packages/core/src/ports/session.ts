@@ -5,15 +5,29 @@
  */
 import type { VaultSession } from '../domain/entities';
 
+export interface SessionLimits {
+  /** Minutos sin actividad antes de bloquear. */
+  idleMinutes: number;
+  /** Vida máxima desde que se abrió, aunque haya actividad. */
+  maxMinutes: number;
+}
+
+export interface SessionLimitsProvider {
+  currentLimits(): Promise<SessionLimits>;
+}
+
 export interface SessionStore {
-  /** Crea una sesión con una clave y TTL (minutos de inactividad). */
-  create(key: Uint8Array, ttlMinutes: number): Promise<VaultSession>;
+  /** Crea una sesión con una clave y sus límites. */
+  create(key: Uint8Array, limits: SessionLimits): Promise<VaultSession>;
 
   /** Recupera una sesión viva o null si no existe / expiró. */
   get(sessionId: string): Promise<VaultSession | null>;
 
-  /** Renueva la expiración (ventana deslizante de inactividad). */
-  touch(sessionId: string, ttlMinutes: number): Promise<VaultSession | null>;
+  /** Renueva la ventana de inactividad; si ya superó su vida máxima la destruye y devuelve null. */
+  touch(sessionId: string, limits: SessionLimits): Promise<VaultSession | null>;
+
+  /** Acorta las sesiones abiertas que excedan los límites nuevos; nunca las alarga. */
+  applyLimits(limits: SessionLimits): Promise<void>;
 
   /** Elimina la sesión y destruye la clave en memoria. */
   remove(sessionId: string): Promise<void>;

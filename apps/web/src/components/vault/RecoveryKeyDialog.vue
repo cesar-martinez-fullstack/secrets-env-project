@@ -7,7 +7,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useVaultStore } from '@/stores/vault';
 import { useToastStore } from '@/stores/toast';
 import { useI18n } from '@/i18n/use-i18n';
-import { copyText } from '@/lib/clipboard';
+import { useSecurityStore } from '@/stores/security';
 import { saveTextFile } from '@/lib/download';
 import { warnBeforeUnload } from '@/lib/before-unload';
 import BaseModal from '@/components/ui/BaseModal.vue';
@@ -15,6 +15,7 @@ import AppIcon from '@/components/AppIcon.vue';
 
 const vault = useVaultStore();
 const toast = useToastStore();
+const security = useSecurityStore();
 const { t } = useI18n();
 
 const saved = ref(false);
@@ -35,7 +36,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 async function copy(): Promise<void> {
   const key = vault.pendingRecoveryKey;
   if (!key) return;
-  const ok = await copyText(key);
+  const ok = await security.copySensitive(key);
   toast.push(
     ok ? 'success' : 'error',
     ok ? t('recovery.copiedTitle') : t('recovery.copyFailed'),

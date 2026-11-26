@@ -13,6 +13,7 @@ import { useTourStore } from '@/stores/tour';
 import { useSelectionStore } from '@/stores/selection';
 import { useSortStore } from '@/stores/sort';
 import { useViewStore } from '@/stores/view';
+import { useSecurityStore } from '@/stores/security';
 import { sortSecrets } from '@/lib/sort';
 import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
@@ -43,6 +44,7 @@ const tour = useTourStore();
 const selection = useSelectionStore();
 const sort = useSortStore();
 const view = useViewStore();
+const security = useSecurityStore();
 const reorderable = computed(() => sort.order === 'manual' && !data.isSearching);
 const sortedSecrets = computed(() =>
   sortSecrets(data.secrets, sort.order === 'manual' && data.isSearching ? 'asc' : sort.order),
@@ -113,6 +115,9 @@ let lockTimer: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
   data.init();
+  // Si falla se usa el valor por defecto, que sí vacía el portapapeles.
+  void security.load().catch(() => undefined);
+  document.addEventListener('copy', security.keepClipboard);
   // Recordatorio visual del auto-lock (el backend es la fuente de verdad).
   lockTimer = setInterval(() => {
     void vault.refreshStatus().then((status) => {
@@ -124,10 +129,12 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  document.removeEventListener('copy', security.keepClipboard);
   if (lockTimer) clearInterval(lockTimer);
 });
 
 async function handleLock(): Promise<void> {
+  await security.clearClipboard();
   await vault.lock();
   toast.push('info', t('vault.lockedTitle'), t('vault.lockedBody'));
   await router.replace('/');

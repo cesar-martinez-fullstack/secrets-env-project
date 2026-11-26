@@ -20,7 +20,7 @@ describe('audit retention (migration 6 and repositories)', () => {
 
   it('should create the settings row with the default retention of 1000 events', async () => {
     expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
-    expect(await security.get()).toEqual({ auditMaxEvents: 1_000 });
+    expect((await security.get()).auditMaxEvents).toBe(1_000);
   });
 
   it('should keep the settings table to a single row with a valid retention', () => {
@@ -33,13 +33,13 @@ describe('audit retention (migration 6 and repositories)', () => {
   });
 
   it('should save and read back the retention', async () => {
-    await security.save({ auditMaxEvents: 5_000 });
+    await security.save({ ...(await security.get()), auditMaxEvents: 5_000 });
 
-    expect(await security.get()).toEqual({ auditMaxEvents: 5_000 });
+    expect((await security.get()).auditMaxEvents).toBe(5_000);
   });
 
   it('should prune the oldest events beyond the configured retention each time one is recorded', async () => {
-    await security.save({ auditMaxEvents: 100 });
+    await security.save({ ...(await security.get()), auditMaxEvents: 100 });
 
     for (let index = 1; index <= 130; index++) await audit.record('vault.lock', `evento ${index}`);
 
@@ -52,7 +52,7 @@ describe('audit retention (migration 6 and repositories)', () => {
 
   it('should prune at once when the retention is lowered', async () => {
     for (let index = 1; index <= 150; index++) await audit.record('vault.lock', `evento ${index}`);
-    await security.save({ auditMaxEvents: 100 });
+    await security.save({ ...(await security.get()), auditMaxEvents: 100 });
 
     await audit.prune(100);
 
@@ -65,7 +65,7 @@ describe('audit retention (migration 6 and repositories)', () => {
       .get(type)!.total;
 
   it('should keep the proof of a clearing however many other events arrive afterwards', async () => {
-    await security.save({ auditMaxEvents: 100 });
+    await security.save({ ...(await security.get()), auditMaxEvents: 100 });
     await audit.record('audit.cleared', 'vaciado');
 
     for (let index = 0; index < 300; index++) await audit.record('secret.revealed', 'revelado');
@@ -75,7 +75,7 @@ describe('audit retention (migration 6 and repositories)', () => {
   });
 
   it('should cap failed attempts apart, so they never push out ordinary events', async () => {
-    await security.save({ auditMaxEvents: 100 });
+    await security.save({ ...(await security.get()), auditMaxEvents: 100 });
     for (let index = 0; index < 100; index++) await audit.record('secret.exported', 'export');
 
     for (let index = 0; index < 150; index++) await audit.record('vault.unlock_failed', 'fallo');
