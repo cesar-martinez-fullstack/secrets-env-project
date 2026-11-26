@@ -1,5 +1,7 @@
 import { MAX_SECRET_NOTE_LENGTH } from './constants';
 import { parseEnvContent } from './parse-env';
+import { readPostmanDocument } from './postman-import';
+import type { PostmanDocument, PostmanKind } from './postman-import';
 import { validateSecretName, validateSecretValue } from './validation';
 
 export interface ImportEntry {
@@ -16,6 +18,15 @@ export interface ParsedImportFile {
   invalid: number;
   duplicates: number;
   unreadable: boolean;
+  /** Solo para archivos de Postman: de qué tipo es y qué variables se omitieron. */
+  postman: PostmanSummary | null;
+}
+
+export interface PostmanSummary {
+  kind: PostmanKind;
+  name: string | null;
+  skippedEmpty: number;
+  skippedDisabled: number;
 }
 
 export function detectImportFormat(fileName: string): ImportFileFormat {
@@ -57,7 +68,8 @@ function collect(
     if (byName.has(entry.name)) duplicates++;
     byName.set(entry.name, entry);
   }
-  return { format, entries: [...byName.values()], invalid, duplicates, unreadable: false };
+  const entries = [...byName.values()];
+  return { format, entries, invalid, duplicates, unreadable: false, postman: null };
 }
 
 const UNREADABLE = (format: ImportFileFormat): ParsedImportFile => ({
@@ -66,6 +78,7 @@ const UNREADABLE = (format: ImportFileFormat): ParsedImportFile => ({
   invalid: 0,
   duplicates: 0,
   unreadable: true,
+  postman: null,
 });
 
 interface FieldRead {
@@ -152,6 +165,20 @@ function asRawEntry(item: unknown): RawEntry | null {
   return { name, value, note: normalizeNote(note) };
 }
 
+/** SecretVault no admite valores vacíos: esas variables se omiten, igual que las desactivadas. */
+function parsePostman({ kind, name, variables, malformed }: PostmanDocument): ParsedImportFile {
+  const enabled = variables.filter((variable) => !variable.disabled);
+  const filled = enabled.filter((variable) => variable.value.length > 0);
+  const result = collect(
+    'json',
+    filled.map((variable) => ({ name: variable.name, value: variable.value, note: null })),
+    malformed,
+  );
+  const skippedDisabled = variables.length - enabled.length;
+  const skippedEmpty = enabled.length - filled.length;
+  return { ...result, postman: { kind, name, skippedEmpty, skippedDisabled } };
+}
+
 function parseJson(text: string): ParsedImportFile {
   let document: unknown;
   try {
@@ -159,6 +186,8 @@ function parseJson(text: string): ParsedImportFile {
   } catch {
     return UNREADABLE('json');
   }
+  const postman = readPostmanDocument(document);
+  if (postman) return parsePostman(postman);
   const list = Array.isArray(document) ? document : (document as { secrets?: unknown })?.secrets;
   if (!Array.isArray(list)) return UNREADABLE('json');
 

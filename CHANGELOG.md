@@ -11,6 +11,16 @@ listed under **Changed** with upgrade notes — back up your vault before upgrad
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-26
+
+No database or configuration changes. Back up your vault before upgrading.
+
+### Added
+
+- Import Postman Environment and Globals files, and the variables of a v2.1 collection, with a preview.
+  They can go into a new environment or the current one. Empty and disabled variables are skipped, and the
+  preview says how many.
+
 ## [0.2.0] - 2026-11-25
 
 Upgrading from 0.1.0 migrates the database automatically and in a transaction (schema v6). Back up your
@@ -109,6 +119,7 @@ First public release.
   (`synchronous=FULL`) and secure deletion.
 - Container runs as a non-root user from pinned base images.
 
-[Unreleased]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cesar-martinez-fullstack/secrets-env-project/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cesar-martinez-fullstack/secrets-env-project/releases/tag/v0.1.0

@@ -6,6 +6,13 @@
 import { computed, ref, watch } from 'vue';
 import { detectImportFormat, parseImportFile } from '@secretvault/shared';
 import { formatJson, looksLikeJson, tokenizeJson } from '@/lib/json-highlight';
+import {
+  CURRENT_ENVIRONMENT,
+  isDestinationReady,
+  newEnvironmentDestination,
+} from '@/lib/import-destination';
+import type { ImportDestination } from '@/lib/import-destination';
+import ImportDestinationField from '@/components/vault/ImportDestinationField.vue';
 import type { JsonTokenKind } from '@/lib/json-highlight';
 import { useDataStore } from '@/stores/data';
 import { useToastStore } from '@/stores/toast';
@@ -32,6 +39,7 @@ const fileName = ref<string | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const overwrite = ref(false);
 const submitting = ref(false);
+const destination = ref<ImportDestination>(CURRENT_ENVIRONMENT);
 
 watch(
   () => props.open,
@@ -59,6 +67,23 @@ const parsed = computed(() =>
   content.value.trim().length === 0 ? null : parseImportFile(sourceName.value, content.value),
 );
 
+const postman = computed(() => parsed.value?.postman ?? null);
+
+watch(
+  () => (postman.value ? `${postman.value.kind}:${postman.value.name}` : null),
+  (source) => {
+    const projectId = data.activeEnv?.projectId ?? data.projects[0]?.id ?? null;
+    destination.value =
+      source === null
+        ? CURRENT_ENVIRONMENT
+        : newEnvironmentDestination(postman.value?.name ?? null, projectId);
+  },
+);
+
+const targetName = computed(() =>
+  destination.value.mode === 'new' ? destination.value.name : (data.activeEnv?.name ?? ''),
+);
+
 const formattedJson = computed(() =>
   parsed.value?.format === 'json' && !parsed.value.unreadable ? formatJson(content.value) : null,
 );
@@ -78,7 +103,12 @@ const preview = computed(() => {
   };
 });
 
-const canSubmit = computed(() => (parsed.value?.entries.length ?? 0) > 0 && !submitting.value);
+const canSubmit = computed(
+  () =>
+    (parsed.value?.entries.length ?? 0) > 0 &&
+    isDestinationReady(destination.value, data.activeEnvId) &&
+    !submitting.value,
+);
 
 function clearFile(): void {
   content.value = '';
@@ -102,10 +132,15 @@ async function onFile(event: Event): Promise<void> {
 
 async function submit(): Promise<void> {
   const entries = parsed.value?.entries;
-  if (!entries?.length || data.activeEnvId === null || submitting.value) return;
+  if (!entries?.length || !canSubmit.value) return;
+  const { mode, projectId, name } = destination.value;
+  const importedInto = targetName.value;
   submitting.value = true;
   try {
-    const result = await data.importSecrets(data.activeEnvId, entries, overwrite.value);
+    const result =
+      mode === 'new'
+        ? await data.importIntoNewEnvironment(projectId!, name.trim(), entries)
+        : await data.importSecrets(data.activeEnvId!, entries, overwrite.value);
     const parts: string[] = [];
     if (result.imported > 0) parts.push(t('import.created', { count: result.imported }));
     if (result.updated > 0) parts.push(t('import.updated', { count: result.updated }));
@@ -114,7 +149,7 @@ async function submit(): Promise<void> {
       'success',
       t('import.doneTitle'),
       parts.length > 0
-        ? t('import.summary', { parts: parts.join(', '), env: data.activeEnv?.name ?? '' })
+        ? t('import.summary', { parts: parts.join(', '), env: importedInto })
         : t('import.nothingChanged'),
     );
     emit('close');
@@ -130,10 +165,9 @@ async function submit(): Promise<void> {
   <BaseModal :open="open" :title="t('import.title')" max-width="lg" @close="emit('close')">
     <p class="mb-4 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
       {{ t('import.leadStart') }}
-      <code class="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-800">.env</code>
-      {{ t('import.leadMiddle') }}
-      <strong class="font-semibold text-zinc-700 dark:text-zinc-300"
-        >«{{ data.activeEnv?.name }}»</strong
+      <code class="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs dark:bg-zinc-800">.env</code
+      >{{ t('import.leadMiddle') }}
+      <strong class="font-semibold text-zinc-700 dark:text-zinc-300">«{{ targetName }}»</strong
       >{{ t('import.leadEnd') }}
     </p>
 
@@ -194,6 +228,26 @@ async function submit(): Promise<void> {
 
     <div v-if="preview" class="mt-3 flex flex-wrap items-center gap-2 text-xs">
       <span
+        v-if="postman"
+        class="rounded-full bg-violet-50 px-2.5 py-1 font-medium text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+        data-testid="import-postman"
+      >
+        {{ t(`import.postman.${postman.kind}`) }}{{ postman.name ? ` «${postman.name}»` : '' }}
+      </span>
+      <span
+        v-if="postman && postman.skippedEmpty > 0"
+        class="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+        data-testid="import-skipped-empty"
+      >
+        {{ t('import.skippedEmpty', { count: postman.skippedEmpty }) }}
+      </span>
+      <span
+        v-if="postman && postman.skippedDisabled > 0"
+        class="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+      >
+        {{ t('import.skippedDisabled', { count: postman.skippedDisabled }) }}
+      </span>
+      <span
         v-if="preview.unreadable"
         class="rounded-full bg-red-50 px-2.5 py-1 font-medium text-red-700 dark:bg-red-950/60 dark:text-red-400"
         data-testid="import-unreadable"
@@ -226,7 +280,23 @@ async function submit(): Promise<void> {
       </span>
     </div>
 
+    <p
+      v-if="postman && preview?.valid === 0"
+      class="mt-3 text-xs text-amber-700 dark:text-amber-400"
+      data-testid="import-nothing"
+    >
+      {{ t('import.nothingToImport') }}
+    </p>
+
+    <ImportDestinationField
+      v-if="postman && preview && preview.valid > 0"
+      v-model="destination"
+      :projects="data.projects"
+      :current-name="data.activeEnv?.name ?? null"
+    />
+
     <label
+      v-if="destination.mode === 'current'"
       class="mt-4 flex cursor-pointer items-start gap-2.5 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-700"
     >
       <input v-model="overwrite" type="checkbox" class="mt-0.5 h-4 w-4 accent-indigo-600" />
