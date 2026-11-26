@@ -12,6 +12,7 @@ import { useToastStore } from '@/stores/toast';
 import { useTourStore } from '@/stores/tour';
 import { useSelectionStore } from '@/stores/selection';
 import { useSortStore } from '@/stores/sort';
+import { useViewStore } from '@/stores/view';
 import { sortSecrets } from '@/lib/sort';
 import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
@@ -41,6 +42,7 @@ const toast = useToastStore();
 const tour = useTourStore();
 const selection = useSelectionStore();
 const sort = useSortStore();
+const view = useViewStore();
 const reorderable = computed(() => sort.order === 'manual' && !data.isSearching);
 const sortedSecrets = computed(() =>
   sortSecrets(data.secrets, sort.order === 'manual' && data.isSearching ? 'asc' : sort.order),
@@ -369,6 +371,8 @@ async function runConfirm(): Promise<void> {
             @remove="askDeleteSecret"
             @toggle="selection.toggle"
             @set-order="sort.set"
+            :view="view.mode"
+            @set-view="view.set"
             @reorder="reorderSecrets"
             @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
             @clear-selection="selection.clear()"

@@ -12,6 +12,8 @@ import { copyText } from '@/lib/clipboard';
 import { moveId, shiftId } from '@/lib/sort';
 import type { SortOrder } from '@/lib/sort';
 import SortSelector from '@/components/vault/SortSelector.vue';
+import ViewSelector from '@/components/vault/ViewSelector.vue';
+import type { ViewMode } from '@/lib/view-mode';
 import { relativeTime, absoluteTime } from '@/lib/time';
 import { useToastStore } from '@/stores/toast';
 import { useI18n } from '@/i18n/use-i18n';
@@ -22,6 +24,7 @@ const props = defineProps<{
   selected: ReadonlySet<number>;
   order: SortOrder;
   reorderable: boolean;
+  view: ViewMode;
 }>();
 
 const emit = defineEmits<{
@@ -30,12 +33,60 @@ const emit = defineEmits<{
   toggle: [id: number];
   'toggle-all': [];
   'set-order': [order: SortOrder];
+  'set-view': [view: ViewMode];
   reorder: [ids: number[]];
   'clear-selection': [];
   'remove-selected': [];
   'share-selected': [];
   'create-first': [];
 }>();
+
+interface ViewClasses {
+  list: string;
+  row: string;
+  name: string;
+  badge: string;
+  valueBox: string;
+  value: string;
+  actions: string;
+}
+
+const HOVER_ACTIONS =
+  'opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100';
+const ROW_BADGE = 'hidden md:inline-block';
+const DIVIDED = 'divide-y divide-zinc-100 dark:divide-zinc-800/80';
+
+const VIEW_CLASSES = {
+  list: {
+    list: DIVIDED,
+    row: 'flex-wrap gap-x-4 gap-y-2 px-4 py-3 sm:flex-nowrap',
+    name: 'flex-1',
+    badge: ROW_BADGE,
+    valueBox: 'shrink-0',
+    value: 'max-w-[220px]',
+    actions: HOVER_ACTIONS,
+  },
+  cards: {
+    list: 'grid gap-3 p-3 sm:grid-cols-2 2xl:grid-cols-3',
+    row: 'min-w-0 flex-wrap content-start gap-x-3 gap-y-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-800',
+    name: 'flex-1',
+    badge: 'order-1 mr-auto',
+    valueBox: 'min-w-0 basis-full',
+    value: 'min-w-0 flex-1',
+    actions: 'order-2 ml-auto',
+  },
+  compact: {
+    list: DIVIDED,
+    row: 'flex-wrap gap-x-3 gap-y-1 px-4 py-1 sm:flex-nowrap',
+    name: 'flex flex-1 items-center gap-3',
+    badge: ROW_BADGE,
+    valueBox: 'shrink-0',
+    value: 'max-w-[220px]',
+    actions: HOVER_ACTIONS,
+  },
+} as const satisfies Record<ViewMode, ViewClasses>;
+
+const layout = computed(() => VIEW_CLASSES[props.view]);
 
 const allSelected = computed(
   () => props.secrets.length > 0 && props.secrets.every((secret) => props.selected.has(secret.id)),
@@ -177,7 +228,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
 
   <div v-else class="overflow-hidden">
     <div
-      class="flex items-center gap-3 border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800"
+      class="flex flex-wrap items-center gap-3 border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800"
       data-testid="selection-bar"
     >
       <input
@@ -196,7 +247,9 @@ async function copySecret(secret: SecretDto): Promise<void> {
             : t('table.selectAll')
         }}
       </span>
-      <SortSelector class="ml-auto" :order="order" @change="emit('set-order', $event)" />
+      <ViewSelector class="ml-auto" :view="view" @change="emit('set-view', $event)" />
+      <span class="hidden h-4 w-px bg-zinc-200 sm:block dark:bg-zinc-700" aria-hidden="true" />
+      <SortSelector :order="order" @change="emit('set-order', $event)" />
       <template v-if="selected.size > 0">
         <button
           type="button"
@@ -224,12 +277,12 @@ async function copySecret(secret: SecretDto): Promise<void> {
         </button>
       </template>
     </div>
-    <ul class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+    <ul :class="layout.list" :data-view="view" data-testid="secret-list">
       <li
         v-for="secret in secrets"
         :key="secret.id"
-        class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-zinc-50/80 sm:flex-nowrap dark:hover:bg-zinc-800/40"
-        :class="selected.has(secret.id) && 'bg-indigo-50/60 dark:bg-indigo-950/30'"
+        class="group flex items-center transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40"
+        :class="[layout.row, selected.has(secret.id) && 'bg-indigo-50/60 dark:bg-indigo-950/30']"
         :draggable="reorderable"
         data-testid="secret-row"
         @dragstart="draggingId = secret.id"
@@ -273,8 +326,8 @@ async function copySecret(secret: SecretDto): Promise<void> {
           @change="emit('toggle', secret.id)"
         />
         <!-- Nombre (+ badge de ambiente en búsqueda global) -->
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
+        <div class="min-w-0" :class="layout.name">
+          <div class="flex min-w-0 items-center gap-2">
             <span
               class="truncate font-mono text-[13px] font-semibold text-zinc-800 dark:text-zinc-200"
             >
@@ -296,37 +349,47 @@ async function copySecret(secret: SecretDto): Promise<void> {
               <AppIcon name="sticky" :size="13" />
             </span>
           </div>
-          <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+          <div
+            class="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500"
+            :class="view === 'compact' ? 'shrink-0' : 'mt-0.5'"
+          >
             <span v-if="isRevealed(secret.id)" class="font-medium text-indigo-500">{{
               t('table.hidesIn', { seconds: secondsLeft[secret.id] ?? 0 })
             }}</span>
-            <span :title="absoluteTime(secret.updatedAt, localeStore.locale)">{{
-              t('table.edited', { time: relativeTime(secret.updatedAt, localeStore.locale) })
-            }}</span>
+            <span
+              v-if="view !== 'compact'"
+              :title="absoluteTime(secret.updatedAt, localeStore.locale)"
+              >{{
+                t('table.edited', { time: relativeTime(secret.updatedAt, localeStore.locale) })
+              }}</span
+            >
           </div>
         </div>
 
         <!-- Badge de ambiente (solo en búsqueda global) -->
         <span
-          class="hidden shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 md:inline-block"
+          class="max-w-full shrink-0 truncate rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+          :class="layout.badge"
         >
           {{ secret.projectName }} › {{ secret.environmentName }}
         </span>
 
         <!-- Valor enmascarado / revelado -->
-        <div class="flex shrink-0 items-center gap-1">
+        <div class="flex items-center gap-1" :class="layout.valueBox">
           <Transition name="reveal" mode="out-in">
             <code
               v-if="isRevealed(secret.id)"
               :key="'v' + secret.id"
-              class="max-w-[220px] truncate rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 font-mono text-xs text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-300"
+              :class="layout.value"
+              class="truncate rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 font-mono text-xs text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-300"
             >
               {{ revealed.get(secret.id)?.value }}
             </code>
             <code
               v-else
               :key="'m' + secret.id"
-              class="select-none rounded-lg px-2.5 py-1 font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500"
+              :class="layout.value"
+              class="truncate select-none rounded-lg px-2.5 py-1 font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500"
             >
               {{ secret.maskedValue }}
             </code>
@@ -357,9 +420,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
         </div>
 
         <!-- Acciones -->
-        <div
-          class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
-        >
+        <div class="flex shrink-0 items-center gap-1" :class="layout.actions">
           <button
             type="button"
             class="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-400"
