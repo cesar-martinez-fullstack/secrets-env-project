@@ -8,7 +8,7 @@ import type { SecretDto } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { api } from '@/lib/api';
-import { copyText } from '@/lib/clipboard';
+import { useSecurityStore } from '@/stores/security';
 import { moveId, shiftId } from '@/lib/sort';
 import type { SortOrder } from '@/lib/sort';
 import SortSelector from '@/components/vault/SortSelector.vue';
@@ -108,6 +108,12 @@ function shift(id: number, delta: number): void {
 }
 
 const toast = useToastStore();
+const security = useSecurityStore();
+
+function copiedBody(): string {
+  const seconds = security.clipboardSeconds();
+  return seconds > 0 ? t('table.copiedClears', { seconds }) : t('table.copiedBody');
+}
 const { t, describeError, localeStore } = useI18n();
 
 interface Revealed {
@@ -193,9 +199,9 @@ async function copySecret(secret: SecretDto): Promise<void> {
     }
     copyBusy.delete(secret.id);
   }
-  const ok = await copyText(value!);
+  const ok = await security.copySensitive(value!);
   if (ok) {
-    toast.push('success', t('table.copied', { name: secret.name }), t('table.copiedBody'));
+    toast.push('success', t('table.copied', { name: secret.name }), copiedBody());
   } else {
     toast.push('error', t('table.copyFailed'), t('table.clipboardBlocked'));
   }

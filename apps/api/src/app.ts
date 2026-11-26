@@ -11,6 +11,7 @@ import { settingsRoutes } from './routes/settings.routes';
 import { environmentRoutes } from './routes/environments.routes';
 import { secretRoutes } from './routes/secrets.routes';
 import { auditRoutes } from './routes/audit.routes';
+import { securityRoutes } from './routes/security.routes';
 import { updateRoutes } from './routes/update.routes';
 import { serveWebApp } from './http/static';
 import { hostGuard, originGuard, securityHeaders } from './middleware/security';
@@ -68,6 +69,7 @@ export function createApp(container: Container): Hono<AppEnv> {
   app.route('/api/share', shareRoutes(container));
   app.route('/api/settings', settingsRoutes(container));
   app.route('/api/audit', auditRoutes(container));
+  app.route('/api/security-settings', securityRoutes(container));
   app.route('/api/update', updateRoutes(container));
 
   // --- SPA (frontend compilado) — catch-all para GET ---

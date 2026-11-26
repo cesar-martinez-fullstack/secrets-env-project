@@ -10,6 +10,8 @@ const crypto = new NodeCryptoService();
 const KEY_A = new Uint8Array(32).fill(1);
 const KEY_B = new Uint8Array(32).fill(2);
 
+const limits = (idleMinutes: number) => ({ idleMinutes, maxMinutes: 720 });
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -17,8 +19,8 @@ function sleep(ms: number): Promise<void> {
 describe('InMemorySessionStore', () => {
   it('should create a session with a unique opaque token and TTL', async () => {
     const store = new InMemorySessionStore(crypto);
-    const a = await store.create(KEY_A, 15);
-    const b = await store.create(KEY_B, 15);
+    const a = await store.create(KEY_A, limits(15));
+    const b = await store.create(KEY_B, limits(15));
 
     expect(a.sessionId).not.toBe(b.sessionId);
     expect(a.sessionId).toMatch(/^[A-Za-z0-9_-]{43}$/); // 32 bytes base64url
@@ -28,23 +30,23 @@ describe('InMemorySessionStore', () => {
 
   it('should return the session with its key while alive', async () => {
     const store = new InMemorySessionStore(crypto);
-    const session = await store.create(KEY_A, 15);
+    const session = await store.create(KEY_A, limits(15));
     const loaded = await store.get(session.sessionId);
     expect(Buffer.from(loaded!.key).equals(Buffer.from(KEY_A))).toBe(true);
   });
 
   it('should slide the expiration window on touch', async () => {
     const store = new InMemorySessionStore(crypto);
-    const session = await store.create(KEY_A, 15);
+    const session = await store.create(KEY_A, limits(15));
     const before = session.expiresAt.getTime();
     await sleep(10);
-    const touched = await store.touch(session.sessionId, 15);
+    const touched = await store.touch(session.sessionId, limits(15));
     expect(touched!.expiresAt.getTime()).toBeGreaterThanOrEqual(before);
   });
 
   it('should reject expired sessions and purge them (auto-lock por inactividad)', async () => {
     const store = new InMemorySessionStore(crypto);
-    const session = await store.create(KEY_A, 0.001); // 60 ms
+    const session = await store.create(KEY_A, limits(0.001)); // 60 ms
     await sleep(250);
     expect(await store.purgeExpired()).toBe(1); // el barrido la elimina
     expect(await store.get(session.sessionId)).toBeNull(); // y ya no existe
@@ -53,7 +55,7 @@ describe('InMemorySessionStore', () => {
 
   it('should destroy the key (zeroed) when a session is removed', async () => {
     const store = new InMemorySessionStore(crypto);
-    const session = await store.create(KEY_A, 15);
+    const session = await store.create(KEY_A, limits(15));
     await store.remove(session.sessionId);
     expect(await store.get(session.sessionId)).toBeNull();
     expect(KEY_A.every((b) => b === 0)).toBe(true); // zeroKey aplicado sobre la referencia
@@ -63,12 +65,12 @@ describe('InMemorySessionStore', () => {
   it('should return null for unknown session ids', async () => {
     const store = new InMemorySessionStore(crypto);
     expect(await store.get('no-existe')).toBeNull();
-    expect(await store.touch('no-existe', 15)).toBeNull();
+    expect(await store.touch('no-existe', limits(15))).toBeNull();
   });
 
   it('should not resurrect sessions removed twice', async () => {
     const store = new InMemorySessionStore(crypto);
-    const session = await store.create(KEY_A, 15);
+    const session = await store.create(KEY_A, limits(15));
     await store.remove(session.sessionId);
     await store.remove(session.sessionId);
     expect(await store.count()).toBe(0);

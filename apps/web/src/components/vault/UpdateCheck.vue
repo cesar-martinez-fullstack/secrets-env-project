@@ -4,6 +4,7 @@ import type { UpdateCheckDto } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
 import { api } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
+import { useSecurityStore } from '@/stores/security';
 import { useI18n } from '@/i18n/use-i18n';
 import { useToastStore } from '@/stores/toast';
 
@@ -11,6 +12,7 @@ const UPDATE_COMMAND = './scripts/update.sh';
 
 const { t, describeError } = useI18n();
 const toast = useToastStore();
+const security = useSecurityStore();
 
 const checking = ref(false);
 const result = ref<UpdateCheckDto | null>(null);
@@ -30,6 +32,7 @@ async function check(): Promise<void> {
 }
 
 async function copyCommand(): Promise<void> {
+  security.keepClipboard();
   if (await copyText(UPDATE_COMMAND)) toast.push('success', t('updates.copied'));
 }
 </script>

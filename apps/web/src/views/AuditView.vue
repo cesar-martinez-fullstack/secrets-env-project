@@ -30,6 +30,7 @@ const ICON_PER_TYPE: Partial<Record<AuditEventType, IconName>> = {
   'env.created': 'folder',
   'env.renamed': 'pencil',
   'env.moved': 'move',
+  'security.settings_changed': 'shield',
   'env.deleted': 'trash',
   'secret.created': 'plus',
   'secret.updated': 'pencil',

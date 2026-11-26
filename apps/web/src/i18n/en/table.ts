@@ -34,6 +34,7 @@ export const table: Record<keyof typeof base, string> = {
   'table.revealFailed': 'Could not reveal',
   'table.copyFailed': 'Could not copy',
   'table.copied': '{name} copied to the clipboard',
+  'table.copiedClears': 'The app will try to empty the clipboard in {seconds} seconds.',
   'table.copiedBody': 'The value is ready to paste.',
   'table.clipboardBlocked': 'Your browser blocked access to the clipboard.',
 };

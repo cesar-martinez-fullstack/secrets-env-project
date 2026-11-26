@@ -35,6 +35,7 @@ services:
       - /tmp
     environment:
       # Minutos de inactividad antes de bloquear la bóveda (borra la clave de RAM).
+      # Lo que se guarde en Ajustes > Sesión y portapapeles tiene prioridad sobre este valor.
       SV_AUTO_LOCK_MINUTES: '15'
       # Botón «Comprobar actualizaciones»: única petición saliente, solo al pulsarlo ('false' la desactiva).
       SV_UPDATE_CHECK: 'true'

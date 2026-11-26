@@ -10,7 +10,7 @@ import {
   type ExportFormat,
   type ImportEntry,
 } from '@secretvault/shared';
-import { DomainError, ValidationFailedError } from '@secretvault/core';
+import { DomainError, ValidationFailedError, type VaultSession } from '@secretvault/core';
 import type { ApiConfig } from '../config';
 
 /** Respuesta JSON estándar (nunca cacheable: datos sensibles). */
@@ -18,19 +18,19 @@ export function jsonResponse<T>(c: Context, data: T, status: 200 | 201 = 200) {
   return c.json(data, status, { 'Cache-Control': 'no-store' });
 }
 
-export function sessionCookieOptions(config: ApiConfig) {
+export function sessionCookieOptions(config: ApiConfig, expiresAt: Date) {
   return {
     httpOnly: true,
     sameSite: 'Lax' as const,
     path: '/',
     secure: config.cookieSecure,
-    // La expiración de la cookie acompaña la ventana deslizante de inactividad.
-    maxAge: config.autoLockMinutes * 60,
+    // La cookie dura lo mismo que le queda a la sesión.
+    maxAge: Math.max(1, Math.ceil((expiresAt.getTime() - Date.now()) / 1000)),
   };
 }
 
-export function setSessionCookie(c: Context, sessionId: string, config: ApiConfig): void {
-  setCookie(c, SESSION_COOKIE, sessionId, sessionCookieOptions(config));
+export function setSessionCookie(c: Context, session: VaultSession, config: ApiConfig): void {
+  setCookie(c, SESSION_COOKIE, session.sessionId, sessionCookieOptions(config, session.expiresAt));
 }
 
 export function getSessionId(c: Context): string | undefined {

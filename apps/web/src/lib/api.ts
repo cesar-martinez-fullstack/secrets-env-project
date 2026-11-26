@@ -9,6 +9,8 @@ import type {
   CreateProjectRequestDto,
   RenameEnvironmentRequestDto,
   MoveEnvironmentRequestDto,
+  SessionSecurityDto,
+  UpdateSessionSecurityRequestDto,
   RenameProjectRequestDto,
   CreateSecretRequestDto,
   EnvironmentDto,
@@ -203,6 +205,14 @@ export const api = {
     request<EnvironmentDto>(`/api/environments/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ name } satisfies RenameEnvironmentRequestDto),
+    }),
+
+  getSessionSecurity: () => request<SessionSecurityDto>('/api/security-settings'),
+
+  updateSessionSecurity: (body: UpdateSessionSecurityRequestDto) =>
+    request<SessionSecurityDto>('/api/security-settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
     }),
 
   moveEnvironment: (id: number, projectId: number) =>

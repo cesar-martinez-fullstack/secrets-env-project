@@ -1,5 +1,20 @@
 export const settings = {
   'topbar.settings': 'Ajustes',
+  'sessionSettings.title': 'Sesión y portapapeles',
+  'sessionSettings.body': 'Si acortas un límite, se aplica también a la sesión que tienes abierta.',
+  'sessionSettings.autoLock': 'Bloquear tras este tiempo sin actividad',
+  'sessionSettings.maxSession': 'Duración máxima de una sesión',
+  'sessionSettings.clipboard': 'Vaciar el portapapeles tras copiar un secreto',
+  'sessionSettings.clipboardNote':
+    'Se vacía aunque después hayas copiado algo en otro programa. No borra el historial del portapapeles del sistema ni lo que otras apps ya hayan guardado, y el navegador puede aplazarlo hasta que vuelvas a esta ventana. Si cierras la pestaña antes, no se vacía.',
+  'sessionSettings.off': 'No vaciar',
+  'sessionSettings.seconds': 'A los {count} segundos',
+  'sessionSettings.minutes': '{count} minutos',
+  'sessionSettings.hours': '{count} h',
+  'sessionSettings.password': 'Contraseña maestra',
+  'sessionSettings.save': 'Guardar ajustes de sesión',
+  'sessionSettings.saved': 'Ajustes de sesión guardados',
+  'sessionSettings.failed': 'No se pudieron guardar los ajustes de sesión',
   'settings.title': 'Ajustes',
   'settings.logo': 'Logo',
   'settings.logoHint':

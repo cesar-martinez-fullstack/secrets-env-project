@@ -9,6 +9,7 @@ import {
   EnvironmentService,
   ProjectService,
   SecretService,
+  SessionSecurityService,
   SettingsService,
   ShareService,
   UpdateService,
@@ -44,6 +45,7 @@ export interface Container {
   settingsService: SettingsService;
   updateService: UpdateService;
   backupService: BackupService;
+  sessionSecurityService: SessionSecurityService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
@@ -64,9 +66,25 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
   const repositories = createRepositories(db);
   const unitOfWork = new SqliteUnitOfWork(db);
   const crypto = new NodeCryptoService();
-  const sessionStore = new InMemorySessionStore(crypto, config.sessionMaxMinutes);
+  const sessionStore = new InMemorySessionStore(crypto);
 
-  const vaultService = new VaultService({
+  // La confirmación de contraseña vive en VaultService, que a su vez necesita los límites.
+  const sessionSecurityService: SessionSecurityService = new SessionSecurityService({
+    security: repositories.securitySettings,
+    sessions: sessionStore,
+    passwords: {
+      confirmPassword: (id: string, password: string): Promise<void> =>
+        vaultService.confirmPassword(id, password),
+    },
+    audit: repositories.audit,
+    unitOfWork,
+    defaults: {
+      autoLockMinutes: config.autoLockMinutes,
+      sessionMaxMinutes: config.sessionMaxMinutes,
+    },
+  });
+
+  const vaultService: VaultService = new VaultService({
     vaultRepo: repositories.vault,
     projects: repositories.projects,
     environments: repositories.environments,
@@ -74,7 +92,8 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     sessions: sessionStore,
     audit: repositories.audit,
     unitOfWork,
-    config: { iterations: config.iterations, autoLockMinutes: config.autoLockMinutes },
+    config: { iterations: config.iterations },
+    limits: sessionSecurityService,
   });
 
   const projectService = new ProjectService({
@@ -143,6 +162,7 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     updateService,
     backupService,
     auditService,
+    sessionSecurityService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).
       setup: new RateLimiter(20, 10 * 60_000),
