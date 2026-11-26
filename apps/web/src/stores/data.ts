@@ -108,6 +108,12 @@ export const useDataStore = defineStore('data', () => {
     await refreshSecrets();
   }
 
+  async function moveEnvironment(id: number, projectId: number): Promise<void> {
+    await api.moveEnvironment(id, projectId);
+    await refreshEnvironments();
+    await refreshSecrets();
+  }
+
   async function deleteEnvironment(id: number): Promise<void> {
     await api.deleteEnvironment(id);
     if (activeEnvId.value === id) activeEnvId.value = null;
@@ -213,6 +219,7 @@ export const useDataStore = defineStore('data', () => {
     deleteProject,
     addEnvironment,
     renameEnvironment,
+    moveEnvironment,
     deleteEnvironment,
     addSecret,
     updateSecret,

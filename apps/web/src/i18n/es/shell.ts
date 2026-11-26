@@ -56,6 +56,7 @@ export const shell = {
   'sidebar.shareTitle': 'Compartir {name}',
   'sidebar.shareProject': 'Compartir proyecto {name}',
   'sidebar.shareEnv': 'Compartir ambiente {name}',
+  'sidebar.moveEnv': 'Mover {name} a otro proyecto',
   'sidebar.renameTitle': 'Renombrar {name}',
   'sidebar.renameProject': 'Renombrar proyecto {name}',
   'sidebar.deleteTitle': 'Eliminar {name}',
@@ -80,5 +81,14 @@ export const shell = {
   'envForm.renamedBody': 'Ahora se llama «{name}».',
   'envForm.createdTitle': 'Ambiente creado',
   'envForm.createdBody': '«{name}» está listo para recibir secretos.',
+  'moveEnv.title': 'Mover «{name}»',
+  'moveEnv.lead':
+    'Se mueve con todo su contenido (secretos: {count}). Los valores y las notas no cambian.',
+  'moveEnv.destination': 'Proyecto de destino',
+  'moveEnv.choose': 'Elige un proyecto',
+  'moveEnv.submit': 'Mover',
+  'moveEnv.doneTitle': 'Ambiente movido',
+  'moveEnv.doneBody': '«{name}» ahora está en «{project}».',
+  'moveEnv.failed': 'No se pudo mover el ambiente',
   'nameForm.saveFailed': 'No se pudo guardar',
 } as const;

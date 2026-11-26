@@ -26,6 +26,7 @@ import type { ShareTarget } from '@/components/vault/share-target';
 import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
 import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
+import MoveEnvironmentModal from '@/components/vault/MoveEnvironmentModal.vue';
 import SecurityModal from '@/components/vault/SecurityModal.vue';
 import SettingsModal from '@/components/vault/SettingsModal.vue';
 import TourOverlay from '@/components/ui/TourOverlay.vue';
@@ -56,6 +57,7 @@ async function reorderSecrets(ids: number[]): Promise<void> {
 const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
+const envToMove = ref<EnvironmentDto | null>(null);
 const secretModalOpen = ref(false);
 const secretModalEditing = ref<SecretDto | null>(null);
 
@@ -285,6 +287,7 @@ async function runConfirm(): Promise<void> {
         @delete-project="askDeleteProject"
         @create-env="openCreateEnv"
         @rename-env="openRenameEnv"
+        @move-env="(env) => (envToMove = env)"
         @delete-env="askDeleteEnv"
         @share-project="
           (project) => (shareTarget = { kind: 'projects', id: project.id, name: project.name })
@@ -418,6 +421,7 @@ async function runConfirm(): Promise<void> {
       :editing="projectModalEditing"
       @close="projectModalOpen = false"
     />
+    <MoveEnvironmentModal :environment="envToMove" @close="envToMove = null" />
     <EnvironmentFormModal
       :open="envModalOpen"
       :editing="envModalEditing"

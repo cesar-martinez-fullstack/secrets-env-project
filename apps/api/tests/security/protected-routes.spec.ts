@@ -51,6 +51,7 @@ export const ROUTE_MANIFEST: string[] = [
   'GET /api/environments',
   'POST /api/environments',
   'PATCH /api/environments/:id',
+  'POST /api/environments/:id/move',
   'DELETE /api/environments/:id',
   'GET /api/secrets',
   'POST /api/secrets',

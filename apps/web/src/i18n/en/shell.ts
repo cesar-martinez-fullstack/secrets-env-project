@@ -56,6 +56,7 @@ export const shell: Record<keyof typeof base, string> = {
   'sidebar.shareTitle': 'Share {name}',
   'sidebar.shareProject': 'Share project {name}',
   'sidebar.shareEnv': 'Share environment {name}',
+  'sidebar.moveEnv': 'Move {name} to another project',
   'sidebar.renameTitle': 'Rename {name}',
   'sidebar.renameProject': 'Rename project {name}',
   'sidebar.deleteTitle': 'Delete {name}',
@@ -80,5 +81,14 @@ export const shell: Record<keyof typeof base, string> = {
   'envForm.renamedBody': 'It is now called «{name}».',
   'envForm.createdTitle': 'Environment created',
   'envForm.createdBody': '«{name}» is ready to receive secrets.',
+  'moveEnv.title': 'Move «{name}»',
+  'moveEnv.lead':
+    'It moves with all its content (secrets: {count}). Values and notes do not change.',
+  'moveEnv.destination': 'Destination project',
+  'moveEnv.choose': 'Choose a project',
+  'moveEnv.submit': 'Move',
+  'moveEnv.doneTitle': 'Environment moved',
+  'moveEnv.doneBody': '«{name}» is now in «{project}».',
+  'moveEnv.failed': 'Could not move the environment',
   'nameForm.saveFailed': 'Could not save',
 };

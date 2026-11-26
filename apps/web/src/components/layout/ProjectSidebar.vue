@@ -11,6 +11,7 @@ const emit = defineEmits<{
   'delete-project': [project: ProjectDto];
   'create-env': [project: ProjectDto];
   'rename-env': [env: EnvironmentDto];
+  'move-env': [env: EnvironmentDto];
   'delete-env': [env: EnvironmentDto];
   'share-project': [project: ProjectDto];
   'share-env': [env: EnvironmentDto];
@@ -181,6 +182,16 @@ const iconButton = 'rounded-md p-1 text-zinc-400 hover:text-indigo-600 dark:hove
                 @click.stop="emit('share-env', env)"
               >
                 <AppIcon name="share" :size="14" />
+              </button>
+              <button
+                v-if="data.projects.length > 1"
+                type="button"
+                :class="iconButton"
+                :title="t('sidebar.moveEnv', { name: env.name })"
+                :aria-label="t('sidebar.moveEnv', { name: env.name })"
+                @click.stop="emit('move-env', env)"
+              >
+                <AppIcon name="move" :size="14" />
               </button>
               <button
                 type="button"
