@@ -22,3 +22,5 @@ export * from './usecases/settings-service';
 export * from './usecases/update-service';
 export * from './usecases/backup-service';
 export * from './usecases/session-security-service';
+export * from './usecases/log-level-service';
+export * from './ports/log-output';

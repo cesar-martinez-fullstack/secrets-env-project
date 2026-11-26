@@ -57,7 +57,7 @@ Actualízala en el mismo cambio que cierre un ítem.
 
 - [ ] **Backup/restauración**: comando `backup` (copia consistente con `VACUUM INTO` + verificación con
       `quick_check`) y `restore` probado de punta a punta (test que restaura y descifra).
-- [ ] **Logs estructurados** (JSON, sin secretos ni body) con nivel configurable.
+- [x] **Logs estructurados** (JSON, sin secretos ni body) con nivel configurable (F-138, ADR-0014).
 - [ ] Endpoint `/api/ready` (BD abierta y migrada) además de `/api/health`.
 - [ ] Documentar RPO/RTO realistas del uso personal en `docs/ARCHITECTURE.md`.
 - [ ] Más ADRs cuando haya decisiones nuevas (KDF Argon2id/scrypt, formato de backup).

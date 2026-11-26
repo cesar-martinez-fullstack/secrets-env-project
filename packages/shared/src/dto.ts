@@ -4,7 +4,7 @@
  * explícita de "reveal" (y en los archivos de exportación, bajo demanda).
  */
 import type { Appearance } from './appearance';
-import type { AuditEventType, ExportFormat } from './constants';
+import type { AuditEventType, ExportFormat, LogLevel } from './constants';
 
 export interface ApiErrorBody {
   error: { code: string; message: string; issues?: { field: string; message: string }[] };
@@ -75,6 +75,16 @@ export interface SessionSecurityDto extends SessionSecurityValuesDto {
 
 export interface UpdateSessionSecurityRequestDto extends SessionSecurityValuesDto {
   currentPassword: string;
+}
+
+export interface LogLevelDto {
+  level: LogLevel;
+  options: LogLevel[];
+}
+
+export interface UpdateLogLevelRequestDto {
+  currentPassword: string;
+  level: LogLevel;
 }
 
 export interface AuditRetentionDto {

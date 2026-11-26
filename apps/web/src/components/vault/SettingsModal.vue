@@ -11,6 +11,7 @@ import AppearancePreview from '@/components/vault/AppearancePreview.vue';
 import BrandMark from '@/components/ui/BrandMark.vue';
 import AuditHistorySection from '@/components/vault/AuditHistorySection.vue';
 import SessionSecuritySection from '@/components/vault/SessionSecuritySection.vue';
+import LogSettingsSection from '@/components/vault/LogSettingsSection.vue';
 import BackupSection from '@/components/vault/BackupSection.vue';
 import UpdateCheck from '@/components/vault/UpdateCheck.vue';
 
@@ -197,6 +198,8 @@ const fieldLabel = 'block text-xs font-medium text-zinc-600 dark:text-zinc-400';
         <SessionSecuritySection />
 
         <AuditHistorySection />
+
+        <LogSettingsSection />
 
         <BackupSection />
 

@@ -10,6 +10,8 @@ import type {
   RenameEnvironmentRequestDto,
   MoveEnvironmentRequestDto,
   SessionSecurityDto,
+  LogLevelDto,
+  UpdateLogLevelRequestDto,
   UpdateSessionSecurityRequestDto,
   RenameProjectRequestDto,
   CreateSecretRequestDto,
@@ -205,6 +207,14 @@ export const api = {
     request<EnvironmentDto>(`/api/environments/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ name } satisfies RenameEnvironmentRequestDto),
+    }),
+
+  getLogLevel: () => request<LogLevelDto>('/api/security-settings/log-level'),
+
+  updateLogLevel: (body: UpdateLogLevelRequestDto) =>
+    request<LogLevelDto>('/api/security-settings/log-level', {
+      method: 'PUT',
+      body: JSON.stringify(body),
     }),
 
   getSessionSecurity: () => request<SessionSecurityDto>('/api/security-settings'),

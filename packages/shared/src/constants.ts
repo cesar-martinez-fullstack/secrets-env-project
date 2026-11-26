@@ -146,6 +146,14 @@ export const SESSION_MAX_OPTIONS = [60, 240, 480, 720] as const;
 export const CLIPBOARD_CLEAR_OPTIONS = [0, 30, 60] as const;
 export const DEFAULT_CLIPBOARD_CLEAR_SECONDS = 30;
 
+/** De más a menos detalle. */
+export const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+export function isLogLevel(value: unknown): value is LogLevel {
+  return (LOG_LEVELS as readonly unknown[]).includes(value);
+}
+
 export const AUDIT_RETENTION_OPTIONS = [500, 1_000, 5_000, 10_000] as const;
 
 export type AuditRetentionOption = (typeof AUDIT_RETENTION_OPTIONS)[number];

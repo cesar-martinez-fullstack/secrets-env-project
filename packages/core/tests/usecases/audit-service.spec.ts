@@ -20,6 +20,7 @@ describe('AuditService', () => {
       autoLockMinutes: null,
       sessionMaxMinutes: null,
       clipboardClearSeconds: 30,
+      logLevel: null,
     };
     const passwords: PasswordConfirmer = {
       confirmPassword: async (sessionId, password) => {
