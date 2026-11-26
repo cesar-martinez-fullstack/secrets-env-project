@@ -73,7 +73,7 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 | F-121 | Vistas de secretos: lista (actual), tarjetas y compacta, con la preferencia guardada             | Planeado    | 0.2.0   |
 | F-122 | Exportar a Postman Environment (JSON; valores como `secret`, compatible con todas las versiones) | Hecho       | 0.2.0   |
 | F-123 | Importar desde Postman (Environment, Globals y variables de una colección v2.1) a un proyecto    | En revisión | 0.2.0   |
-| F-124 | Mover un ambiente a otro proyecto                                                                | En revisión | 0.2.0   |
+| F-124 | Mover un ambiente a otro proyecto                                                                | En revisión | —       |
 | F-142 | Compartir solo los secretos seleccionados (depende de F-125)                                     | Hecho       | 0.2.0   |
 
 ## Planeado · gestión de secretos y ajustes
