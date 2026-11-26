@@ -68,6 +68,7 @@ export type AuditEventType =
   | 'project.deleted'
   | 'env.created'
   | 'env.renamed'
+  | 'env.moved'
   | 'env.deleted'
   | 'secret.created'
   | 'secret.updated'
@@ -101,6 +102,7 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'project.deleted',
   'env.created',
   'env.renamed',
+  'env.moved',
   'env.deleted',
   'secret.created',
   'secret.updated',

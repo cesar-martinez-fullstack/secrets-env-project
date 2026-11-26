@@ -29,6 +29,7 @@ const ICON_PER_TYPE: Partial<Record<AuditEventType, IconName>> = {
   'vault.password_changed': 'key',
   'env.created': 'folder',
   'env.renamed': 'pencil',
+  'env.moved': 'move',
   'env.deleted': 'trash',
   'secret.created': 'plus',
   'secret.updated': 'pencil',

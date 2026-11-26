@@ -7,6 +7,7 @@ import {
   EnvironmentNameRequiredError,
   EnvironmentNameTakenError,
   ProjectNotFoundError,
+  ValidationFailedError,
 } from '../../src/domain/errors';
 import { EnvironmentService } from '../../src/usecases/environment-service';
 import {
@@ -169,6 +170,51 @@ describe('EnvironmentService', () => {
       envs.findById.mockResolvedValue(null);
       await expect(service.delete(99)).rejects.toThrow(EnvironmentNotFoundError);
       expect(envs.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('move', () => {
+    beforeEach(() => {
+      envs.findById.mockResolvedValue(env());
+      envs.findByName.mockResolvedValue(null);
+      projects.findById.mockImplementation(async (id: number) =>
+        id === 1 ? { id: 1, name: 'General' } : id === 2 ? { id: 2, name: 'Tienda' } : null,
+      );
+    });
+
+    it('should move the environment and audit both project names', async () => {
+      const moved = await service.move(1, 2);
+
+      expect(envs.move).toHaveBeenCalledWith(1, 2);
+      expect(moved.projectId).toBe(2);
+      expect(audit.record).toHaveBeenCalledWith(
+        'env.moved',
+        'Ambiente «Local» movido del proyecto «General» al proyecto «Tienda».',
+      );
+    });
+
+    it('should reject an unknown environment', async () => {
+      envs.findById.mockResolvedValue(null);
+      await expect(service.move(99, 2)).rejects.toThrow(EnvironmentNotFoundError);
+      expect(envs.move).not.toHaveBeenCalled();
+    });
+
+    it('should reject an unknown target project', async () => {
+      await expect(service.move(1, 99)).rejects.toThrow(ProjectNotFoundError);
+      expect(envs.move).not.toHaveBeenCalled();
+    });
+
+    it('should reject moving to the project it already belongs to', async () => {
+      await expect(service.move(1, 1)).rejects.toThrow(ValidationFailedError);
+      expect(envs.move).not.toHaveBeenCalled();
+    });
+
+    it('should reject when the target already has an environment with that name', async () => {
+      envs.findByName.mockResolvedValue(env({ id: 7, projectId: 2 }));
+      await expect(service.move(1, 2)).rejects.toThrow(EnvironmentNameTakenError);
+      expect(envs.findByName).toHaveBeenCalledWith(2, 'Local');
+      expect(envs.move).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
     });
   });
 });

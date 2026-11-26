@@ -8,12 +8,13 @@ import type {
   ProjectRepository,
   SecretRepository,
 } from '../ports/repositories';
-import type { Environment, EnvironmentWithCount } from '../domain/entities';
+import type { Environment, EnvironmentWithCount, Project } from '../domain/entities';
 import {
   EnvironmentNameRequiredError,
   EnvironmentNameTakenError,
   EnvironmentNotFoundError,
   ProjectNotFoundError,
+  ValidationFailedError,
 } from '../domain/errors';
 
 export interface EnvironmentServiceDeps {
@@ -66,6 +67,33 @@ export class EnvironmentService {
       `Ambiente «${env.name}» renombrado a «${trimmed}».`,
     );
     return { ...env, name: trimmed, updatedAt: new Date() };
+  }
+
+  async move(id: number, projectId: number): Promise<Environment> {
+    const env = await this.deps.environments.findById(id);
+    if (!env) throw new EnvironmentNotFoundError(id);
+    const target = await this.requireDestination(env, projectId);
+    const source = await this.deps.projects.findById(env.projectId);
+
+    await this.deps.environments.move(id, projectId);
+    await this.deps.audit.record(
+      'env.moved',
+      `Ambiente «${env.name}» movido del proyecto «${source?.name}» al proyecto «${target.name}».`,
+    );
+    return { ...env, projectId, updatedAt: new Date() };
+  }
+
+  private async requireDestination(env: Environment, projectId: number): Promise<Project> {
+    const target = await this.deps.projects.findById(projectId);
+    if (!target) throw new ProjectNotFoundError(projectId);
+    if (env.projectId === projectId) {
+      throw new ValidationFailedError([
+        { field: 'projectId', message: 'El ambiente ya está en ese proyecto.' },
+      ]);
+    }
+    const twin = await this.deps.environments.findByName(projectId, env.name);
+    if (twin) throw new EnvironmentNameTakenError(env.name);
+    return target;
   }
 
   async delete(id: number): Promise<{ deletedSecrets: number }> {

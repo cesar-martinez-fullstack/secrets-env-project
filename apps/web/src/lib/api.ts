@@ -8,6 +8,7 @@ import type {
   CreateEnvironmentRequestDto,
   CreateProjectRequestDto,
   RenameEnvironmentRequestDto,
+  MoveEnvironmentRequestDto,
   RenameProjectRequestDto,
   CreateSecretRequestDto,
   EnvironmentDto,
@@ -202,6 +203,12 @@ export const api = {
     request<EnvironmentDto>(`/api/environments/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ name } satisfies RenameEnvironmentRequestDto),
+    }),
+
+  moveEnvironment: (id: number, projectId: number) =>
+    request<EnvironmentDto>(`/api/environments/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ projectId } satisfies MoveEnvironmentRequestDto),
     }),
 
   deleteEnvironment: (id: number) =>

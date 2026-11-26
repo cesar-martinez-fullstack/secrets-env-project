@@ -308,6 +308,23 @@ describe('SqliteProjectRepository', () => {
 });
 
 describe('environments scoped by project', () => {
+  it('should move an environment keeping its secrets, and respect the unique name', async () => {
+    const db = openInMemoryDatabase();
+    const { projects, environments, secrets } = createRepositories(db);
+    const shop = await projects.create('Tienda');
+    const env = await environments.create(1, 'QA');
+    await secrets.create({ environmentId: env.id, name: 'A', valueEnc: VALUE_A, noteEnc: null });
+
+    await environments.move(env.id, shop.id);
+
+    expect((await environments.findById(env.id))?.projectId).toBe(shop.id);
+    expect((await secrets.list({ environmentId: env.id }))[0]?.projectName).toBe('Tienda');
+    const twin = await environments.create(1, 'qa');
+    await expect(environments.move(twin.id, shop.id)).rejects.toThrow();
+    expect((await environments.findById(twin.id))?.projectId).toBe(1);
+    closeDatabase(db);
+  });
+
   it('should allow the same name in different projects and find it per project', async () => {
     const db = openInMemoryDatabase();
     const { projects, environments } = createRepositories(db);

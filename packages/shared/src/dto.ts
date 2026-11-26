@@ -120,6 +120,10 @@ export interface CreateEnvironmentRequestDto {
   name: string;
 }
 
+export interface MoveEnvironmentRequestDto {
+  projectId: number;
+}
+
 export interface RenameEnvironmentRequestDto {
   name: string;
 }

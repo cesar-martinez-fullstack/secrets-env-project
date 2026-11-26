@@ -41,6 +41,8 @@ export interface EnvironmentRepository {
   findByName(projectId: number, name: string): Promise<Environment | null>;
   create(projectId: number, name: string): Promise<Environment>;
   rename(id: number, name: string): Promise<void>;
+  /** El destino no puede tener ya un ambiente con el mismo nombre (restricción única). */
+  move(id: number, projectId: number): Promise<void>;
   delete(id: number): Promise<void>;
 }
 

@@ -73,6 +73,7 @@ export interface MockEnvRepo {
   findByName: ReturnType<typeof jest.fn>;
   create: ReturnType<typeof jest.fn>;
   rename: ReturnType<typeof jest.fn>;
+  move: ReturnType<typeof jest.fn>;
   delete: ReturnType<typeof jest.fn>;
 }
 
@@ -83,15 +84,17 @@ export function mockEnvRepo(): MockEnvRepo {
   const findByName = jest.fn();
   const create = jest.fn();
   const rename = jest.fn();
+  const move = jest.fn();
   const remove = jest.fn();
   return {
-    repo: { list, listWithCounts, findById, findByName, create, rename, delete: remove },
+    repo: { list, listWithCounts, findById, findByName, create, rename, move, delete: remove },
     list,
     listWithCounts,
     findById,
     findByName,
     create,
     rename,
+    move,
     delete: remove,
   };
 }
