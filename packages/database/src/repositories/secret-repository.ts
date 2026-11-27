@@ -8,6 +8,7 @@ import type {
   SecretRepository,
   SecretWithMeta,
 } from '@secretvault/core';
+import type { SortOrder } from '@secretvault/shared';
 import type { SqliteDatabase } from '../sqlite';
 
 interface SecretRow {
@@ -83,28 +84,48 @@ function toAssignments(patch: SecretPatch): { sets: string[]; params: Param[] } 
   return { sets, params };
 }
 
+// El texto de ORDER BY sale de esta lista cerrada, nunca de la petición.
+const ORDER_BY: Record<SortOrder, string> = {
+  asc: 's.name COLLATE NOCASE, s.id',
+  desc: 's.name COLLATE NOCASE DESC, s.id',
+  manual: 's.position, s.id',
+};
+
+function toWhere(filter: SecretListFilter): { where: string; params: (number | string)[] } {
+  const conditions: string[] = [];
+  const params: (number | string)[] = [];
+  if (typeof filter.environmentId === 'number') {
+    conditions.push('s.environment_id = ?');
+    params.push(filter.environmentId);
+  }
+  if (typeof filter.query === 'string' && filter.query.length > 0) {
+    conditions.push('instr(lower(s.name), lower(?)) > 0');
+    params.push(filter.query);
+  }
+  return { where: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '', params };
+}
+
 export class SqliteSecretRepository implements SecretRepository {
   constructor(private readonly db: SqliteDatabase) {}
 
   async list(filter: SecretListFilter = {}): Promise<SecretWithMeta[]> {
-    const conditions: string[] = [];
-    const params: (number | string)[] = [];
-    if (typeof filter.environmentId === 'number') {
-      conditions.push('s.environment_id = ?');
-      params.push(filter.environmentId);
-    }
-    if (typeof filter.query === 'string' && filter.query.length > 0) {
-      // Búsqueda por substring, case-insensitive, en tiempo real.
-      conditions.push('instr(lower(s.name), lower(?)) > 0');
-      params.push(filter.query);
-    }
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { where, params } = toWhere(filter);
+    const paged = filter.limit !== undefined;
     const rows = this.db
       .query<SecretRow, (number | string)[]>(
-        `${BASE_SELECT} ${where} ORDER BY s.name COLLATE NOCASE, s.id`,
+        `${BASE_SELECT} ${where} ORDER BY ${ORDER_BY[filter.order ?? 'asc']}${paged ? ' LIMIT ? OFFSET ?' : ''}`,
       )
-      .all(...params);
+      .all(...params, ...(paged ? [filter.limit!, filter.offset ?? 0] : []));
     return rows.map(withMeta);
+  }
+
+  async count(filter: SecretListFilter = {}): Promise<number> {
+    const { where, params } = toWhere(filter);
+    return this.db
+      .query<{ total: number }, (number | string)[]>(
+        `SELECT COUNT(*) AS total FROM secrets s ${where}`,
+      )
+      .get(...params)!.total;
   }
 
   async findById(id: number): Promise<SecretWithMeta | null> {

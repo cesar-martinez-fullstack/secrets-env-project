@@ -70,10 +70,11 @@ describe('SecretService', () => {
         secretWithMeta({ id: 2, name: 'API_KEY' }),
       ]);
 
-      const result = await service.list();
+      const { items, total } = await service.list();
 
-      expect(result).toHaveLength(2);
-      for (const item of result) {
+      expect(items).toHaveLength(2);
+      expect(total).toBe(2);
+      for (const item of items) {
         expect(item.maskedValue).toBe('••••••••');
         expect(Object.values(item)).not.toContain('postgres://x');
       }
@@ -91,8 +92,17 @@ describe('SecretService', () => {
 
     it('should flag hasNote based on the encrypted note presence', async () => {
       secrets.list.mockResolvedValue([secretWithMeta({ noteEnc: new Uint8Array(8) })]);
-      const [item] = await service.list();
-      expect(item?.hasNote).toBe(true);
+      const { items } = await service.list();
+      expect(items[0]?.hasNote).toBe(true);
+    });
+
+    it('should count apart only when asking for a page', async () => {
+      secrets.list.mockResolvedValue([secretWithMeta()]);
+      secrets.count.mockResolvedValue(80);
+
+      expect((await service.list()).total).toBe(1);
+      expect(secrets.count).not.toHaveBeenCalled();
+      expect((await service.list({ limit: 1, offset: 5 })).total).toBe(80);
     });
   });
 

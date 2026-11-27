@@ -1,3 +1,4 @@
+import { TOTAL_COUNT_HEADER } from '@secretvault/shared';
 /**
  * Cliente HTTP tipado hacia el backend Hono. Lanza ApiError con el código de
  * error del protocolo; emite `sv:locked` cuando la bóveda se bloquea.
@@ -10,6 +11,7 @@ import type {
   RenameEnvironmentRequestDto,
   MoveEnvironmentRequestDto,
   SessionSecurityDto,
+  SortOrder,
   LogLevelDto,
   UpdateLogLevelRequestDto,
   UpdateSessionSecurityRequestDto,
@@ -67,7 +69,22 @@ interface DownloadedFile {
   blob: Blob;
 }
 
+export interface ListSecretsParams {
+  environmentId?: number;
+  q?: string;
+  order?: SortOrder;
+  limit?: number;
+  offset?: number;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await send(path, init)).body as T;
+}
+
+async function send(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ body: unknown; headers: Headers }> {
   let response: Response;
   try {
     response = await fetch(path, {
@@ -95,7 +112,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) throw toApiError(response.status, body);
 
-  return body as T;
+  return { body, headers: response.headers };
 }
 
 function toApiError(status: number, body: unknown): ApiError {
@@ -235,13 +252,14 @@ export const api = {
     request<OkDto & { deletedSecrets: number }>(`/api/environments/${id}`, { method: 'DELETE' }),
 
   // ── Secretos ──────────────────────────────────────────────────────────
-  listSecrets: (params: { environmentId?: number; q?: string } = {}) => {
+  listSecrets: async (params: ListSecretsParams = {}) => {
     const search = new URLSearchParams();
-    if (params.environmentId !== undefined)
-      search.set('environmentId', String(params.environmentId));
-    if (params.q) search.set('q', params.q);
-    const qs = search.toString();
-    return request<SecretDto[]>(`/api/secrets${qs ? `?${qs}` : ''}`);
+    for (const [name, value] of Object.entries(params)) {
+      if (value !== undefined && value !== '') search.set(name, String(value));
+    }
+    const { body, headers } = await send(`/api/secrets?${search.toString()}`);
+    const items = body as SecretDto[];
+    return { items, total: Number(headers.get(TOTAL_COUNT_HEADER) ?? items.length) };
   },
 
   createSecret: (payload: CreateSecretRequestDto) =>

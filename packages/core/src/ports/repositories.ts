@@ -14,7 +14,7 @@ import type {
   SecuritySettings,
   VaultInfo,
 } from '../domain/entities';
-import type { AuditEventType } from '@secretvault/shared';
+import type { AuditEventType, SortOrder } from '@secretvault/shared';
 
 export interface VaultRepository {
   get(): Promise<VaultInfo | null>;
@@ -50,10 +50,17 @@ export interface SecretListFilter {
   environmentId?: number;
   /** Búsqueda por nombre (substring, case-insensitive, en tiempo real). */
   query?: string;
+  /** Por defecto, `asc`. */
+  order?: SortOrder;
+  /** Sin `limit` se devuelven todos; `offset` solo se aplica junto a él. */
+  limit?: number;
+  offset?: number;
 }
 
 export interface SecretRepository {
   list(filter?: SecretListFilter): Promise<SecretWithMeta[]>;
+  /** Cuántos cumplen el filtro, sin contar orden ni página. */
+  count(filter?: SecretListFilter): Promise<number>;
   findById(id: number): Promise<SecretWithMeta | null>;
   findByName(environmentId: number, name: string): Promise<SecretRecord | null>;
   create(input: {
