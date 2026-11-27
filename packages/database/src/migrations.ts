@@ -179,6 +179,14 @@ export const MIGRATIONS: readonly Migration[] = [
         CHECK (clipboard_clear_seconds IN (0, 30, 60));
     `,
   },
+  {
+    version: 8,
+    description: 'nivel de detalle de los registros del servidor',
+    sql: `
+      ALTER TABLE security_settings ADD COLUMN log_level TEXT
+        CHECK (log_level IN ('debug', 'info', 'warn', 'error'));
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {

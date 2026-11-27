@@ -17,6 +17,18 @@ export const settings: Record<keyof typeof base, string> = {
   'sessionSettings.save': 'Save session settings',
   'sessionSettings.saved': 'Session settings saved',
   'sessionSettings.failed': 'Could not save the session settings',
+  'logSettings.title': 'Server log',
+  'logSettings.body':
+    'Lines with the time, generic route, result and duration, without values, passwords or your searches. See them with «docker compose logs» or in the program window.',
+  'logSettings.level': 'Level of detail',
+  'logSettings.debug': 'Debug: everything, including automatic checks',
+  'logSettings.info': 'Normal: every request',
+  'logSettings.warn': 'Only refused access and errors',
+  'logSettings.error': 'Only errors',
+  'logSettings.password': 'Master password',
+  'logSettings.save': 'Save log level',
+  'logSettings.saved': 'Log level saved',
+  'logSettings.failed': 'Could not change the log',
   'settings.title': 'Settings',
   'settings.logo': 'Logo',
   'settings.logoHint':

@@ -15,6 +15,18 @@ export const settings = {
   'sessionSettings.save': 'Guardar ajustes de sesión',
   'sessionSettings.saved': 'Ajustes de sesión guardados',
   'sessionSettings.failed': 'No se pudieron guardar los ajustes de sesión',
+  'logSettings.title': 'Registro del servidor',
+  'logSettings.body':
+    'Líneas con la hora, la ruta genérica, el resultado y la duración, sin valores, contraseñas ni lo que buscas. Se ven con «docker compose logs» o en la ventana del programa.',
+  'logSettings.level': 'Nivel de detalle',
+  'logSettings.debug': 'Depuración: todo, incluidas las comprobaciones automáticas',
+  'logSettings.info': 'Normal: cada petición',
+  'logSettings.warn': 'Solo accesos rechazados y errores',
+  'logSettings.error': 'Solo errores',
+  'logSettings.password': 'Contraseña maestra',
+  'logSettings.save': 'Guardar nivel de registro',
+  'logSettings.saved': 'Nivel de registro guardado',
+  'logSettings.failed': 'No se pudo cambiar el registro',
   'settings.title': 'Ajustes',
   'settings.logo': 'Logo',
   'settings.logoHint':

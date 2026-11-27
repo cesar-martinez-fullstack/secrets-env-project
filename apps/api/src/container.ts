@@ -7,6 +7,7 @@ import {
   AuditService,
   BackupService,
   EnvironmentService,
+  LogLevelService,
   ProjectService,
   SecretService,
   SessionSecurityService,
@@ -29,6 +30,7 @@ import {
 } from '@secretvault/database';
 import { InMemorySessionStore } from './session-store';
 import { RateLimiter } from './rate-limiter';
+import { createLogger, type Logger } from './logging/logger';
 import { GithubReleaseSource } from './update/github-release-source';
 import { APP_VERSION } from './version';
 import type { ApiConfig } from './config';
@@ -46,6 +48,8 @@ export interface Container {
   updateService: UpdateService;
   backupService: BackupService;
   sessionSecurityService: SessionSecurityService;
+  logger: Logger;
+  logLevelService: LogLevelService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
@@ -59,6 +63,7 @@ export interface Container {
 
 export interface ContainerOverrides {
   releaseSource?: ReleaseSource;
+  logWriter?: (line: string) => void;
 }
 
 export function createContainer(config: ApiConfig, overrides: ContainerOverrides = {}): Container {
@@ -149,6 +154,19 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     unitOfWork,
   });
 
+  const logger = createLogger({
+    level: config.logLevel,
+    write: overrides.logWriter ?? ((line) => void process.stdout.write(`${line}\n`)),
+  });
+  const logLevelService = new LogLevelService({
+    security: repositories.securitySettings,
+    audit: repositories.audit,
+    passwords: vaultService,
+    unitOfWork,
+    output: logger,
+    defaultLevel: config.logLevel,
+  });
+
   return {
     config,
     db,
@@ -163,6 +181,8 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     backupService,
     auditService,
     sessionSecurityService,
+    logger,
+    logLevelService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).
       setup: new RateLimiter(20, 10 * 60_000),

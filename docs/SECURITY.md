@@ -95,6 +95,11 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
     garantizado:** no alcanza el historial del portapapeles del sistema ni a otras apps, puede aplazarse hasta que la
     ventana recupere el foco, no ocurre si se cierra la pestaña y puede vaciar algo copiado después en otro programa.
 
+12. **Registros (ADR-0014):** una línea JSON por petición con campos elegidos (patrón de ruta, estado, duración),
+    nunca cuerpos, cabeceras, búsquedas, direcciones literales, nombres ni valores; de los errores inesperados no se
+    guarda el mensaje. El identificador de petición lo genera el servidor. Cambiar el nivel pide la contraseña y queda
+    auditado. Los registros no sustituyen a la auditoría.
+
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 
 1. ¿Nueva ruta? → actualizar `ROUTE_MANIFEST` + decidir si es pública (revisión).

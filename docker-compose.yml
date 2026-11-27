@@ -39,12 +39,20 @@ services:
       SV_AUTO_LOCK_MINUTES: '15'
       # Botón «Comprobar actualizaciones»: única petición saliente, solo al pulsarlo ('false' la desactiva).
       SV_UPDATE_CHECK: 'true'
+      # Detalle de los registros: debug, info, warn o error. Lo guardado en Ajustes tiene prioridad.
+      SV_LOG_LEVEL: 'info'
       # Iteraciones PBKDF2 (sube el valor si tu máquina lo permite).
       SV_PBKDF2_ITERATIONS: '600000'
       # Activa 'true' si publicas detrás de un proxy con HTTPS.
       SV_COOKIE_SECURE: 'false'
       SV_TRUST_PROXY: 'false'
     restart: unless-stopped
+    # Los registros rotan para que no llenen el disco.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
     healthcheck:
       test:
         [

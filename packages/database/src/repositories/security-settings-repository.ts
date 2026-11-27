@@ -1,11 +1,13 @@
 import type { SecuritySettings, SecuritySettingsRepository } from '@secretvault/core';
 import type { SqliteDatabase } from '../sqlite';
+import type { LogLevel } from '@secretvault/shared';
 
 interface SecurityRow {
   audit_max_events: number;
   auto_lock_minutes: number | null;
   session_max_minutes: number | null;
   clipboard_clear_seconds: number;
+  log_level: LogLevel | null;
 }
 
 /** Ajustes de seguridad dentro de la base (una sola fila): viajan con las copias y con el cifrado en reposo. */
@@ -15,7 +17,8 @@ export class SqliteSecuritySettingsRepository implements SecuritySettingsReposit
   async get(): Promise<SecuritySettings> {
     const row = this.db
       .query<SecurityRow, []>(
-        `SELECT audit_max_events, auto_lock_minutes, session_max_minutes, clipboard_clear_seconds
+        `SELECT audit_max_events, auto_lock_minutes, session_max_minutes, clipboard_clear_seconds,
+           log_level
          FROM security_settings WHERE id = 1`,
       )
       .get();
@@ -25,6 +28,7 @@ export class SqliteSecuritySettingsRepository implements SecuritySettingsReposit
       autoLockMinutes: row.auto_lock_minutes,
       sessionMaxMinutes: row.session_max_minutes,
       clipboardClearSeconds: row.clipboard_clear_seconds,
+      logLevel: row.log_level,
     };
   }
 
@@ -32,13 +36,14 @@ export class SqliteSecuritySettingsRepository implements SecuritySettingsReposit
     this.db
       .query(
         `UPDATE security_settings SET audit_max_events = ?, auto_lock_minutes = ?,
-           session_max_minutes = ?, clipboard_clear_seconds = ? WHERE id = 1`,
+           session_max_minutes = ?, clipboard_clear_seconds = ?, log_level = ? WHERE id = 1`,
       )
       .run(
         settings.auditMaxEvents,
         settings.autoLockMinutes,
         settings.sessionMaxMinutes,
         settings.clipboardClearSeconds,
+        settings.logLevel,
       );
   }
 }

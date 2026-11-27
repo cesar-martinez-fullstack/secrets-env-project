@@ -1,3 +1,4 @@
+import type { LogLevel } from '@secretvault/shared';
 /**
  * Entidades de dominio de SecretVault.
  * Este paquete NO conoce HTTP, Bun, Vue ni SQLite: solo reglas de negocio puras.
@@ -122,6 +123,8 @@ export interface SecuritySettings {
   autoLockMinutes: number | null;
   sessionMaxMinutes: number | null;
   clipboardClearSeconds: number;
+  /** `null`: rige el nivel del entorno. */
+  logLevel: LogLevel | null;
 }
 
 /** Ajustes de sesión ya resueltos (guardados o heredados del entorno). */

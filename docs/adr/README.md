@@ -25,6 +25,7 @@ paquetes · superficie de red · flujo de trabajo del repositorio. No para decis
 | [0011](0011-vault-backup.md)                     | Copia de seguridad de la bóveda desde la aplicación             | Aceptado  |
 | [0012](0012-audit-retention.md)                  | Retención y vaciado del historial de auditoría                  | Aceptado  |
 | [0013](0013-session-settings.md)                 | Ajustes de sesión editables, guardados en la base               | Aceptado  |
+| [0014](0014-structured-logs.md)                  | Registros estructurados propios, por lista de campos permitidos | Aceptado  |
 | [0005](0005-git-flow-and-releases.md)            | Git Flow, Conventional Commits y tags SemVer                    | Aceptado  |
 
 ## Plantilla

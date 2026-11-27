@@ -73,6 +73,8 @@ export const ROUTE_MANIFEST: string[] = [
   'POST /api/audit/clear',
   'GET /api/security-settings',
   'PUT /api/security-settings',
+  'GET /api/security-settings/log-level',
+  'PUT /api/security-settings/log-level',
   'POST /api/update/check',
   'GET /api/settings',
   'GET /api/settings/logo',

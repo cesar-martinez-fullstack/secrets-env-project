@@ -91,7 +91,7 @@ El resto del backlog (backup y restauración, borrado automático del portapapel
 | F-135 | Tema con vista previa: miniatura de la interfaz a la derecha de Ajustes que cambia al elegir modo y acento; los colores salen de una paleta reasignable | Hecho       | 0.2.0   |
 | F-136 | Asistente de primer arranque: idioma, nombre, logo y tema antes de crear la bóveda (se puede omitir)                                                    | Hecho       | 0.2.0   |
 | F-137 | Tour guiado tras crear la bóveda: crear y revelar secretos, buscar, importar, exportar, proyectos y seguridad                                           | Hecho       | 0.2.0   |
-| F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | Planeado    | —       |
+| F-138 | Registro (logs) estructurado del API: JSON con nivel, id de petición y valores sensibles redactados; el nivel se edita en Ajustes (depende de F-132)    | En revisión | —       |
 | F-139 | Auditoría: retención configurable y vaciado del historial desde Ajustes (pide contraseña)                                                               | Hecho       | 0.2.0   |
 
 Los ajustes son **por instancia** (quien tiene la bóveda abierta los administra, sin roles) y se guardan fuera de
@@ -105,8 +105,8 @@ rasterizadas (el SVG puede ejecutar scripts), valida el contenido real del archi
 3. F-121 (vistas) y F-124 (mover ambientes).
 4. Personalización (ADR-0008), cada una sobre la anterior: F-130 y F-131 (ajustes, nombre y logo), F-135 (tema),
    F-134 (idioma: los textos del asistente y del tour deben estar ya externalizados), F-136 (asistente) y F-137 (tour).
-   F-138 (registro) va después de F-132, porque el nivel de log se configura en Ajustes. Se propone `pino` (el mismo
-   que `nestjs-pino` en el otro repositorio; funciona en Bun) detrás de un puerto `Logger` en `core`; decisión en un ADR.
+   F-138 (registro) va después de F-132, porque el nivel de log se configura en Ajustes. Se usa un registrador propio
+   detrás de una interfaz `Logger` (ADR-0014).
 5. F-100 a F-103 (bóvedas múltiples), F-111 (exportar seleccionados, depende de F-125) y F-112 (paginación).
 
 El idioma es la rebanada más grande (externalizar todos los textos); se corta por pantallas, con el español como base

@@ -13,9 +13,11 @@ const envFile = loadDotEnv();
 const config = loadConfig();
 
 const exposureWarning = insecureExposureWarning(config);
-if (exposureWarning) console.warn(`[SecretVault] ADVERTENCIA: ${exposureWarning}`);
-
 const container: Container = createContainer(config);
+const { logger } = container;
+await container.logLevelService.load();
+if (exposureWarning) logger.warn('server.insecure_exposure', { detail: exposureWarning });
+const { idleMinutes } = await container.sessionSecurityService.currentLimits();
 const app = createApp(container);
 
 const server = Bun.serve({
@@ -37,7 +39,7 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 function shutdown() {
-  console.log('\n[SecretVault] Cerrando… bloqueando sesiones y liberando la base de datos.');
+  logger.info('server.stopping');
   void container.sessionStore.clear();
   disposeContainer(container);
   server.stop(true);
@@ -52,7 +54,7 @@ console.log(`
   ║  Base de datos →  ${config.dataDir.padEnd(38)}║
   ║  .env cargado →  ${(envFile ?? 'no encontrado (usando defaults)').padEnd(38)}║
   ║  PBKDF2       →  ${config.iterations} iteraciones (SHA-256)     ║
-  ║  Auto-lock    →  ${config.autoLockMinutes} min de inactividad           ║
+  ║  Auto-lock    →  ${idleMinutes} min de inactividad           ║
   ║  Cifrado      →  AES-256-GCM (claves solo en RAM)║
   ╚══════════════════════════════════════════════════╝
 `);
