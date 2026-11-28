@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import type {
   CreateEnvironmentRequestDto,
   EnvironmentDto,
+  MoveEnvironmentRequestDto,
   OkDto,
   RenameEnvironmentRequestDto,
 } from '@secretvault/shared';
@@ -53,6 +54,13 @@ export function environmentRoutes(container: Container): Hono<AppEnv> {
     const name = requireString(body, 'name');
     const renamed = await environmentService.rename(id, name);
     return jsonResponse<EnvironmentDto>(c, toDto({ ...renamed, secretCount: 0 }));
+  });
+
+  app.post('/:id/move', async (c) => {
+    const id = parseIdParam(c.req.param('id'));
+    const body = await readJsonBody<MoveEnvironmentRequestDto>(c);
+    const moved = await environmentService.move(id, requireInt(body, 'projectId'));
+    return jsonResponse<EnvironmentDto>(c, toDto({ ...moved, secretCount: 0 }));
   });
 
   app.delete('/:id', async (c) => {

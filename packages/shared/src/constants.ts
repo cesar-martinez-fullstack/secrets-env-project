@@ -63,11 +63,13 @@ export type AuditEventType =
   | 'vault.reauth_failed'
   | 'audit.retention_changed'
   | 'audit.cleared'
+  | 'security.settings_changed'
   | 'project.created'
   | 'project.renamed'
   | 'project.deleted'
   | 'env.created'
   | 'env.renamed'
+  | 'env.moved'
   | 'env.deleted'
   | 'secret.created'
   | 'secret.updated'
@@ -96,11 +98,13 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'vault.reauth_failed',
   'audit.retention_changed',
   'audit.cleared',
+  'security.settings_changed',
   'project.created',
   'project.renamed',
   'project.deleted',
   'env.created',
   'env.renamed',
+  'env.moved',
   'env.deleted',
   'secret.created',
   'secret.updated',
@@ -118,6 +122,7 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
 
 /** Cambios sobre el propio historial: tienen cuota propia para que ningún otro evento los expulse. */
 export const AUDIT_HISTORY_EVENTS: readonly AuditEventType[] = [
+  'security.settings_changed',
   'audit.cleared',
   'audit.retention_changed',
 ];
@@ -135,6 +140,31 @@ export const AUDIT_FAILURE_EVENTS_KEPT = 200;
 export const AUDIT_MAX_EVENTS = 1_000;
 
 /** Opciones de retención que se pueden elegir en Ajustes. */
+/** Opciones que se pueden elegir en Ajustes; a propósito no hay «nunca» ni más de 12 horas. */
+export const AUTO_LOCK_OPTIONS = [5, 15, 30, 60] as const;
+export const SESSION_MAX_OPTIONS = [60, 240, 480, 720] as const;
+export const CLIPBOARD_CLEAR_OPTIONS = [0, 30, 60] as const;
+export const DEFAULT_CLIPBOARD_CLEAR_SECONDS = 30;
+
+/** De más a menos detalle. */
+export const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+export function isLogLevel(value: unknown): value is LogLevel {
+  return (LOG_LEVELS as readonly unknown[]).includes(value);
+}
+
+/** Orden de la lista de secretos: por nombre o el que se haya fijado a mano. */
+export const SORT_ORDERS = ['asc', 'desc', 'manual'] as const;
+export type SortOrder = (typeof SORT_ORDERS)[number];
+
+export function isSortOrder(value: unknown): value is SortOrder {
+  return (SORT_ORDERS as readonly unknown[]).includes(value);
+}
+
+export const MAX_PAGE_SIZE = 200;
+export const TOTAL_COUNT_HEADER = 'X-Total-Count';
+
 export const AUDIT_RETENTION_OPTIONS = [500, 1_000, 5_000, 10_000] as const;
 
 export type AuditRetentionOption = (typeof AUDIT_RETENTION_OPTIONS)[number];

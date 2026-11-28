@@ -4,7 +4,7 @@
  * explícita de "reveal" (y en los archivos de exportación, bajo demanda).
  */
 import type { Appearance } from './appearance';
-import type { AuditEventType, ExportFormat } from './constants';
+import type { AuditEventType, ExportFormat, LogLevel } from './constants';
 
 export interface ApiErrorBody {
   error: { code: string; message: string; issues?: { field: string; message: string }[] };
@@ -60,6 +60,31 @@ export interface RecoverVaultRequestDto {
 export interface RecoverVaultResponseDto {
   ok: true;
   recoveryKey: string;
+}
+
+export interface SessionSecurityValuesDto {
+  autoLockMinutes: number;
+  sessionMaxMinutes: number;
+  /** 0 desactiva la limpieza del portapapeles. */
+  clipboardClearSeconds: number;
+}
+
+export interface SessionSecurityDto extends SessionSecurityValuesDto {
+  options: Record<keyof SessionSecurityValuesDto, number[]>;
+}
+
+export interface UpdateSessionSecurityRequestDto extends SessionSecurityValuesDto {
+  currentPassword: string;
+}
+
+export interface LogLevelDto {
+  level: LogLevel;
+  options: LogLevel[];
+}
+
+export interface UpdateLogLevelRequestDto {
+  currentPassword: string;
+  level: LogLevel;
 }
 
 export interface AuditRetentionDto {
@@ -118,6 +143,10 @@ export interface EnvironmentDto {
 export interface CreateEnvironmentRequestDto {
   projectId: number;
   name: string;
+}
+
+export interface MoveEnvironmentRequestDto {
+  projectId: number;
 }
 
 export interface RenameEnvironmentRequestDto {

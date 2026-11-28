@@ -3,6 +3,7 @@
  * y exportación multiformato (.env / CSV / PDF).
  */
 import { Hono } from 'hono';
+import { TOTAL_COUNT_HEADER } from '@secretvault/shared';
 import type {
   CreateSecretRequestDto,
   DeleteSecretsRequestDto,
@@ -26,6 +27,7 @@ import {
   requireImportEntries,
   requireInt,
   requireString,
+  parseListWindow,
 } from '../http/helpers';
 import { requireUnlocked, type AppEnv } from '../middleware/auth';
 import type { Container } from '../container';
@@ -57,11 +59,13 @@ export function secretRoutes(container: Container): Hono<AppEnv> {
     const q = c.req.query('q')?.trim() ?? '';
     const environmentId =
       envParam !== undefined && Number.isInteger(Number(envParam)) ? Number(envParam) : undefined;
-    const secrets = await secretService.list({
+    const { items, total } = await secretService.list({
       environmentId,
       query: q.length > 0 ? q : undefined,
+      ...parseListWindow((name) => c.req.query(name)),
     });
-    return jsonResponse(c, secrets.map(toDto));
+    c.header(TOTAL_COUNT_HEADER, String(total));
+    return jsonResponse(c, items.map(toDto));
   });
 
   app.post('/', async (c) => {

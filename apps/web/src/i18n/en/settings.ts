@@ -2,6 +2,33 @@ import type { settings as base } from '../es/settings';
 
 export const settings: Record<keyof typeof base, string> = {
   'topbar.settings': 'Settings',
+  'sessionSettings.title': 'Session and clipboard',
+  'sessionSettings.body': 'Shortening a limit also applies to the session you have open.',
+  'sessionSettings.autoLock': 'Lock after this long without activity',
+  'sessionSettings.maxSession': 'Maximum session length',
+  'sessionSettings.clipboard': 'Empty the clipboard after copying a secret',
+  'sessionSettings.clipboardNote':
+    'It is emptied even if you copied something in another program afterwards. It does not erase the system clipboard history or what other apps already saved, and the browser may delay it until you return to this window. If you close the tab first, it is not emptied.',
+  'sessionSettings.off': 'Do not empty',
+  'sessionSettings.seconds': 'After {count} seconds',
+  'sessionSettings.minutes': '{count} minutes',
+  'sessionSettings.hours': '{count} h',
+  'sessionSettings.password': 'Master password',
+  'sessionSettings.save': 'Save session settings',
+  'sessionSettings.saved': 'Session settings saved',
+  'sessionSettings.failed': 'Could not save the session settings',
+  'logSettings.title': 'Server log',
+  'logSettings.body':
+    'Lines with the time, generic route, result and duration, without values, passwords or your searches. See them with «docker compose logs» or in the program window.',
+  'logSettings.level': 'Level of detail',
+  'logSettings.debug': 'Debug: everything, including automatic checks',
+  'logSettings.info': 'Normal: every request',
+  'logSettings.warn': 'Only refused access and errors',
+  'logSettings.error': 'Only errors',
+  'logSettings.password': 'Master password',
+  'logSettings.save': 'Save log level',
+  'logSettings.saved': 'Log level saved',
+  'logSettings.failed': 'Could not change the log',
   'settings.title': 'Settings',
   'settings.logo': 'Logo',
   'settings.logoHint':

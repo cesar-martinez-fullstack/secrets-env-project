@@ -12,7 +12,10 @@ import { useToastStore } from '@/stores/toast';
 import { useTourStore } from '@/stores/tour';
 import { useSelectionStore } from '@/stores/selection';
 import { useSortStore } from '@/stores/sort';
-import { sortSecrets } from '@/lib/sort';
+import { useViewStore } from '@/stores/view';
+import { useSecurityStore } from '@/stores/security';
+import { PAGE_SIZE } from '@/lib/pagination';
+import SecretsPager from '@/components/vault/SecretsPager.vue';
 import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
@@ -26,6 +29,7 @@ import type { ShareTarget } from '@/components/vault/share-target';
 import ExportMenu from '@/components/vault/ExportMenu.vue';
 import EnvironmentFormModal from '@/components/vault/EnvironmentFormModal.vue';
 import ProjectFormModal from '@/components/vault/ProjectFormModal.vue';
+import MoveEnvironmentModal from '@/components/vault/MoveEnvironmentModal.vue';
 import SecurityModal from '@/components/vault/SecurityModal.vue';
 import SettingsModal from '@/components/vault/SettingsModal.vue';
 import TourOverlay from '@/components/ui/TourOverlay.vue';
@@ -40,10 +44,19 @@ const toast = useToastStore();
 const tour = useTourStore();
 const selection = useSelectionStore();
 const sort = useSortStore();
+const view = useViewStore();
+const security = useSecurityStore();
 const reorderable = computed(() => sort.order === 'manual' && !data.isSearching);
-const sortedSecrets = computed(() =>
-  sortSecrets(data.secrets, sort.order === 'manual' && data.isSearching ? 'asc' : sort.order),
-);
+const hasPages = computed(() => data.paged && data.total > PAGE_SIZE);
+
+const listCard = ref<HTMLElement | null>(null);
+
+// Los controles están al pie: sin esto la página nueva se vería empezando por el final.
+async function showPage(page: number): Promise<void> {
+  await data.goToPage(page);
+  await nextTick();
+  listCard.value?.scrollIntoView({ block: 'start' });
+}
 
 async function reorderSecrets(ids: number[]): Promise<void> {
   if (data.activeEnvId === null) return;
@@ -56,6 +69,7 @@ async function reorderSecrets(ids: number[]): Promise<void> {
 const { t, describeError } = useI18n();
 
 // ── Estado de modales ──────────────────────────────────────────────────
+const envToMove = ref<EnvironmentDto | null>(null);
 const secretModalOpen = ref(false);
 const secretModalEditing = ref<SecretDto | null>(null);
 
@@ -109,6 +123,9 @@ let lockTimer: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
   data.init();
+  // Si falla se usa el valor por defecto, que sí vacía el portapapeles.
+  void security.load().catch(() => undefined);
+  document.addEventListener('copy', security.keepClipboard);
   // Recordatorio visual del auto-lock (el backend es la fuente de verdad).
   lockTimer = setInterval(() => {
     void vault.refreshStatus().then((status) => {
@@ -120,10 +137,12 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  document.removeEventListener('copy', security.keepClipboard);
   if (lockTimer) clearInterval(lockTimer);
 });
 
 async function handleLock(): Promise<void> {
+  await security.clearClipboard();
   await vault.lock();
   toast.push('info', t('vault.lockedTitle'), t('vault.lockedBody'));
   await router.replace('/');
@@ -225,7 +244,7 @@ function askDeleteSecret(secret: SecretDto): void {
 }
 
 function shareSelected(): void {
-  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
+  const chosen = data.secrets.filter((secret) => selection.ids.has(secret.id));
   if (new Set(chosen.map((secret) => secret.projectName)).size > 1) {
     toast.push('info', t('vault.shareMixedTitle'), t('vault.shareMixedBody'));
     return;
@@ -238,7 +257,7 @@ function shareSelected(): void {
 }
 
 function askDeleteSelected(): void {
-  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
+  const chosen = data.secrets.filter((secret) => selection.ids.has(secret.id));
   const names = chosen.map((secret) =>
     data.isSearching ? `${secret.name} (${secret.environmentName})` : secret.name,
   );
@@ -285,6 +304,7 @@ async function runConfirm(): Promise<void> {
         @delete-project="askDeleteProject"
         @create-env="openCreateEnv"
         @rename-env="openRenameEnv"
+        @move-env="(env) => (envToMove = env)"
         @delete-env="askDeleteEnv"
         @share-project="
           (project) => (shareTarget = { kind: 'projects', id: project.id, name: project.name })
@@ -349,15 +369,16 @@ async function runConfirm(): Promise<void> {
         </div>
 
         <!-- Lista de secretos -->
-        <div class="card mx-4 mb-10 sm:mx-6">
+        <div ref="listCard" class="card mx-4 mb-10 scroll-mt-20 sm:mx-6">
           <div
             v-if="data.isSearching && data.secrets.length > 0"
             class="border-b border-zinc-100 px-4 py-2 text-xs text-zinc-400 dark:border-zinc-800"
           >
-            {{ t('vault.searchCount', { count: data.secrets.length }) }}
+            {{ t('vault.searchCount', { count: data.total }) }}
           </div>
           <SecretsTable
-            :secrets="sortedSecrets"
+            :secrets="data.secrets"
+            :paged="hasPages"
             :loading="data.loadingSecrets"
             :selected="selection.ids"
             :order="sort.order"
@@ -366,12 +387,22 @@ async function runConfirm(): Promise<void> {
             @remove="askDeleteSecret"
             @toggle="selection.toggle"
             @set-order="sort.set"
+            :view="view.mode"
+            @set-view="view.set"
             @reorder="reorderSecrets"
             @toggle-all="selection.toggleAll(data.secrets.map((secret) => secret.id))"
             @clear-selection="selection.clear()"
             @remove-selected="askDeleteSelected"
             @share-selected="shareSelected"
             @create-first="openCreateSecret"
+          />
+          <SecretsPager
+            v-if="hasPages"
+            :page="data.page"
+            :shown="data.secrets.length"
+            :total="data.total"
+            :busy="data.loadingSecrets"
+            @go="showPage"
           />
         </div>
 
@@ -418,6 +449,7 @@ async function runConfirm(): Promise<void> {
       :editing="projectModalEditing"
       @close="projectModalOpen = false"
     />
+    <MoveEnvironmentModal :environment="envToMove" @close="envToMove = null" />
     <EnvironmentFormModal
       :open="envModalOpen"
       :editing="envModalEditing"

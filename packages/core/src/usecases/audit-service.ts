@@ -40,9 +40,10 @@ export class AuditService {
     }
     await this.deps.passwords.confirmPassword(sessionId, password);
     await this.deps.unitOfWork.run(async () => {
-      const { auditMaxEvents: previous } = await this.deps.security.get();
+      const saved = await this.deps.security.get();
+      const previous = saved.auditMaxEvents;
       const before = await this.deps.audit.count();
-      await this.deps.security.save({ auditMaxEvents: maxEvents });
+      await this.deps.security.save({ ...saved, auditMaxEvents: maxEvents });
       await this.deps.audit.prune(maxEvents);
       const removed = before - (await this.deps.audit.count());
       await this.deps.audit.record(

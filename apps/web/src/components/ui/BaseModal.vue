@@ -62,11 +62,11 @@ onBeforeUnmount(() => {
     <Transition name="modal">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/45 p-4 backdrop-blur-sm sm:items-center"
+        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/45 p-4 backdrop-blur-sm"
         @click.self="requestClose"
       >
         <div
-          class="card w-full p-6 shadow-xl"
+          class="card w-full p-6 shadow-xl sm:my-auto"
           :class="maxClass[maxWidth]"
           role="dialog"
           aria-modal="true"

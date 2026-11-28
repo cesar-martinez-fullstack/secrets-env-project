@@ -1,3 +1,4 @@
+import type { LogLevel } from '@secretvault/shared';
 /**
  * Entidades de dominio de SecretVault.
  * Este paquete NO conoce HTTP, Bun, Vue ni SQLite: solo reglas de negocio puras.
@@ -118,6 +119,19 @@ export interface ImportResult {
 /** Ajustes de seguridad guardados dentro de la base. */
 export interface SecuritySettings {
   auditMaxEvents: number;
+  /** `null` mientras nadie lo haya guardado: rige el valor del entorno. */
+  autoLockMinutes: number | null;
+  sessionMaxMinutes: number | null;
+  clipboardClearSeconds: number;
+  /** `null`: rige el nivel del entorno. */
+  logLevel: LogLevel | null;
+}
+
+/** Ajustes de sesión ya resueltos (guardados o heredados del entorno). */
+export interface SessionSecurity {
+  autoLockMinutes: number;
+  sessionMaxMinutes: number;
+  clipboardClearSeconds: number;
 }
 
 /** Retención del historial de auditoría y las opciones entre las que se puede elegir. */

@@ -31,7 +31,7 @@ import {
   AAD_VERIFIER,
   VERIFIER_PLAINTEXT,
 } from '../ports/crypto';
-import type { SessionStore } from '../ports/session';
+import type { SessionLimitsProvider, SessionStore } from '../ports/session';
 import type { UnitOfWork } from '../ports/transaction';
 import type { VaultInfo, VaultSession } from '../domain/entities';
 import {
@@ -46,7 +46,6 @@ import {
 
 export interface VaultConfig {
   iterations: number;
-  autoLockMinutes: number;
 }
 
 export interface VaultServiceDeps {
@@ -58,6 +57,7 @@ export interface VaultServiceDeps {
   audit: AuditRepository;
   unitOfWork: UnitOfWork;
   config: VaultConfig;
+  limits: SessionLimitsProvider;
 }
 
 export interface VaultStatus {
@@ -93,9 +93,13 @@ export class VaultService {
     return {
       initialized: vault !== null,
       recoveryAvailable: vault?.formatVersion === 2,
-      autoLockMinutes: this.deps.config.autoLockMinutes,
+      autoLockMinutes: (await this.deps.limits.currentLimits()).idleMinutes,
       pbkdf2Iterations: vault?.iterations ?? this.deps.config.iterations,
     };
+  }
+
+  private async openSession(dek: Uint8Array): Promise<VaultSession> {
+    return this.deps.sessions.create(dek, await this.deps.limits.currentLimits());
   }
 
   /** Primer arranque: crea la DEK, la envuelve (contraseña + recuperación) y el ambiente Local. */
@@ -104,7 +108,7 @@ export class VaultService {
     if (issues.length > 0) throw new WeakMasterPasswordError(issues);
     if (await this.deps.vaultRepo.get()) throw new VaultAlreadyInitializedError();
 
-    const { crypto, config } = this.deps;
+    const { crypto } = this.deps;
     const dek = crypto.generateKey();
     const verifier = await crypto.encrypt(dek, VERIFIER_PLAINTEXT, AAD_VERIFIER);
     const master = await this.wrapForMaster(dek, masterPassword);
@@ -129,7 +133,7 @@ export class VaultService {
       await this.deps.audit.record('vault.setup', 'Bóveda inicializada con contraseña maestra.');
     });
 
-    const session = await this.deps.sessions.create(dek, config.autoLockMinutes);
+    const session = await this.openSession(dek);
     return { session, recoveryKey: recovery.text };
   }
 
@@ -147,7 +151,7 @@ export class VaultService {
     if (info.formatVersion === 1) return this.upgradeToEnvelope(info, dek, masterPassword);
 
     await this.deps.audit.record('vault.unlock', 'Bóveda desbloqueada.');
-    const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
+    const session = await this.openSession(dek);
     return { session };
   }
 
@@ -218,7 +222,7 @@ export class VaultService {
         );
       });
 
-      const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
+      const session = await this.openSession(dek);
       return { session, recoveryKey: recovery.text };
     });
   }
@@ -370,7 +374,7 @@ export class VaultService {
         );
         await this.deps.audit.record('vault.unlock', 'Bóveda desbloqueada.');
       });
-      const session = await this.deps.sessions.create(dek, this.deps.config.autoLockMinutes);
+      const session = await this.openSession(dek);
       return { session, recoveryKey: recovery.text };
     });
   }

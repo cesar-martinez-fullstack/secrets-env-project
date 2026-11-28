@@ -83,6 +83,12 @@ export class SqliteEnvironmentRepository implements EnvironmentRepository {
       .run(name, new Date().toISOString(), id);
   }
 
+  async move(id: number, projectId: number): Promise<void> {
+    this.db
+      .query('UPDATE environments SET project_id = ?, updated_at = ? WHERE id = ?')
+      .run(projectId, new Date().toISOString(), id);
+  }
+
   async delete(id: number): Promise<void> {
     this.db.query('DELETE FROM environments WHERE id = ?').run(id);
   }

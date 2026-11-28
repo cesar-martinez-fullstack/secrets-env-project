@@ -2,19 +2,26 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import { InvalidMasterPasswordError, ValidationFailedError } from '../../src/domain/errors';
 import type { PasswordConfirmer } from '../../src/ports/password-confirmer';
 import type { SecuritySettingsRepository } from '../../src/ports/repositories';
+import type { SecuritySettings } from '../../src/domain/entities';
 import { AuditService } from '../../src/usecases/audit-service';
 import { mockAuditRepo, mockUnitOfWork, type MockAuditRepo } from '../helpers/mocks';
 
 describe('AuditService', () => {
   let audit: MockAuditRepo;
   let calls: string[];
-  let stored: { auditMaxEvents: number };
+  let stored: SecuritySettings;
   let service: AuditService;
 
   beforeEach(() => {
     audit = mockAuditRepo();
     calls = [];
-    stored = { auditMaxEvents: 1_000 };
+    stored = {
+      auditMaxEvents: 1_000,
+      autoLockMinutes: null,
+      sessionMaxMinutes: null,
+      clipboardClearSeconds: 30,
+      logLevel: null,
+    };
     const passwords: PasswordConfirmer = {
       confirmPassword: async (sessionId, password) => {
         calls.push(`confirm:${sessionId}`);
@@ -68,7 +75,7 @@ describe('AuditService', () => {
 
   describe('retention', () => {
     it('should report the stored value and the options that can be chosen', async () => {
-      stored = { auditMaxEvents: 5_000 };
+      stored = { ...stored, auditMaxEvents: 5_000 };
 
       expect(await service.retention()).toEqual({
         maxEvents: 5_000,

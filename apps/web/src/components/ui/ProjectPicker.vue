@@ -4,11 +4,16 @@ import type { ProjectDto } from '@secretvault/shared';
 import AppIcon from '@/components/AppIcon.vue';
 import { useI18n } from '@/i18n/use-i18n';
 
-const props = defineProps<{
-  modelValue: number | null;
-  newLabel: string;
-  projects: ProjectDto[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: number | null;
+    /** Texto de la opción «nuevo», o el marcador de posición si no se puede crear. */
+    newLabel: string;
+    projects: ProjectDto[];
+    allowNew?: boolean;
+  }>(),
+  { allowNew: true },
+);
 
 const emit = defineEmits<{ 'update:modelValue': [id: number | null] }>();
 
@@ -28,11 +33,10 @@ const visibleProjects = computed(() => {
   return props.projects.filter((project) => project.name.toLowerCase().includes(needle));
 });
 
-const showNewOption = computed(
-  () =>
-    query.value.trim() === '' ||
-    props.newLabel.toLowerCase().includes(query.value.trim().toLowerCase()),
-);
+const showNewOption = computed(() => {
+  const needle = query.value.trim().toLowerCase();
+  return props.allowNew && props.newLabel.toLowerCase().includes(needle);
+});
 
 function toggle(): void {
   expanded.value = !expanded.value;

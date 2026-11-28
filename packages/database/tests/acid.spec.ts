@@ -169,7 +169,7 @@ describe('migration 2 (envelope encryption)', () => {
        VALUES (1, ?, 310000, ?, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
     ).run(new Uint8Array(16).fill(1), new Uint8Array(48).fill(2));
 
-    expect(migrate(db)).toEqual([2, 3, 4, 5, 6]);
+    expect(migrate(db)).toEqual([2, 3, 4, 5, 6, 7, 8]);
 
     const row = db
       .query<{ format_version: number; wrapped_dek: Uint8Array | null; iterations: number }, []>(
@@ -258,7 +258,7 @@ describe('migration 3 (projects)', () => {
       ).run(env, name, BLOB, now, now);
     }
 
-    expect(migrate(db)).toEqual([3, 4, 5, 6]);
+    expect(migrate(db)).toEqual([3, 4, 5, 6, 7, 8]);
 
     const projects = db.query('SELECT id, name FROM projects').all();
     expect(projects).toEqual([{ id: 1, name: 'General' }]);
@@ -401,6 +401,36 @@ describe('migration 5 (manual order)', () => {
   });
 });
 
+describe('migration 7 (session settings)', () => {
+  it('should keep the saved retention, inherit the environment limits and constrain values', () => {
+    const db = new Database(':memory:');
+    migrate(
+      db,
+      MIGRATIONS.filter((m) => m.version <= 6),
+    );
+    db.query('UPDATE security_settings SET audit_max_events = 5000').run();
+
+    expect(migrate(db)).toEqual([7, 8]);
+
+    expect(db.query('SELECT * FROM security_settings').all()).toEqual([
+      {
+        id: 1,
+        audit_max_events: 5000,
+        auto_lock_minutes: null,
+        session_max_minutes: null,
+        clipboard_clear_seconds: 30,
+        log_level: null,
+      },
+    ]);
+    const set = (column: string, value: number) => () =>
+      db.query(`UPDATE security_settings SET ${column} = ?`).run(value);
+    expect(set('auto_lock_minutes', 0)).toThrow();
+    expect(set('session_max_minutes', 20_000)).toThrow();
+    expect(set('clipboard_clear_seconds', 5)).toThrow();
+    expect(() => db.query("UPDATE security_settings SET log_level = 'silent'").run()).toThrow();
+  });
+});
+
 describe('migration 6 (security settings)', () => {
   it('should keep the existing audit history and start with the default retention', () => {
     const db = new Database(':memory:');
@@ -414,7 +444,7 @@ describe('migration 6 (security settings)', () => {
       '2024-01-01T00:00:00.000Z',
     );
 
-    expect(migrate(db)).toEqual([6]);
+    expect(migrate(db)).toEqual([6, 7, 8]);
 
     expect(currentVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
     expect(db.query('SELECT message FROM audit_log').all()).toEqual([

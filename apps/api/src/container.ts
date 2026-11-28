@@ -7,8 +7,10 @@ import {
   AuditService,
   BackupService,
   EnvironmentService,
+  LogLevelService,
   ProjectService,
   SecretService,
+  SessionSecurityService,
   SettingsService,
   ShareService,
   UpdateService,
@@ -28,6 +30,7 @@ import {
 } from '@secretvault/database';
 import { InMemorySessionStore } from './session-store';
 import { RateLimiter } from './rate-limiter';
+import { createLogger, type Logger } from './logging/logger';
 import { GithubReleaseSource } from './update/github-release-source';
 import { APP_VERSION } from './version';
 import type { ApiConfig } from './config';
@@ -44,6 +47,9 @@ export interface Container {
   settingsService: SettingsService;
   updateService: UpdateService;
   backupService: BackupService;
+  sessionSecurityService: SessionSecurityService;
+  logger: Logger;
+  logLevelService: LogLevelService;
   auditService: AuditService;
   rateLimiters: {
     setup: RateLimiter;
@@ -57,6 +63,7 @@ export interface Container {
 
 export interface ContainerOverrides {
   releaseSource?: ReleaseSource;
+  logWriter?: (line: string) => void;
 }
 
 export function createContainer(config: ApiConfig, overrides: ContainerOverrides = {}): Container {
@@ -64,9 +71,25 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
   const repositories = createRepositories(db);
   const unitOfWork = new SqliteUnitOfWork(db);
   const crypto = new NodeCryptoService();
-  const sessionStore = new InMemorySessionStore(crypto, config.sessionMaxMinutes);
+  const sessionStore = new InMemorySessionStore(crypto);
 
-  const vaultService = new VaultService({
+  // La confirmación de contraseña vive en VaultService, que a su vez necesita los límites.
+  const sessionSecurityService: SessionSecurityService = new SessionSecurityService({
+    security: repositories.securitySettings,
+    sessions: sessionStore,
+    passwords: {
+      confirmPassword: (id: string, password: string): Promise<void> =>
+        vaultService.confirmPassword(id, password),
+    },
+    audit: repositories.audit,
+    unitOfWork,
+    defaults: {
+      autoLockMinutes: config.autoLockMinutes,
+      sessionMaxMinutes: config.sessionMaxMinutes,
+    },
+  });
+
+  const vaultService: VaultService = new VaultService({
     vaultRepo: repositories.vault,
     projects: repositories.projects,
     environments: repositories.environments,
@@ -74,7 +97,8 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     sessions: sessionStore,
     audit: repositories.audit,
     unitOfWork,
-    config: { iterations: config.iterations, autoLockMinutes: config.autoLockMinutes },
+    config: { iterations: config.iterations },
+    limits: sessionSecurityService,
   });
 
   const projectService = new ProjectService({
@@ -130,6 +154,19 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     unitOfWork,
   });
 
+  const logger = createLogger({
+    level: config.logLevel,
+    write: overrides.logWriter ?? ((line) => void process.stdout.write(`${line}\n`)),
+  });
+  const logLevelService = new LogLevelService({
+    security: repositories.securitySettings,
+    audit: repositories.audit,
+    passwords: vaultService,
+    unitOfWork,
+    output: logger,
+    defaultLevel: config.logLevel,
+  });
+
   return {
     config,
     db,
@@ -143,6 +180,9 @@ export function createContainer(config: ApiConfig, overrides: ContainerOverrides
     updateService,
     backupService,
     auditService,
+    sessionSecurityService,
+    logger,
+    logLevelService,
     rateLimiters: {
       // 20 setups / 10 min; 10 unlocks fallidos / 5 min; 10 cambios / 15 min; 10 recuperaciones / 15 min (por IP).
       setup: new RateLimiter(20, 10 * 60_000),

@@ -6,32 +6,29 @@
  * Nota honesta: JavaScript no garantiza borrado criptográfico de RAM (el GC
  * puede retener copias), pero zero-in-place reduce la ventana de exposición.
  */
-import type { SessionStore, VaultCryptoService, VaultSession } from '@secretvault/core';
+import type {
+  SessionLimits,
+  SessionStore,
+  VaultCryptoService,
+  VaultSession,
+} from '@secretvault/core';
 import { zeroKey } from '@secretvault/crypto';
 
 export class InMemorySessionStore implements SessionStore {
   private readonly sessions = new Map<string, VaultSession>();
 
-  /**
-   * @param maxLifetimeMinutes vida máxima ABSOLUTA de una sesión: la ventana
-   *   deslizante por inactividad nunca puede extenderla más allá.
-   * @param now reloj inyectable (tests deterministas).
-   */
   constructor(
     private readonly crypto: VaultCryptoService,
-    private readonly maxLifetimeMinutes: number = Number.POSITIVE_INFINITY,
     private readonly now: () => number = Date.now,
   ) {}
 
-  private hardExpiry(session: VaultSession): number {
-    return session.createdAt.getTime() + this.maxLifetimeMinutes * 60_000;
+  /** La ventana de inactividad nunca pasa de la vida máxima absoluta. */
+  private expiryFor(session: VaultSession, limits: SessionLimits): Date {
+    const hard = session.createdAt.getTime() + limits.maxMinutes * 60_000;
+    return new Date(Math.min(this.now() + limits.idleMinutes * 60_000, hard));
   }
 
-  private slidingExpiry(session: VaultSession, ttlMinutes: number): Date {
-    return new Date(Math.min(this.now() + ttlMinutes * 60_000, this.hardExpiry(session)));
-  }
-
-  async create(key: Uint8Array, ttlMinutes: number): Promise<VaultSession> {
+  async create(key: Uint8Array, limits: SessionLimits): Promise<VaultSession> {
     const sessionId = this.crypto.randomToken(32);
     const session: VaultSession = {
       sessionId,
@@ -39,7 +36,7 @@ export class InMemorySessionStore implements SessionStore {
       createdAt: new Date(this.now()),
       expiresAt: new Date(0),
     };
-    session.expiresAt = this.slidingExpiry(session, ttlMinutes);
+    session.expiresAt = this.expiryFor(session, limits);
     this.sessions.set(sessionId, session);
     return session;
   }
@@ -54,11 +51,19 @@ export class InMemorySessionStore implements SessionStore {
     return session;
   }
 
-  async touch(sessionId: string, ttlMinutes: number): Promise<VaultSession | null> {
+  async touch(sessionId: string, limits: SessionLimits): Promise<VaultSession | null> {
     const session = await this.get(sessionId);
     if (!session) return null;
-    session.expiresAt = this.slidingExpiry(session, ttlMinutes);
-    return session;
+    session.expiresAt = this.expiryFor(session, limits);
+    return this.get(sessionId);
+  }
+
+  async applyLimits(limits: SessionLimits): Promise<void> {
+    for (const session of this.sessions.values()) {
+      const capped = this.expiryFor(session, limits);
+      if (capped < session.expiresAt) session.expiresAt = capped;
+    }
+    await this.purgeExpired();
   }
 
   async remove(sessionId: string): Promise<void> {

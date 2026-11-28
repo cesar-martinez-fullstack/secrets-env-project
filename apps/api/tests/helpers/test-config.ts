@@ -9,6 +9,7 @@ export function makeTestConfig(rootDir: string, overrides: Partial<ApiConfig> = 
     dataDir: join(rootDir, 'data'),
     publicDir: join(rootDir, 'public'),
     iterations: 100_000,
+    logLevel: 'error',
     ...overrides,
   };
 }

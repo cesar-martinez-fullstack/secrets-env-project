@@ -10,7 +10,9 @@ import { getSessionId, setSessionCookie } from '../http/helpers';
 import type { Container } from '../container';
 
 /** Contexto enriquecido de la app. */
-export type AppEnv = { Variables: { session: VaultSession } };
+export type AppEnv = {
+  Variables: { session: VaultSession; requestId: string; errorCode?: string };
+};
 
 export function requireUnlocked(container: Container): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -20,11 +22,13 @@ export function requireUnlocked(container: Container): MiddlewareHandler<AppEnv>
     const session = await container.sessionStore.get(sessionId);
     if (!session) throw new VaultLockedError();
 
-    const touched = await container.sessionStore.touch(sessionId, container.config.autoLockMinutes);
-    c.set('session', touched ?? session);
+    const limits = await container.sessionSecurityService.currentLimits();
+    const touched = await container.sessionStore.touch(sessionId, limits);
+    if (!touched) throw new VaultLockedError();
+    c.set('session', touched);
 
     // Renueva la cookie para que no muera antes que la sesión activa.
-    setSessionCookie(c, sessionId, container.config);
+    setSessionCookie(c, touched, container.config);
     await next();
   };
 }

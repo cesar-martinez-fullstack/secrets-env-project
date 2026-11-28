@@ -11,14 +11,19 @@ import { settingsRoutes } from './routes/settings.routes';
 import { environmentRoutes } from './routes/environments.routes';
 import { secretRoutes } from './routes/secrets.routes';
 import { auditRoutes } from './routes/audit.routes';
+import { securityRoutes } from './routes/security.routes';
 import { updateRoutes } from './routes/update.routes';
 import { serveWebApp } from './http/static';
+import { describeError, requestLog } from './logging/request-log';
 import { hostGuard, originGuard, securityHeaders } from './middleware/security';
 import type { Container } from './container';
 import type { AppEnv } from './middleware/auth';
 
 export function createApp(container: Container): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  // Primero, para registrar también lo que rechaza el perímetro.
+  app.use('*', requestLog(container.logger));
 
   // --- Perímetro: cabeceras, Host (anti DNS-rebinding) y Origin (anti CSRF) ---
   app.use('*', securityHeaders());
@@ -28,6 +33,7 @@ export function createApp(container: Container): Hono<AppEnv> {
   // --- Errores de dominio → respuestas JSON estables ---
   app.onError((err, c) => {
     if (err instanceof DomainError) {
+      c.set('errorCode', err.code);
       const headers: Record<string, string> = { 'Cache-Control': 'no-store' };
       if (err.status === 429) headers['Retry-After'] = '60';
       return c.json(
@@ -36,7 +42,11 @@ export function createApp(container: Container): Hono<AppEnv> {
         headers,
       );
     }
-    console.error('[SecretVault] Error interno:', err);
+    c.set('errorCode', 'INTERNAL_ERROR');
+    container.logger.error('http.unexpected_error', {
+      requestId: c.get('requestId'),
+      ...describeError(err),
+    });
     return c.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Error interno del servidor.' } },
       500,
@@ -68,6 +78,7 @@ export function createApp(container: Container): Hono<AppEnv> {
   app.route('/api/share', shareRoutes(container));
   app.route('/api/settings', settingsRoutes(container));
   app.route('/api/audit', auditRoutes(container));
+  app.route('/api/security-settings', securityRoutes(container));
   app.route('/api/update', updateRoutes(container));
 
   // --- SPA (frontend compilado) — catch-all para GET ---

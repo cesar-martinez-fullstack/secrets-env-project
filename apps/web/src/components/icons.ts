@@ -129,6 +129,7 @@ export const ICONS = {
     '<path d="m8.6 13.5 6.8 4"/>',
     '<path d="m15.4 6.5-6.8 4"/>',
   ],
+  move: ['<path d="M5 12h14"/>', '<path d="m13 6 6 6-6 6"/>'],
   loader: ['<path d="M21 12a9 9 0 1 1-6.219-8.56"/>'],
 } as const;
 

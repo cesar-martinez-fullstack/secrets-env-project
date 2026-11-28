@@ -88,6 +88,18 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
     sesión y `PUT /api/settings/appearance` exige la bóveda abierta. El nombre se valida (1–40 caracteres, sin
     control) y el acento y el tema son listas cerradas, así que nunca llega CSS ni HTML libre a la interfaz.
 
+11. **Ajustes de sesión (ADR-0013):** bloqueo (5, 15, 30 o 60 min) y vida máxima (1, 4, 8 o 12 h) se cambian con la
+    contraseña maestra, quedan auditados y acortan las sesiones abiertas; no hay «nunca» ni más de 12 h desde la
+    interfaz (el entorno puede fijar otros valores, que se conservan hasta que se cambien). Al copiar un secreto o la
+    clave de recuperación, el navegador intenta vaciar el portapapeles (30 s por defecto). **No es un borrado
+    garantizado:** no alcanza el historial del portapapeles del sistema ni a otras apps, puede aplazarse hasta que la
+    ventana recupere el foco, no ocurre si se cierra la pestaña y puede vaciar algo copiado después en otro programa.
+
+12. **Registros (ADR-0014):** una línea JSON por petición con campos elegidos (patrón de ruta, estado, duración),
+    nunca cuerpos, cabeceras, búsquedas, direcciones literales, nombres ni valores; de los errores inesperados no se
+    guarda el mensaje. El identificador de petición lo genera el servidor. Cambiar el nivel pide la contraseña y queda
+    auditado. Los registros no sustituyen a la auditoría.
+
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 
 1. ¿Nueva ruta? → actualizar `ROUTE_MANIFEST` + decidir si es pública (revisión).

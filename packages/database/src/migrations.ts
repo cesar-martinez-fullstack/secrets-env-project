@@ -167,6 +167,26 @@ export const MIGRATIONS: readonly Migration[] = [
       INSERT INTO security_settings (id) VALUES (1);
     `,
   },
+  {
+    version: 7,
+    description: 'ajustes de sesión editables: bloqueo, vida máxima y limpieza del portapapeles',
+    sql: `
+      ALTER TABLE security_settings ADD COLUMN auto_lock_minutes INTEGER
+        CHECK (auto_lock_minutes BETWEEN 1 AND 1440);
+      ALTER TABLE security_settings ADD COLUMN session_max_minutes INTEGER
+        CHECK (session_max_minutes BETWEEN 60 AND 10080);
+      ALTER TABLE security_settings ADD COLUMN clipboard_clear_seconds INTEGER NOT NULL DEFAULT 30
+        CHECK (clipboard_clear_seconds IN (0, 30, 60));
+    `,
+  },
+  {
+    version: 8,
+    description: 'nivel de detalle de los registros del servidor',
+    sql: `
+      ALTER TABLE security_settings ADD COLUMN log_level TEXT
+        CHECK (log_level IN ('debug', 'info', 'warn', 'error'));
+    `,
+  },
 ];
 
 export class SchemaTooNewError extends Error {

@@ -88,7 +88,8 @@ describe('VaultService', () => {
       sessions: sessions.store,
       audit: audit.repo,
       unitOfWork: mockUnitOfWork(),
-      config: { iterations: 600_000, autoLockMinutes: 15 },
+      config: { iterations: 600_000 },
+      limits: { currentLimits: async () => ({ idleMinutes: 15, maxMinutes: 720 }) },
     });
   });
 
@@ -169,7 +170,10 @@ describe('VaultService', () => {
       expect(projects.findByName).toHaveBeenCalledWith('General');
       expect(envs.create).toHaveBeenCalledWith(1, 'Local');
       expect(audit.record).toHaveBeenCalledWith('vault.setup', expect.any(String));
-      expect(sessions.create).toHaveBeenCalledWith(session.key, 15);
+      expect(sessions.create).toHaveBeenCalledWith(session.key, {
+        idleMinutes: 15,
+        maxMinutes: 720,
+      });
     });
 
     it('should return a recovery key that really unwraps the stored DEK', async () => {

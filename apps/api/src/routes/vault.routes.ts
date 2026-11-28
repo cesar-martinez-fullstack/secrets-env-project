@@ -57,7 +57,7 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
 
     const { session, recoveryKey } = await vaultService.setup(masterPassword);
     container.rateLimiters.setup.reset(`setup:${ip}`);
-    setSessionCookie(c, session.sessionId, config);
+    setSessionCookie(c, session, config);
     return jsonResponse<SetupVaultResponseDto>(c, { ok: true, recoveryKey }, 201);
   });
 
@@ -73,7 +73,7 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
     // InvalidMasterPasswordError se propaga al onError; el contador ya quedó incrementado.
     const { session, recoveryKey } = await vaultService.unlock(masterPassword);
     unlockLimiter.reset(key);
-    setSessionCookie(c, session.sessionId, config);
+    setSessionCookie(c, session, config);
     // recoveryKey solo viene al actualizar una bóveda anterior: se muestra UNA vez.
     return jsonResponse<UnlockVaultResponseDto>(
       c,
@@ -102,7 +102,7 @@ export function vaultRoutes(container: Container): Hono<AppEnv> {
       requireString(body, 'newPassword'),
     );
     container.rateLimiters.recover.reset(key);
-    setSessionCookie(c, session.sessionId, config);
+    setSessionCookie(c, session, config);
     return jsonResponse<RecoverVaultResponseDto>(c, { ok: true, recoveryKey });
   });
 

@@ -13,6 +13,8 @@ import {
   parseEnvContent,
   DEFAULT_AUTO_LOCK_MINUTES,
   DEFAULT_PBKDF2_ITERATIONS,
+  isLogLevel,
+  type LogLevel,
 } from '@secretvault/shared';
 
 const MAX_DOTENV_LEVELS = 4;
@@ -84,6 +86,8 @@ export interface ApiConfig {
   sessionMaxMinutes: number;
   /** Permite el botón «Comprobar actualizaciones» (única petición saliente de la app). */
   updateCheckEnabled: boolean;
+  /** Detalle de los registros mientras no se guarde otro desde Ajustes. */
+  logLevel: LogLevel;
   isProduction: boolean;
 }
 
@@ -157,6 +161,7 @@ export function loadConfig(env: Record<string, string | undefined> = Bun.env): A
     maxBodyBytes: clamp(toInt(env.SV_MAX_BODY_KB, 2048), 16, 20_480) * 1024,
     sessionMaxMinutes: clamp(toInt(env.SV_SESSION_MAX_HOURS, 12), 1, 168) * 60,
     updateCheckEnabled: env.SV_UPDATE_CHECK !== 'false',
+    logLevel: isLogLevel(env.SV_LOG_LEVEL) ? env.SV_LOG_LEVEL : 'info',
     isProduction,
   };
 }
