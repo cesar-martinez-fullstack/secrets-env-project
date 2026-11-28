@@ -120,21 +120,18 @@ export const AUDIT_EVENT_TYPES: readonly AuditEventType[] = [
   'settings.appearance_changed',
 ];
 
-/** Cambios sobre el propio historial: tienen cuota propia para que ningún otro evento los expulse. */
-export const AUDIT_HISTORY_EVENTS: readonly AuditEventType[] = [
-  'security.settings_changed',
-  'audit.cleared',
-  'audit.retention_changed',
+/**
+ * Eventos que se podan por separado de la retención y entre sí, para que repetir una clase no
+ * expulse otra. El vaciado va solo: para borrar su rastro habría que vaciar otra vez, que deja otro.
+ * Los fallos que no piden credenciales no comparten cupo con los que exigen sesión abierta.
+ */
+export const AUDIT_QUOTAS: readonly { types: readonly AuditEventType[]; keep: number }[] = [
+  { types: ['audit.cleared'], keep: 100 },
+  { types: ['audit.retention_changed'], keep: 100 },
+  { types: ['security.settings_changed'], keep: 100 },
+  { types: ['vault.reauth_failed'], keep: 200 },
+  { types: ['vault.unlock_failed', 'vault.recovery_failed'], keep: 200 },
 ];
-export const AUDIT_HISTORY_EVENTS_KEPT = 100;
-
-/** Intentos fallidos: se pueden provocar sin credenciales, así que no desplazan al resto. */
-export const AUDIT_FAILURE_EVENTS: readonly AuditEventType[] = [
-  'vault.unlock_failed',
-  'vault.recovery_failed',
-  'vault.reauth_failed',
-];
-export const AUDIT_FAILURE_EVENTS_KEPT = 200;
 
 /** Eventos de auditoría retenidos por defecto (se podan los más antiguos). */
 export const AUDIT_MAX_EVENTS = 1_000;

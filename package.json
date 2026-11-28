@@ -1,6 +1,6 @@
 {
   "name": "secretvault",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Local-first secrets and environment-variable manager, encrypted at rest (AES-256-GCM). Bun + Hono + Vue 3 + SQLite.",
   "license": "MIT",

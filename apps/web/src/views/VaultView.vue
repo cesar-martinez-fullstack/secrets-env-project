@@ -125,11 +125,11 @@ onMounted(() => {
   data.init();
   // Si falla se usa el valor por defecto, que sí vacía el portapapeles.
   void security.load().catch(() => undefined);
-  document.addEventListener('copy', security.keepClipboard);
   // Recordatorio visual del auto-lock (el backend es la fuente de verdad).
   lockTimer = setInterval(() => {
     void vault.refreshStatus().then((status) => {
       if (status && !status.unlocked) {
+        void security.clearClipboard();
         void router.replace('/');
       }
     });
@@ -137,7 +137,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('copy', security.keepClipboard);
   if (lockTimer) clearInterval(lockTimer);
 });
 

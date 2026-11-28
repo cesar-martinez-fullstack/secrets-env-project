@@ -100,6 +100,14 @@ loopback, y el servidor rechaza cualquier `Host`/`Origin` ajeno (anti DNS-rebind
     guarda el mensaje. El identificador de petición lo genera el servidor. Cambiar el nivel pide la contraseña y queda
     auditado. Los registros no sustituyen a la auditoría.
 
+13. **Auditoría de la 0.4.0:** el API rechaza lo que el navegador marque como iniciado por otro sitio, también las
+    lecturas (la exportación entrega texto plano); el cifrado rechaza una clave en ceros (sesión destruida durante una
+    petición); la auditoría se poda por clases: vaciados (100), cambios de retención (100), cambios de ajustes (100),
+    reautenticaciones fallidas (200) e intentos de entrada fallidos (200), aparte de la retención. Sustituye a las
+    cuotas descritas en el punto 9. **Límites:** dentro de cada clase los más antiguos se expulsan; los intentos
+    fallidos sin credenciales pueden desplazar a otros de su clase. Recargar la página cancela un vaciado del
+    portapapeles pendiente. El historial no es evidencia a prueba de manipulación.
+
 ## Checklist de revisión (para cada PR que toque auth/crypto/rutas)
 
 1. ¿Nueva ruta? → actualizar `ROUTE_MANIFEST` + decidir si es pública (revisión).

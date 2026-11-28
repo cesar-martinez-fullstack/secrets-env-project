@@ -52,13 +52,23 @@ export class SessionSecurityService implements SessionLimitsProvider {
     const previous = await this.settings();
     assertAllowed(next, previous);
     await this.deps.passwords.confirmPassword(sessionId, password);
+    const changes = changedFields(previous, next);
+    if (Object.keys(changes).length === 0) return;
     await this.deps.unitOfWork.run(async () => {
       const saved = await this.deps.security.get();
-      await this.deps.security.save({ ...saved, ...next });
+      // Solo lo cambiado: el resto sigue heredando del entorno.
+      await this.deps.security.save({ ...saved, ...changes });
       await this.deps.audit.record('security.settings_changed', describeChange(previous, next));
     });
     await this.deps.sessions.applyLimits(toLimits(next));
   }
+}
+
+function changedFields(from: SessionSecurity, to: SessionSecurity): Partial<SessionSecurity> {
+  const changed = (Object.keys(OPTIONS) as (keyof SessionSecurity)[])
+    .filter((field) => from[field] !== to[field])
+    .map((field) => [field, to[field]]);
+  return Object.fromEntries(changed) as Partial<SessionSecurity>;
 }
 
 /** Un valor vigente fuera de la lista (venido del entorno) puede conservarse, no elegirse. */
