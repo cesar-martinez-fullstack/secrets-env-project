@@ -43,21 +43,18 @@ export function hostGuard(config: Pick<ApiConfig, 'allowedHosts'>): MiddlewareHa
 }
 
 /**
- * En métodos que mutan estado, si el navegador envía `Origin` debe coincidir con
- * el host de la propia petición. Complementa SameSite=Lax (defensa en profundidad).
+ * Rechaza lo que el navegador declare iniciado por otro sitio y, en métodos que mutan estado,
+ * un `Origin` distinto del propio. Complementa SameSite=Lax (defensa en profundidad).
  */
 export function originGuard(): MiddlewareHandler {
   return async (c, next) => {
-    if (!SAFE_METHODS.has(c.req.method)) {
-      const origin = c.req.header('origin');
-      const fetchSite = c.req.header('sec-fetch-site');
-      const crossSite = fetchSite === 'cross-site' || fetchSite === 'same-site';
-      const originHost = origin ? safeHost(origin) : null;
-      const requestHost = safeHost(c.req.url);
-      const mismatch = origin !== undefined && originHost !== requestHost;
-      if (mismatch || crossSite) {
-        return forbidden(c, 'CROSS_ORIGIN_BLOCKED', 'Origen no permitido.');
-      }
+    // También los GET: una navegación desde otra web envía la cookie y podría descargar la exportación.
+    const fetchSite = c.req.header('sec-fetch-site');
+    const crossSite = fetchSite === 'cross-site' || fetchSite === 'same-site';
+    const origin = SAFE_METHODS.has(c.req.method) ? undefined : c.req.header('origin');
+    const mismatch = origin !== undefined && safeHost(origin) !== safeHost(c.req.url);
+    if (mismatch || crossSite) {
+      return forbidden(c, 'CROSS_ORIGIN_BLOCKED', 'Origen no permitido.');
     }
     await next();
   };

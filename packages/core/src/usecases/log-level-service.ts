@@ -35,6 +35,7 @@ export class LogLevelService {
     }
     const previous = await this.current();
     await this.deps.passwords.confirmPassword(sessionId, password);
+    if (level === previous) return;
     await this.deps.unitOfWork.run(async () => {
       const saved = await this.deps.security.get();
       await this.deps.security.save({ ...saved, logLevel: level });

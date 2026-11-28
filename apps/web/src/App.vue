@@ -2,12 +2,19 @@
 import { onMounted } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
+import { useSecurityStore } from '@/stores/security';
 import ToastHost from '@/components/ui/ToastHost.vue';
 import RecoveryKeyDialog from '@/components/vault/RecoveryKeyDialog.vue';
 
 const settings = useSettingsStore();
+const security = useSecurityStore();
 useThemeStore();
-onMounted(() => void settings.load());
+onMounted(() => {
+  void settings.load();
+  // En la raíz: la clave de recuperación se muestra también fuera de la vista de la bóveda.
+  document.addEventListener('copy', security.onManualCopy);
+  window.addEventListener('sv:locked', () => void security.clearClipboard());
+});
 </script>
 
 <template>

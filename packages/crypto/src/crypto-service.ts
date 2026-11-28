@@ -9,7 +9,7 @@
  * Ninguna clave se persiste: las produce la derivación/generación en RAM y el SessionStore las retiene.
  */
 import { createCipheriv, createDecipheriv, hkdfSync, pbkdf2Sync, randomBytes } from 'node:crypto';
-import type { VaultCryptoService } from '@secretvault/core';
+import { VaultLockedError, type VaultCryptoService } from '@secretvault/core';
 import { DEFAULT_PBKDF2_ITERATIONS, RECOVERY_KEY_BYTES } from '@secretvault/shared';
 
 const KEY_LENGTH = 32; // AES-256
@@ -114,6 +114,8 @@ export class NodeCryptoService implements VaultCryptoService {
     if (key.length !== KEY_LENGTH) {
       throw new Error('La clave AES debe ser de 256 bits.');
     }
+    // Una clave en ceros es la de una sesión destruida mientras la petición seguía en curso.
+    if (key.every((byte) => byte === 0)) throw new VaultLockedError();
   }
 
   private assertSalt(salt: Uint8Array): void {

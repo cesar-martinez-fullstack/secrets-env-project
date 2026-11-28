@@ -87,6 +87,12 @@ export const useDataStore = defineStore('data', () => {
         return;
       }
       secrets.value = result.items;
+    } catch (error) {
+      if (mine === latest) {
+        secrets.value = [];
+        total.value = 0;
+      }
+      throw error;
     } finally {
       if (mine === latest) loadingSecrets.value = false;
     }

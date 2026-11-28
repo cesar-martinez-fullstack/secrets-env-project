@@ -53,6 +53,14 @@ cannot open an upgraded database; to return to it you need a backup made before 
 
 - Unexpected server errors are no longer printed in full: only their type and where they happened are
   logged, because the message could quote data that had been sent.
+- The API now refuses any request the browser marks as started by another site, reads included: another page
+  could navigate to the plaintext export and leave the file in your downloads.
+- Nothing can be encrypted with a wiped key. If the vault locked while a request was still arriving, a value
+  could be stored encrypted with zeros and reported as saved.
+- Audit events are pruned per kind, so repeating settings changes can no longer push out the record that the
+  history was cleared. Saving without changing anything no longer records an event.
+- Copying a revealed secret or the recovery key by hand also schedules the clipboard cleaning, and the
+  clipboard is cleared when the vault locks on its own.
 
 ## [0.2.0] - 2026-11-25
 

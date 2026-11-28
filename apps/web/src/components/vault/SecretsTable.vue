@@ -387,6 +387,7 @@ async function copySecret(secret: SecretDto): Promise<void> {
             <code
               v-if="isRevealed(secret.id)"
               :key="'v' + secret.id"
+              data-sensitive
               :class="layout.value"
               class="truncate rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 font-mono text-xs text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-300"
             >
