@@ -16,6 +16,14 @@ const clipboard = createSensitiveClipboard({
   },
 });
 
+function touchesSensitive(event: Event): boolean {
+  const nodes = [event.target as Node | null, document.getSelection()?.anchorNode];
+  return nodes.some((node) => {
+    const element = node instanceof Element ? node : node?.parentElement;
+    return Boolean(element?.closest('[data-sensitive]'));
+  });
+}
+
 export const useSecurityStore = defineStore('security', () => {
   const settings = ref<SessionSecurityDto | null>(null);
 
@@ -31,7 +39,14 @@ export const useSecurityStore = defineStore('security', () => {
   const clipboardSeconds = (): number =>
     settings.value?.clipboardClearSeconds ?? DEFAULT_CLIPBOARD_CLEAR_SECONDS;
 
+  /** Un Ctrl+C sobre algo marcado como sensible se limpia igual; sobre lo demás, ya no es nuestro. */
+  function onManualCopy(event: Event): void {
+    if (touchesSensitive(event)) clipboard.arm(clipboardSeconds());
+    else clipboard.forget();
+  }
+
   return {
+    onManualCopy,
     settings,
     load,
     save,

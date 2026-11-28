@@ -91,6 +91,12 @@ describe('sensitive clipboard', () => {
     expect(timers.size).toBe(0);
   });
 
+  it('should schedule the cleaning of something the person copied by hand', async () => {
+    clipboard.arm(30);
+    await fire();
+    expect(written).toEqual(['']);
+  });
+
   it('should report a failed copy and schedule nothing', async () => {
     writable = false;
     expect(await clipboard.copy('dato', 30)).toBe(false);

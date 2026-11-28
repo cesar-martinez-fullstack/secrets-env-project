@@ -79,6 +79,7 @@ function confirmSaved(): void {
 
       <div
         data-testid="recovery-key"
+        data-sensitive
         class="grid grid-cols-4 gap-2 rounded-xl border border-indigo-200 bg-indigo-50 p-4 font-mono text-sm font-semibold tracking-wider text-indigo-900 select-all dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200"
         :aria-label="t('recovery.keyLabel')"
       >
