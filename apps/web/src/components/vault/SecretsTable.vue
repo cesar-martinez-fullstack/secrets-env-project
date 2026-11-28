@@ -25,6 +25,8 @@ const props = defineProps<{
   order: SortOrder;
   reorderable: boolean;
   view: ViewMode;
+  /** Hay más páginas: «seleccionar todos» abarca solo la que se ve. */
+  paged: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -92,6 +94,7 @@ const allSelected = computed(
   () => props.secrets.length > 0 && props.secrets.every((secret) => props.selected.has(secret.id)),
 );
 const someSelected = computed(() => props.selected.size > 0 && !allSelected.value);
+const selectAllLabel = computed(() => t(props.paged ? 'table.selectPage' : 'table.selectAll'));
 
 const draggingId = ref<number | null>(null);
 const orderedIds = computed(() => props.secrets.map((secret) => secret.id));
@@ -242,15 +245,13 @@ async function copySecret(secret: SecretDto): Promise<void> {
         class="h-4 w-4 rounded border-zinc-300 accent-indigo-600"
         :checked="allSelected"
         :indeterminate="someSelected"
-        :aria-label="t('table.selectAll')"
+        :aria-label="selectAllLabel"
         data-testid="select-all"
         @change="emit('toggle-all')"
       />
       <span class="text-zinc-500 dark:text-zinc-400">
         {{
-          selected.size > 0
-            ? t('table.selectedCount', { count: selected.size })
-            : t('table.selectAll')
+          selected.size > 0 ? t('table.selectedCount', { count: selected.size }) : selectAllLabel
         }}
       </span>
       <ViewSelector class="ml-auto" :view="view" @change="emit('set-view', $event)" />

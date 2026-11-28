@@ -154,6 +154,17 @@ export function isLogLevel(value: unknown): value is LogLevel {
   return (LOG_LEVELS as readonly unknown[]).includes(value);
 }
 
+/** Orden de la lista de secretos: por nombre o el que se haya fijado a mano. */
+export const SORT_ORDERS = ['asc', 'desc', 'manual'] as const;
+export type SortOrder = (typeof SORT_ORDERS)[number];
+
+export function isSortOrder(value: unknown): value is SortOrder {
+  return (SORT_ORDERS as readonly unknown[]).includes(value);
+}
+
+export const MAX_PAGE_SIZE = 200;
+export const TOTAL_COUNT_HEADER = 'X-Total-Count';
+
 export const AUDIT_RETENTION_OPTIONS = [500, 1_000, 5_000, 10_000] as const;
 
 export type AuditRetentionOption = (typeof AUDIT_RETENTION_OPTIONS)[number];

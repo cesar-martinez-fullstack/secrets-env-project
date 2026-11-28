@@ -19,6 +19,7 @@ import type { ExportFormat, ImportEntry } from '@secretvault/shared';
 import type {
   AuditRepository,
   EnvironmentRepository,
+  SecretListFilter,
   SecretRepository,
 } from '../ports/repositories';
 import { secretNoteAad, secretValueAad } from '../ports/crypto';
@@ -65,6 +66,11 @@ function describeBulkDeletion(names: readonly string[]): string {
   return `${names.length} secretos eliminados: ${listed.join(', ')}${rest > 0 ? ` y ${rest} más` : ''}.`;
 }
 
+export interface SecretPage {
+  items: SecretSummary[];
+  total: number;
+}
+
 export class SecretService {
   constructor(private readonly deps: SecretServiceDeps) {}
 
@@ -85,13 +91,14 @@ export class SecretService {
   }
 
   /** Listado enmascarado. Opcionalmente filtrado por ambiente y búsqueda por nombre. */
-  async list(filter: { environmentId?: number; query?: string } = {}): Promise<SecretSummary[]> {
-    const query = filter.query?.trim();
-    const records = await this.deps.secrets.list({
-      environmentId: filter.environmentId,
-      query: query && query.length > 0 ? query : undefined,
-    });
-    return records.map((r) => this.toSummary(r));
+  /** Una página (o todo, sin `limit`) junto con el total que cumple el filtro. */
+  async list(filter: SecretListFilter = {}): Promise<SecretPage> {
+    const trimmed = filter.query?.trim();
+    const criteria = { ...filter, query: trimmed ? trimmed : undefined };
+    const records = await this.deps.secrets.list(criteria);
+    const total =
+      criteria.limit === undefined ? records.length : await this.deps.secrets.count(criteria);
+    return { items: records.map((r) => this.toSummary(r)), total };
   }
 
   /** Revela un secreto: desencripta en RAM y registra el evento de auditoría. */

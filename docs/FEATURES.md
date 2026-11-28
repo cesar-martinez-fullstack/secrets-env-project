@@ -53,15 +53,15 @@ La versión indica en qué release llega o llegará; el historial detallado est�
 
 ## Planeado (por rebanadas, en este orden)
 
-| ID    | Rebanada                                                                                          | Estado   | Versión |
-| ----- | ------------------------------------------------------------------------------------------------- | -------- | ------- |
-| F-100 | Bóvedas múltiples · 1: crear una segunda bóveda y entrar a ella (la actual pasa a ser la primera) | Planeado | —       |
-| F-101 | Bóvedas múltiples · 2: archivar una bóveda perdida (se mueve el archivo, no se destruye)          | Planeado | —       |
-| F-102 | Bóvedas múltiples · 3: renombrar una bóveda                                                       | Planeado | —       |
-| F-103 | Bóvedas múltiples · 4: cambiar de bóveda sin reiniciar                                            | Planeado | —       |
-| F-110 | Importar desde archivo: `.env`/TXT, CSV y JSON (mismo formato que se exporta), con vista previa   | Hecho    | 0.2.0   |
-| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | Hecho    | 0.2.0   |
-| F-112 | Paginación por offset del listado de secretos (`limit` y `offset`, con total)                     | Planeado | —       |
+| ID    | Rebanada                                                                                          | Estado      | Versión |
+| ----- | ------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| F-100 | Bóvedas múltiples · 1: crear una segunda bóveda y entrar a ella (la actual pasa a ser la primera) | Planeado    | —       |
+| F-101 | Bóvedas múltiples · 2: archivar una bóveda perdida (se mueve el archivo, no se destruye)          | Planeado    | —       |
+| F-102 | Bóvedas múltiples · 3: renombrar una bóveda                                                       | Planeado    | —       |
+| F-103 | Bóvedas múltiples · 4: cambiar de bóveda sin reiniciar                                            | Planeado    | —       |
+| F-110 | Importar desde archivo: `.env`/TXT, CSV y JSON (mismo formato que se exporta), con vista previa   | Hecho       | 0.2.0   |
+| F-111 | Exportar solo los secretos seleccionados (casillas en la tabla), en cualquier formato             | Hecho       | 0.2.0   |
+| F-112 | Paginación por offset del listado de secretos (`limit` y `offset`, con total)                     | En revisión | —       |
 
 El resto del backlog (backup y restauración, borrado automático del portapapeles, E2E en CI, etc.) está en
 [TODO.md](TODO.md) y entra aquí cuando se corta como rebanada.

@@ -14,7 +14,8 @@ import { useSelectionStore } from '@/stores/selection';
 import { useSortStore } from '@/stores/sort';
 import { useViewStore } from '@/stores/view';
 import { useSecurityStore } from '@/stores/security';
-import { sortSecrets } from '@/lib/sort';
+import { PAGE_SIZE } from '@/lib/pagination';
+import SecretsPager from '@/components/vault/SecretsPager.vue';
 import { summarizeNames } from '@/lib/selection';
 import { useI18n } from '@/i18n/use-i18n';
 import TopBar from '@/components/layout/TopBar.vue';
@@ -46,9 +47,16 @@ const sort = useSortStore();
 const view = useViewStore();
 const security = useSecurityStore();
 const reorderable = computed(() => sort.order === 'manual' && !data.isSearching);
-const sortedSecrets = computed(() =>
-  sortSecrets(data.secrets, sort.order === 'manual' && data.isSearching ? 'asc' : sort.order),
-);
+const hasPages = computed(() => data.paged && data.total > PAGE_SIZE);
+
+const listCard = ref<HTMLElement | null>(null);
+
+// Los controles están al pie: sin esto la página nueva se vería empezando por el final.
+async function showPage(page: number): Promise<void> {
+  await data.goToPage(page);
+  await nextTick();
+  listCard.value?.scrollIntoView({ block: 'start' });
+}
 
 async function reorderSecrets(ids: number[]): Promise<void> {
   if (data.activeEnvId === null) return;
@@ -236,7 +244,7 @@ function askDeleteSecret(secret: SecretDto): void {
 }
 
 function shareSelected(): void {
-  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
+  const chosen = data.secrets.filter((secret) => selection.ids.has(secret.id));
   if (new Set(chosen.map((secret) => secret.projectName)).size > 1) {
     toast.push('info', t('vault.shareMixedTitle'), t('vault.shareMixedBody'));
     return;
@@ -249,7 +257,7 @@ function shareSelected(): void {
 }
 
 function askDeleteSelected(): void {
-  const chosen = sortedSecrets.value.filter((secret) => selection.ids.has(secret.id));
+  const chosen = data.secrets.filter((secret) => selection.ids.has(secret.id));
   const names = chosen.map((secret) =>
     data.isSearching ? `${secret.name} (${secret.environmentName})` : secret.name,
   );
@@ -361,15 +369,16 @@ async function runConfirm(): Promise<void> {
         </div>
 
         <!-- Lista de secretos -->
-        <div class="card mx-4 mb-10 sm:mx-6">
+        <div ref="listCard" class="card mx-4 mb-10 scroll-mt-20 sm:mx-6">
           <div
             v-if="data.isSearching && data.secrets.length > 0"
             class="border-b border-zinc-100 px-4 py-2 text-xs text-zinc-400 dark:border-zinc-800"
           >
-            {{ t('vault.searchCount', { count: data.secrets.length }) }}
+            {{ t('vault.searchCount', { count: data.total }) }}
           </div>
           <SecretsTable
-            :secrets="sortedSecrets"
+            :secrets="data.secrets"
+            :paged="hasPages"
             :loading="data.loadingSecrets"
             :selected="selection.ids"
             :order="sort.order"
@@ -386,6 +395,14 @@ async function runConfirm(): Promise<void> {
             @remove-selected="askDeleteSelected"
             @share-selected="shareSelected"
             @create-first="openCreateSecret"
+          />
+          <SecretsPager
+            v-if="hasPages"
+            :page="data.page"
+            :shown="data.secrets.length"
+            :total="data.total"
+            :busy="data.loadingSecrets"
+            @go="showPage"
           />
         </div>
 

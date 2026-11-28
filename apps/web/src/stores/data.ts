@@ -14,7 +14,9 @@ import type {
   ProjectDto,
   SecretDto,
 } from '@secretvault/shared';
-import { api } from '@/lib/api';
+import { api, type ListSecretsParams } from '@/lib/api';
+import { PAGE_SIZE, isPaged, lastPage } from '@/lib/pagination';
+import { useSortStore } from '@/stores/sort';
 
 export const useDataStore = defineStore('data', () => {
   const projects = ref<ProjectDto[]>([]);
@@ -24,6 +26,9 @@ export const useDataStore = defineStore('data', () => {
   const query = ref('');
   const loadingEnvs = ref(false);
   const loadingSecrets = ref(false);
+  const page = ref(0);
+  const total = ref(0);
+  const sort = useSortStore();
 
   let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -55,19 +60,47 @@ export const useDataStore = defineStore('data', () => {
     }
   }
 
+  const paged = computed(() => isPaged(sort.order, isSearching.value));
+
+  function listParams(): ListSecretsParams {
+    const scope: ListSecretsParams = isSearching.value
+      ? { q: query.value.trim() } // búsqueda global entre todos los ambientes
+      : { environmentId: activeEnvId.value ?? undefined };
+    const order = sort.order === 'manual' && isSearching.value ? 'asc' : sort.order;
+    if (!paged.value) return { ...scope, order };
+    return { ...scope, order, limit: PAGE_SIZE, offset: page.value * PAGE_SIZE };
+  }
+
+  // Solo se aplica la respuesta de la petición más reciente: al paginar rápido pueden cruzarse.
+  let latest = 0;
+
   async function refreshSecrets(): Promise<void> {
+    const mine = ++latest;
     loadingSecrets.value = true;
     try {
-      const params: { environmentId?: number; q?: string } = {};
-      if (isSearching.value) {
-        params.q = query.value.trim(); // búsqueda global entre todos los ambientes
-      } else if (activeEnvId.value !== null) {
-        params.environmentId = activeEnvId.value;
+      const result = await api.listSecrets(listParams());
+      if (mine !== latest) return;
+      total.value = result.total;
+      if (paged.value && result.items.length === 0 && page.value > 0) {
+        page.value = lastPage(result.total);
+        await refreshSecrets();
+        return;
       }
-      secrets.value = await api.listSecrets(params);
+      secrets.value = result.items;
     } finally {
-      loadingSecrets.value = false;
+      if (mine === latest) loadingSecrets.value = false;
     }
+  }
+
+  async function goToPage(target: number): Promise<void> {
+    const next = Math.min(Math.max(target, 0), lastPage(total.value));
+    if (next === page.value) return;
+    page.value = next;
+    await refreshSecrets();
+  }
+
+  function showFirstPage(): void {
+    page.value = 0;
   }
 
   function scheduleRefreshSecrets(delay = 220): void {
@@ -76,10 +109,16 @@ export const useDataStore = defineStore('data', () => {
   }
 
   // Búsqueda con debounce para no golpear el API en cada tecla.
-  watch(query, () => scheduleRefreshSecrets(220));
+  watch(query, () => {
+    showFirstPage();
+    scheduleRefreshSecrets(220);
+  });
 
-  // Cambiar de ambiente refresca de inmediato.
-  watch(activeEnvId, () => void refreshSecrets());
+  // Cambiar de ambiente o de orden vuelve a la primera página y refresca de inmediato.
+  watch([activeEnvId, () => sort.order], () => {
+    showFirstPage();
+    void refreshSecrets();
+  });
 
   async function addProject(name: string): Promise<void> {
     await api.createProject(name);
@@ -203,6 +242,10 @@ export const useDataStore = defineStore('data', () => {
     projects,
     environments,
     secrets,
+    page,
+    total,
+    paged,
+    goToPage,
     activeEnvId,
     query,
     loadingEnvs,
