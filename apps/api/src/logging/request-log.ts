@@ -43,7 +43,9 @@ export function requestLog(logger: Logger): MiddlewareHandler<AppEnv> {
  * solo se registran su tipo y las líneas de la traza.
  */
 export function describeError(error: Error): LogFields {
+  // El mensaje va delante en la traza y puede tener líneas que parezcan marcos.
   const frames = (error.stack ?? '')
+    .replace(error.message, '')
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.startsWith('at '));

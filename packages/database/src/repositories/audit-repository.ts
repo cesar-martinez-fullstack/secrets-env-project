@@ -5,13 +5,7 @@
 import type { AuditRepository } from '@secretvault/core';
 import type { AuditEvent } from '@secretvault/core';
 import type { AuditEventType } from '@secretvault/shared';
-import {
-  AUDIT_FAILURE_EVENTS,
-  AUDIT_FAILURE_EVENTS_KEPT,
-  AUDIT_HISTORY_EVENTS,
-  AUDIT_HISTORY_EVENTS_KEPT,
-  AUDIT_MAX_EVENTS,
-} from '@secretvault/shared';
+import { AUDIT_MAX_EVENTS, AUDIT_QUOTAS } from '@secretvault/shared';
 import type { SqliteDatabase } from '../sqlite';
 
 interface AuditRow {
@@ -66,11 +60,11 @@ export class SqliteAuditRepository implements AuditRepository {
     return this.db.query('DELETE FROM audit_log').run().changes;
   }
 
-  /** `max` limita los eventos corrientes; los del historial y los fallidos tienen su propia cuota. */
+  /** `max` limita los eventos corrientes; los de `AUDIT_QUOTAS` tienen su propio cupo. */
   async prune(max: number): Promise<void> {
-    this.pruneGroup('IN', AUDIT_HISTORY_EVENTS, AUDIT_HISTORY_EVENTS_KEPT);
-    this.pruneGroup('IN', AUDIT_FAILURE_EVENTS, AUDIT_FAILURE_EVENTS_KEPT);
-    this.pruneGroup('NOT IN', [...AUDIT_HISTORY_EVENTS, ...AUDIT_FAILURE_EVENTS], max);
+    for (const { types, keep } of AUDIT_QUOTAS) this.pruneGroup('IN', types, keep);
+    const reserved = AUDIT_QUOTAS.flatMap((quota) => quota.types);
+    this.pruneGroup('NOT IN', reserved, max);
   }
 
   private pruneGroup(

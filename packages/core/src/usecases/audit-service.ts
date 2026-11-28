@@ -42,6 +42,7 @@ export class AuditService {
     await this.deps.unitOfWork.run(async () => {
       const saved = await this.deps.security.get();
       const previous = saved.auditMaxEvents;
+      if (previous === maxEvents) return;
       const before = await this.deps.audit.count();
       await this.deps.security.save({ ...saved, auditMaxEvents: maxEvents });
       await this.deps.audit.prune(maxEvents);

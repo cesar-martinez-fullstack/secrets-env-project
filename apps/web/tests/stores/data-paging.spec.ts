@@ -96,6 +96,17 @@ describe('useDataStore paging', () => {
     expect(asked().get('order')).toBe('manual');
   });
 
+  it('should not keep the previous rows when a reload fails', async () => {
+    const store = useDataStore();
+    await store.refreshSecrets();
+    respond = async () => new Response('{}', { status: 500 });
+
+    await expect(store.refreshSecrets()).rejects.toThrow();
+
+    expect(store.secrets).toEqual([]);
+    expect(store.total).toBe(0);
+  });
+
   it('should ignore an older response that arrives after a newer one', async () => {
     const store = useDataStore();
     let releaseOld: (res: Response) => void = () => undefined;

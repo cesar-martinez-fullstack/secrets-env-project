@@ -9,42 +9,44 @@ export interface ClipboardDeps {
 export interface SensitiveClipboard {
   copy(text: string, clearAfterSeconds: number): Promise<boolean>;
   clearNow(): Promise<void>;
+  /** La persona copió a mano algo sensible: se programa el mismo vaciado. */
+  arm(clearAfterSeconds: number): void;
   /** Olvida la limpieza pendiente: lo que hay en el portapapeles ya no es nuestro secreto. */
   forget(): void;
 }
 
+/**
+ * No lee el portapapeles antes de vaciarlo: leerlo pide un permiso a la persona. Si el navegador
+ * rechaza la escritura porque la ventana no tiene el foco, se reintenta al recuperarlo.
+ */
 export function createSensitiveClipboard(deps: ClipboardDeps): SensitiveClipboard {
-  let timer: number | null = null;
-  let cancelRetry: (() => void) | null = null;
-  let pending = false;
+  /** Cómo cancelar el vaciado pendiente (temporizador o reintento); `null` si no hay ninguno. */
+  let cancel: (() => void) | null = null;
 
   function forget(): void {
-    if (timer !== null) deps.clearTimer(timer);
-    cancelRetry?.();
-    timer = null;
-    cancelRetry = null;
-    pending = false;
+    cancel?.();
+    cancel = null;
   }
 
-  // No se lee antes de vaciar: leer el portapapeles exige un permiso que el navegador pide a la persona.
   async function clearNow(): Promise<void> {
-    if (!pending) return;
+    if (!cancel) return;
     forget();
     if (await deps.write('')) return;
-    // Sin foco el navegador rechaza la escritura.
-    pending = true;
-    cancelRetry = deps.onNextFocus(() => void clearNow());
+    cancel = deps.onNextFocus(() => void clearNow());
+  }
+
+  function arm(clearAfterSeconds: number): void {
+    forget();
+    if (clearAfterSeconds <= 0) return;
+    const timer = deps.setTimer(() => void clearNow(), clearAfterSeconds * 1000);
+    cancel = () => deps.clearTimer(timer);
   }
 
   async function copy(text: string, clearAfterSeconds: number): Promise<boolean> {
     if (!(await deps.write(text))) return false;
-    forget();
-    if (clearAfterSeconds > 0) {
-      pending = true;
-      timer = deps.setTimer(() => void clearNow(), clearAfterSeconds * 1000);
-    }
+    arm(clearAfterSeconds);
     return true;
   }
 
-  return { copy, clearNow, forget };
+  return { copy, arm, clearNow, forget };
 }
